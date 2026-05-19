@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
+import { Crosshair, LineChart as LineIcon, CandlestickChart, Maximize2, ZoomIn, ZoomOut, Camera, Settings } from "lucide-react"
 
 const ranges = ["15s", "1m", "5m", "1h", "1d"] as const
 type Range = (typeof ranges)[number]
+type Mode = "candles" | "line"
 
 type Candle = { o: number; h: number; l: number; c: number; v: number; t: number }
 
-// Fixed pump.fun-style chart colors. Don't use CSS vars — SVG fill needs concrete values.
 const UP = "#22c55e"
 const DOWN = "#ef4444"
 const GRID = "rgba(255,255,255,0.06)"
@@ -43,17 +44,30 @@ function fmtTime(t: number) {
   return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`
 }
 
+const MIN_VISIBLE = 14
+const MAX_VISIBLE = 200
+
 export function TokenChart({ ticker, underlying }: { ticker: string; underlying: string }) {
   const [range, setRange] = useState<Range>("1m")
-  const seed = useMemo(() => makeCandles(70), [range])
+  const [mode, setMode] = useState<Mode>("candles")
+  const [showCrosshair, setShowCrosshair] = useState(true)
+  const [showVolume, setShowVolume] = useState(true)
+  const seed = useMemo(() => makeCandles(MAX_VISIBLE), [range])
   const [series, setSeries] = useState<Candle[]>(seed)
   const [lastTrade, setLastTrade] = useState<{ side: "BUY" | "SELL"; at: number } | null>(null)
   const [hover, setHover] = useState<number | null>(null)
+
+  // visible window — controlled by wheel zoom and pan
+  const [view, setView] = useState({ start: MAX_VISIBLE - 60, end: MAX_VISIBLE })
   const wrapRef = useRef<HTMLDivElement>(null)
+  const dragRef = useRef<{ x: number; start: number; end: number } | null>(null)
 
-  useEffect(() => setSeries(seed), [seed])
+  useEffect(() => {
+    setSeries(seed)
+    setView({ start: seed.length - 60, end: seed.length })
+  }, [seed])
 
-  // live tick
+  // live tick — keep view stuck to the right edge unless user has panned away
   useEffect(() => {
     let alive = true
     let timer: number
@@ -70,7 +84,8 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
         const v = Math.random() * 120 + 30
         if (isBuy && Math.random() < 0.35) setLastTrade({ side: "BUY", at: Date.now() })
         else if (!isBuy && Math.random() < 0.18) setLastTrade({ side: "SELL", at: Date.now() })
-        return [...s.slice(1), { o, h, l, c, v, t: last.t + 60_000 }]
+        const next = [...s.slice(1), { o, h, l, c, v, t: last.t + 60_000 }]
+        return next
       })
       timer = window.setTimeout(tick, 900 + Math.random() * 1100)
     }
@@ -81,15 +96,20 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
     }
   }, [])
 
+  const visible = useMemo(
+    () => series.slice(Math.max(0, view.start), Math.max(0, view.end)),
+    [series, view],
+  )
+
   const last = series[series.length - 1]
-  const first = series[0]
+  const first = visible[0] ?? series[0]
   const positive = last.c >= first.o
 
-  const min = Math.min(...series.map((c) => c.l))
-  const max = Math.max(...series.map((c) => c.h))
+  const min = Math.min(...visible.map((c) => c.l))
+  const max = Math.max(...visible.map((c) => c.h))
   const r = Math.max(1e-9, max - min)
   const padded = { min: min - r * 0.08, max: max + r * 0.08 }
-  const maxV = Math.max(...series.map((c) => c.v))
+  const maxV = Math.max(...visible.map((c) => c.v))
 
   // SVG geometry
   const W = 900
@@ -98,10 +118,10 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
   const padL = 4
   const padR = 64
   const padT = 8
-  const padB = 24 // time axis
+  const padB = 24
   const innerW = W - padL - padR
   const innerH = PRICE_H - padT - padB
-  const stepX = innerW / series.length
+  const stepX = innerW / Math.max(1, visible.length)
   const candleW = Math.max(2.5, stepX * 0.72)
 
   const yScale = (v: number) =>
@@ -113,14 +133,89 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
     const rect = el.getBoundingClientRect()
     const xRel = ((clientX - rect.left) / rect.width) * W - padL
     const i = Math.floor(xRel / stepX)
-    return Math.max(0, Math.min(series.length - 1, i))
+    return Math.max(0, Math.min(visible.length - 1, i))
   }
 
-  const hovered = hover != null ? series[hover] : null
+  // Wheel zoom: anchor on hovered candle so it stays under the cursor
+  function onWheel(e: React.WheelEvent) {
+    e.preventDefault()
+    const len = view.end - view.start
+    const factor = e.deltaY > 0 ? 1.18 : 1 / 1.18
+    let nextLen = Math.round(len * factor)
+    nextLen = Math.max(MIN_VISIBLE, Math.min(MAX_VISIBLE, nextLen))
+    if (nextLen === len) return
 
-  // 5 evenly-spaced time ticks across the bottom
+    const idx = pickIndex(e.clientX) ?? Math.floor(len / 2)
+    const anchorAbs = view.start + idx
+    const ratio = idx / Math.max(1, len)
+
+    let nextStart = Math.round(anchorAbs - ratio * nextLen)
+    let nextEnd = nextStart + nextLen
+    if (nextStart < 0) {
+      nextStart = 0
+      nextEnd = nextLen
+    }
+    if (nextEnd > series.length) {
+      nextEnd = series.length
+      nextStart = nextEnd - nextLen
+    }
+    setView({ start: nextStart, end: nextEnd })
+  }
+
+  function zoom(delta: number) {
+    const len = view.end - view.start
+    let nextLen = Math.max(MIN_VISIBLE, Math.min(MAX_VISIBLE, Math.round(len * delta)))
+    let nextEnd = view.end
+    let nextStart = nextEnd - nextLen
+    if (nextStart < 0) {
+      nextStart = 0
+      nextEnd = nextLen
+    }
+    setView({ start: nextStart, end: nextEnd })
+  }
+
+  function resetView() {
+    setView({ start: Math.max(0, series.length - 60), end: series.length })
+  }
+
+  function onMouseDown(e: React.MouseEvent) {
+    if (e.button !== 0) return
+    dragRef.current = { x: e.clientX, start: view.start, end: view.end }
+  }
+  function onMouseMove(e: React.MouseEvent) {
+    setHover(pickIndex(e.clientX))
+    const drag = dragRef.current
+    if (!drag) return
+    const el = wrapRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const dxBars = Math.round(((e.clientX - drag.x) / rect.width) * (drag.end - drag.start))
+    let nextStart = drag.start - dxBars
+    let nextEnd = drag.end - dxBars
+    if (nextStart < 0) {
+      nextStart = 0
+      nextEnd = drag.end - drag.start
+    }
+    if (nextEnd > series.length) {
+      nextEnd = series.length
+      nextStart = nextEnd - (drag.end - drag.start)
+    }
+    setView({ start: nextStart, end: nextEnd })
+  }
+  function onMouseUp() {
+    dragRef.current = null
+  }
+
+  // line path
+  const linePath = visible
+    .map((c, i) => `${i === 0 ? "M" : "L"} ${padL + i * stepX + stepX / 2} ${yScale(c.c)}`)
+    .join(" ")
+
+  const hovered = hover != null ? visible[hover] : null
+
+  // 5 evenly-spaced time ticks
   const timeTickIdx = [0, 1, 2, 3, 4].map((i) =>
-    Math.min(series.length - 1, Math.floor((i / 4) * (series.length - 1))),
+    Math.min(visible.length - 1, Math.floor((i / 4) * (Math.max(1, visible.length - 1)))),
   )
 
   return (
@@ -162,11 +257,59 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
         </div>
       </div>
 
+      {/* tools strip */}
+      <div className="flex items-center gap-1 px-2 py-1.5 border-b border-border bg-[#0a0a0c]">
+        <ToolBtn
+          active={mode === "candles"}
+          onClick={() => setMode("candles")}
+          title="candles"
+        >
+          <CandlestickChart className="h-3.5 w-3.5" />
+        </ToolBtn>
+        <ToolBtn active={mode === "line"} onClick={() => setMode("line")} title="line">
+          <LineIcon className="h-3.5 w-3.5" />
+        </ToolBtn>
+        <Sep />
+        <ToolBtn active={showCrosshair} onClick={() => setShowCrosshair((v) => !v)} title="crosshair">
+          <Crosshair className="h-3.5 w-3.5" />
+        </ToolBtn>
+        <ToolBtn active={showVolume} onClick={() => setShowVolume((v) => !v)} title="volume">
+          <span className="font-mono text-[10px] font-bold">vol</span>
+        </ToolBtn>
+        <Sep />
+        <ToolBtn onClick={() => zoom(0.7)} title="zoom in">
+          <ZoomIn className="h-3.5 w-3.5" />
+        </ToolBtn>
+        <ToolBtn onClick={() => zoom(1.4)} title="zoom out">
+          <ZoomOut className="h-3.5 w-3.5" />
+        </ToolBtn>
+        <ToolBtn onClick={resetView} title="reset / fit">
+          <Maximize2 className="h-3.5 w-3.5" />
+        </ToolBtn>
+        <Sep />
+        <ToolBtn title="screenshot">
+          <Camera className="h-3.5 w-3.5" />
+        </ToolBtn>
+        <ToolBtn title="settings">
+          <Settings className="h-3.5 w-3.5" />
+        </ToolBtn>
+        <div className="ml-auto font-mono text-[10px] text-muted-foreground">
+          {view.end - view.start} bars · scroll to zoom · drag to pan
+        </div>
+      </div>
+
       <div
         ref={wrapRef}
-        className="relative bg-[#0d0d0f]"
-        onMouseMove={(e) => setHover(pickIndex(e.clientX))}
-        onMouseLeave={() => setHover(null)}
+        className="relative bg-[#0d0d0f] select-none"
+        onWheel={onWheel}
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseUp={onMouseUp}
+        onMouseLeave={() => {
+          setHover(null)
+          dragRef.current = null
+        }}
+        style={{ cursor: dragRef.current ? "grabbing" : "crosshair" }}
       >
         <svg viewBox={`0 0 ${W} ${PRICE_H}`} className="w-full block" style={{ height: PRICE_H }}>
           {/* horizontal grid + right-gutter price labels */}
@@ -190,7 +333,7 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
           })}
 
           {/* vertical grid every ~10 candles */}
-          {series.map((_, i) =>
+          {visible.map((_, i) =>
             i % 10 === 0 && i !== 0 ? (
               <line
                 key={`v${i}`}
@@ -203,28 +346,38 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
             ) : null,
           )}
 
-          {/* candles */}
-          {series.map((c, i) => {
-            const cx = padL + i * stepX + stepX / 2
-            const x = cx - candleW / 2
-            const up = c.c >= c.o
-            const yHigh = yScale(c.h)
-            const yLow = yScale(c.l)
-            const yOpen = yScale(c.o)
-            const yClose = yScale(c.c)
-            const top = Math.min(yOpen, yClose)
-            const bodyH = Math.max(1.5, Math.abs(yClose - yOpen))
-            const color = up ? UP : DOWN
-            return (
-              <g key={i}>
-                <line x1={cx} x2={cx} y1={yHigh} y2={yLow} stroke={color} strokeWidth={1} />
-                <rect x={x} y={top} width={candleW} height={bodyH} fill={color} />
-              </g>
-            )
-          })}
+          {/* series — candles or line */}
+          {mode === "candles"
+            ? visible.map((c, i) => {
+                const cx = padL + i * stepX + stepX / 2
+                const x = cx - candleW / 2
+                const up = c.c >= c.o
+                const yHigh = yScale(c.h)
+                const yLow = yScale(c.l)
+                const yOpen = yScale(c.o)
+                const yClose = yScale(c.c)
+                const top = Math.min(yOpen, yClose)
+                const bodyH = Math.max(1.5, Math.abs(yClose - yOpen))
+                const color = up ? UP : DOWN
+                return (
+                  <g key={i}>
+                    <line x1={cx} x2={cx} y1={yHigh} y2={yLow} stroke={color} strokeWidth={1} />
+                    <rect x={x} y={top} width={candleW} height={bodyH} fill={color} />
+                  </g>
+                )
+              })
+            : (
+                <>
+                  <path
+                    d={`${linePath} L ${padL + (visible.length - 1) * stepX + stepX / 2} ${padT + innerH} L ${padL + stepX / 2} ${padT + innerH} Z`}
+                    fill={positive ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)"}
+                  />
+                  <path d={linePath} fill="none" stroke={positive ? UP : DOWN} strokeWidth={1.5} />
+                </>
+              )}
 
           {/* crosshair */}
-          {hover != null && (
+          {showCrosshair && hover != null && visible[hover] && (
             <g pointerEvents="none">
               <line
                 x1={padL + hover * stepX + stepX / 2}
@@ -237,32 +390,32 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
               <line
                 x1={padL}
                 x2={W - padR}
-                y1={yScale(series[hover].c)}
-                y2={yScale(series[hover].c)}
+                y1={yScale(visible[hover].c)}
+                y2={yScale(visible[hover].c)}
                 stroke={AXIS}
                 strokeDasharray="3 4"
               />
               <rect
                 x={W - padR + 1}
-                y={yScale(series[hover].c) - 9}
+                y={yScale(visible[hover].c) - 9}
                 width={padR - 2}
                 height={18}
                 fill="rgba(255,255,255,0.9)"
               />
               <text
                 x={W - padR + 5}
-                y={yScale(series[hover].c) + 4}
+                y={yScale(visible[hover].c) + 4}
                 fontSize={11}
                 fontFamily="ui-monospace, monospace"
                 fontWeight={700}
                 fill="#0d0d0f"
               >
-                {fmtPrice(series[hover].c)}
+                {fmtPrice(visible[hover].c)}
               </text>
             </g>
           )}
 
-          {/* live last-price tag — solid color, sits in right gutter, never over candles */}
+          {/* live last-price tag */}
           <g>
             <line
               x1={padL}
@@ -304,7 +457,7 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
               fontFamily="ui-monospace, monospace"
               fill={AXIS}
             >
-              {fmtTime(series[i].t)}
+              {visible[i] ? fmtTime(visible[i].t) : ""}
             </text>
           ))}
         </svg>
@@ -335,33 +488,35 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
           )}
         </AnimatePresence>
 
-        {/* volume strip */}
-        <svg
-          viewBox={`0 0 ${W} ${VOL_H}`}
-          className="w-full block border-t border-border"
-          style={{ height: VOL_H }}
-        >
-          <text x={padL + 4} y={12} fontSize={9} fontFamily="ui-monospace, monospace" fill={AXIS}>
-            volume
-          </text>
-          {series.map((c, i) => {
-            const cx = padL + i * stepX + stepX / 2
-            const x = cx - candleW / 2
-            const up = c.c >= c.o
-            const h = (VOL_H - 16) * (c.v / maxV)
-            return (
-              <rect
-                key={i}
-                x={x}
-                y={VOL_H - 4 - h}
-                width={candleW}
-                height={h}
-                fill={up ? UP : DOWN}
-                opacity={0.55}
-              />
-            )
-          })}
-        </svg>
+        {/* volume */}
+        {showVolume && (
+          <svg
+            viewBox={`0 0 ${W} ${VOL_H}`}
+            className="w-full block border-t border-border"
+            style={{ height: VOL_H }}
+          >
+            <text x={padL + 4} y={12} fontSize={9} fontFamily="ui-monospace, monospace" fill={AXIS}>
+              volume
+            </text>
+            {visible.map((c, i) => {
+              const cx = padL + i * stepX + stepX / 2
+              const x = cx - candleW / 2
+              const up = c.c >= c.o
+              const h = (VOL_H - 16) * (c.v / maxV)
+              return (
+                <rect
+                  key={i}
+                  x={x}
+                  y={VOL_H - 4 - h}
+                  width={candleW}
+                  height={h}
+                  fill={up ? UP : DOWN}
+                  opacity={0.55}
+                />
+              )
+            })}
+          </svg>
+        )}
       </div>
 
       {/* OHLC tooltip */}
@@ -388,4 +543,34 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
       )}
     </div>
   )
+}
+
+function ToolBtn({
+  children,
+  onClick,
+  active,
+  title,
+}: {
+  children: React.ReactNode
+  onClick?: () => void
+  active?: boolean
+  title?: string
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className={
+        active
+          ? "grid h-7 w-7 place-items-center rounded border border-border bg-secondary text-foreground"
+          : "grid h-7 w-7 place-items-center rounded text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+      }
+    >
+      {children}
+    </button>
+  )
+}
+
+function Sep() {
+  return <div className="mx-1 h-4 w-px bg-border" />
 }
