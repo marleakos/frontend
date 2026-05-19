@@ -7,7 +7,7 @@ import { TradePanel } from "@/components/trade-panel"
 import { ThreadSection } from "@/components/thread-section"
 import { TokenRuggedGate } from "@/components/token-rugged-gate"
 import { tokens } from "@/lib/mock-data"
-import { ArrowLeft, Copy, Twitter, Globe, Send } from "lucide-react"
+import { ArrowLeft, Copy, Twitter, Globe, Send, Skull } from "lucide-react"
 
 export default async function TokenPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -24,7 +24,7 @@ export default async function TokenPage({ params }: { params: Promise<{ id: stri
       <Header />
       <TradesTicker />
 
-      <main className="mx-auto max-w-[1400px] px-4 py-6">
+      <main className="mx-auto max-w-[1400px] px-4 py-5">
         <Link
           href="/"
           className="inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground hover:text-foreground mb-4"
@@ -32,83 +32,73 @@ export default async function TokenPage({ params }: { params: Promise<{ id: stri
           <ArrowLeft className="h-3 w-3" /> back to board
         </Link>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4">
-          <div className="space-y-4">
-            {/* Token header — pump-card style */}
-            <div
-              className="relative border-2 border-foreground bg-card"
-              style={{ boxShadow: "6px 6px 0 0 hsl(var(--foreground))" }}
-            >
-              {danger && (
-                <div
-                  className="absolute -top-2.5 -right-2.5 z-10 select-none border-2 border-foreground bg-destructive px-2.5 py-0.5 font-display text-[11px] uppercase tracking-wider text-destructive-foreground"
-                  style={{ transform: "rotate(6deg)", boxShadow: "2px 2px 0 0 hsl(var(--foreground))" }}
-                >
-                  near liq · {token.liqDistance}%
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-[160px_1fr]">
-                <div className="relative grid place-items-center bg-primary border-b-2 sm:border-b-0 sm:border-r-2 border-foreground p-4">
-                  <div className="text-[88px] leading-none drop-shadow-[2px_2px_0_rgba(0,0,0,0.25)]">
-                    {token.emoji}
-                  </div>
-                  <div className="absolute top-1.5 right-1.5 border border-primary-foreground/40 bg-primary-foreground/10 px-1 py-0.5 font-mono text-[9px] font-bold text-primary-foreground">
-                    {token.leverage}x {token.direction.toLowerCase()}
-                  </div>
-                  <div className="absolute bottom-1.5 left-1.5 font-mono text-[9px] font-bold uppercase tracking-wider text-primary-foreground/80">
-                    {token.underlying}
-                  </div>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
+          <div className="space-y-3">
+            {/* Token header — flat, subtle border, no chunky shadow */}
+            <div className="rounded-lg border border-border bg-card overflow-hidden">
+              <div className="flex flex-col sm:flex-row gap-4 p-4">
+                <div className="relative grid h-24 w-24 shrink-0 place-items-center rounded-md bg-secondary text-5xl">
+                  {token.emoji}
                 </div>
 
-                <div className="p-4 flex flex-col gap-2">
+                <div className="flex-1 flex flex-col gap-2 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h1 className="font-display text-2xl md:text-3xl leading-none uppercase">{token.name}</h1>
                     <span className="font-mono text-sm text-muted-foreground">${token.ticker}</span>
+                    <span className="ml-1 rounded border border-primary/40 bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase text-primary">
+                      {token.leverage}x {token.direction.toLowerCase()}
+                    </span>
+                    <span className="rounded border border-border bg-secondary px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase text-muted-foreground">
+                      {token.underlying}
+                    </span>
+                    {danger && (
+                      <span className="inline-flex items-center gap-1 rounded border border-destructive/40 bg-destructive/15 px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase text-destructive">
+                        <Skull className="h-3 w-3" /> near liq · {token.liqDistance}%
+                      </span>
+                    )}
                   </div>
-                  <p className="text-sm text-foreground/80 max-w-xl">{token.description}</p>
+
+                  <p className="text-sm text-foreground/80 max-w-2xl leading-relaxed">{token.description}</p>
 
                   <div className="flex items-center gap-2 mt-1 font-mono text-[11px] text-muted-foreground flex-wrap">
-                    <button className="inline-flex items-center gap-1 border border-border bg-secondary px-2 py-0.5 hover:border-foreground">
+                    <button className="inline-flex items-center gap-1 rounded border border-border bg-secondary px-2 py-0.5 hover:border-foreground">
                       <Copy className="h-3 w-3" /> 7Hk29...mP3qr
                     </button>
                     <span>by <span className="text-foreground">{token.creator}</span></span>
-                    <span className="text-foreground">·</span>
+                    <span className="text-foreground/40">·</span>
                     <a href="#" className="hover:text-foreground"><Twitter className="h-3 w-3" /></a>
                     <a href="#" className="hover:text-foreground"><Send className="h-3 w-3" /></a>
                     <a href="#" className="hover:text-foreground"><Globe className="h-3 w-3" /></a>
                   </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-0 mt-2 border-2 border-foreground">
-                    <Stat label="price" value={`$0.0034`} />
-                    <Stat
-                      label="24h"
-                      value={`${positive ? "+" : ""}${token.change24h.toFixed(1)}%`}
-                      accent={positive ? "primary" : "destructive"}
-                    />
-                    <Stat label="mcap" value={`$${formatK(token.marketCap)}`} />
-                    <Stat
-                      label="liq dist"
-                      value={`${token.liqDistance}%`}
-                      accent={danger ? "destructive" : undefined}
-                    />
-                  </div>
                 </div>
               </div>
 
+              {/* stat strip */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-border">
+                <Stat label="price" value="$0.0034" />
+                <Stat
+                  label="24h"
+                  value={`${positive ? "+" : ""}${token.change24h.toFixed(1)}%`}
+                  accent={positive ? "primary" : "destructive"}
+                />
+                <Stat label="mcap" value={`$${formatK(token.marketCap)}`} />
+                <Stat
+                  label="liq dist"
+                  value={`${token.liqDistance}%`}
+                  accent={danger ? "destructive" : undefined}
+                />
+              </div>
+
               {/* graduation strip */}
-              <div className="px-4 py-3 border-t-2 border-foreground bg-secondary/30">
-                <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-wider mb-1">
+              <div className="px-4 py-2.5 border-t border-border bg-secondary/20">
+                <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-wider mb-1.5">
                   <span className="text-muted-foreground">graduation to raydium</span>
                   <span className="text-primary font-bold">
                     {progress.toFixed(0)}% · ${formatK(token.marketCap)} / $69k
                   </span>
                 </div>
-                <div className="relative h-2 w-full border border-foreground bg-card">
-                  <div
-                    className="absolute left-0 top-0 h-full bg-primary"
-                    style={{ width: `${progress}%` }}
-                  />
+                <div className="relative h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+                  <div className="absolute left-0 top-0 h-full bg-primary" style={{ width: `${progress}%` }} />
                 </div>
               </div>
             </div>
@@ -125,7 +115,7 @@ export default async function TokenPage({ params }: { params: Promise<{ id: stri
             <ThreadSection ticker={token.ticker} replies={token.replies} />
           </div>
 
-          <aside className="space-y-4">
+          <aside className="space-y-3">
             <TradePanel token={token} />
             <HoldersList />
           </aside>
@@ -145,7 +135,7 @@ function Stat({
   accent?: "primary" | "destructive"
 }) {
   return (
-    <div className="px-3 py-2 border-r-2 border-foreground last:border-r-0 bg-card">
+    <div className="px-3 py-2 border-r border-border last:border-r-0">
       <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">{label}</div>
       <div
         className={
@@ -176,11 +166,8 @@ function HoldersList() {
   const max = Math.max(...holders.map((h) => h.pct))
 
   return (
-    <div
-      className="border-2 border-foreground bg-card"
-      style={{ boxShadow: "6px 6px 0 0 hsl(var(--foreground))" }}
-    >
-      <div className="px-3 py-2 border-b-2 border-foreground bg-secondary/40 font-display text-xs uppercase tracking-wider">
+    <div className="rounded-lg border border-border bg-card">
+      <div className="px-3 py-2 border-b border-border font-display text-xs uppercase tracking-wider">
         top holders
       </div>
       <ul>
@@ -198,17 +185,13 @@ function HoldersList() {
                 <span className="text-muted-foreground w-4">{i + 1}</span>
                 <span>{h.addr}</span>
                 {h.isCreator && (
-                  <span className="text-[9px] px-1 border border-foreground bg-foreground text-background font-bold uppercase">
+                  <span className="text-[9px] px-1 rounded border border-primary/40 bg-primary/15 text-primary font-bold uppercase">
                     dev
                   </span>
                 )}
               </span>
               <span className="flex items-center gap-2">
-                <span
-                  className={
-                    h.pnl >= 0 ? "text-primary text-[10px] font-bold" : "text-destructive text-[10px] font-bold"
-                  }
-                >
+                <span className={h.pnl >= 0 ? "text-primary text-[10px] font-bold" : "text-destructive text-[10px] font-bold"}>
                   {h.pnl >= 0 ? "+" : ""}
                   {h.pnl}$
                 </span>
