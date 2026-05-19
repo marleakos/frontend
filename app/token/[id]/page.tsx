@@ -24,28 +24,28 @@ export default async function TokenPage({ params }: { params: Promise<{ id: stri
       <Header />
       <TradesTicker />
 
-      <main className="mx-auto max-w-[1400px] px-4 py-5">
+      <main className="mx-auto max-w-[1400px] px-3 py-4 md:px-4 md:py-5">
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground hover:text-foreground mb-4"
+          className="inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground hover:text-foreground mb-3"
         >
-          <ArrowLeft className="h-3 w-3" /> back to board
+          <ArrowLeft className="h-3 w-3" /> back
         </Link>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-3">
           <div className="space-y-3">
-            {/* Token header — flat, subtle border, no chunky shadow */}
+            {/* Token header */}
             <div className="rounded-lg border border-border bg-card overflow-hidden">
-              <div className="flex flex-col sm:flex-row gap-4 p-4">
-                <div className="relative grid h-24 w-24 shrink-0 place-items-center rounded-md bg-secondary text-5xl">
+              <div className="flex gap-3 p-3 md:p-4">
+                <div className="relative grid h-16 w-16 md:h-24 md:w-24 shrink-0 place-items-center rounded-md bg-secondary text-3xl md:text-5xl">
                   {token.emoji}
                 </div>
 
-                <div className="flex-1 flex flex-col gap-2 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h1 className="font-display text-2xl md:text-3xl leading-none uppercase">{token.name}</h1>
-                    <span className="font-mono text-sm text-muted-foreground">${token.ticker}</span>
-                    <span className="ml-1 rounded border border-primary/40 bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase text-primary">
+                <div className="flex-1 flex flex-col gap-1.5 md:gap-2 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h1 className="font-display text-xl md:text-3xl leading-none uppercase">{token.name}</h1>
+                    <span className="font-mono text-xs text-muted-foreground">${token.ticker}</span>
+                    <span className="rounded border border-primary/40 bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase text-primary">
                       {token.leverage}x {token.direction.toLowerCase()}
                     </span>
                     <span className="rounded border border-border bg-secondary px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase text-muted-foreground">
@@ -58,9 +58,9 @@ export default async function TokenPage({ params }: { params: Promise<{ id: stri
                     )}
                   </div>
 
-                  <p className="text-sm text-foreground/80 max-w-2xl leading-relaxed">{token.description}</p>
+                  <p className="text-xs md:text-sm text-foreground/80 max-w-2xl leading-relaxed line-clamp-2 md:line-clamp-none">{token.description}</p>
 
-                  <div className="flex items-center gap-2 mt-1 font-mono text-[11px] text-muted-foreground flex-wrap">
+                  <div className="flex items-center gap-2 font-mono text-[10px] md:text-[11px] text-muted-foreground flex-wrap">
                     <button className="inline-flex items-center gap-1 rounded border border-border bg-secondary px-2 py-0.5 hover:border-foreground">
                       <Copy className="h-3 w-3" /> 7Hk29...mP3qr
                     </button>
@@ -73,7 +73,6 @@ export default async function TokenPage({ params }: { params: Promise<{ id: stri
                       solscan <span className="text-[10px]">↗</span>
                     </a>
                     <span>by <Link href={`/user/${token.creator.split("...")[0]}`} className="text-foreground hover:text-primary">{token.creator}</Link></span>
-                    <span className="text-foreground/40">·</span>
                     <a href="#" className="hover:text-foreground"><Twitter className="h-3 w-3" /></a>
                     <a href="#" className="hover:text-foreground"><Send className="h-3 w-3" /></a>
                     <a href="#" className="hover:text-foreground"><Globe className="h-3 w-3" /></a>
@@ -81,7 +80,7 @@ export default async function TokenPage({ params }: { params: Promise<{ id: stri
                 </div>
               </div>
 
-              {/* stat strip */}
+              {/* stat strip — 2 cols on mobile, 4 on sm+ */}
               <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-border">
                 <Stat label="price" value="$0.0034" />
                 <Stat
@@ -98,9 +97,9 @@ export default async function TokenPage({ params }: { params: Promise<{ id: stri
               </div>
 
               {/* graduation strip */}
-              <div className="px-4 py-2.5 border-t border-border bg-secondary/20">
+              <div className="px-3 md:px-4 py-2 border-t border-border bg-secondary/20">
                 <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-wider mb-1.5">
-                  <span className="text-muted-foreground">graduation to raydium</span>
+                  <span className="text-muted-foreground">graduation</span>
                   <span className="text-primary font-bold">
                     {progress.toFixed(0)}% · ${formatK(token.marketCap)} / $69k
                   </span>
