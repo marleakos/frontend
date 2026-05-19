@@ -136,31 +136,42 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
     return Math.max(0, Math.min(visible.length - 1, i))
   }
 
-  // Wheel zoom: anchor on hovered candle so it stays under the cursor
-  function onWheel(e: React.WheelEvent) {
-    e.preventDefault()
-    const len = view.end - view.start
-    const factor = e.deltaY > 0 ? 1.18 : 1 / 1.18
-    let nextLen = Math.round(len * factor)
-    nextLen = Math.max(MIN_VISIBLE, Math.min(MAX_VISIBLE, nextLen))
-    if (nextLen === len) return
+  // Wheel zoom: anchor on hovered candle so it stays under the cursor.
+  // Must use a non-passive native listener so preventDefault() blocks page scroll.
+  useEffect(() => {
+    const el = wrapRef.current
+    if (!el) return
+    const handler = (e: WheelEvent) => {
+      e.preventDefault()
+      setView((cur) => {
+        const len = cur.end - cur.start
+        const factor = e.deltaY > 0 ? 1.18 : 1 / 1.18
+        let nextLen = Math.round(len * factor)
+        nextLen = Math.max(MIN_VISIBLE, Math.min(MAX_VISIBLE, nextLen))
+        if (nextLen === len) return cur
 
-    const idx = pickIndex(e.clientX) ?? Math.floor(len / 2)
-    const anchorAbs = view.start + idx
-    const ratio = idx / Math.max(1, len)
+        const rect = el.getBoundingClientRect()
+        const xRel = ((e.clientX - rect.left) / rect.width) * W - padL
+        const idx = Math.max(0, Math.min(len - 1, Math.floor(xRel / (innerW / Math.max(1, len)))))
+        const anchorAbs = cur.start + idx
+        const ratio = idx / Math.max(1, len)
 
-    let nextStart = Math.round(anchorAbs - ratio * nextLen)
-    let nextEnd = nextStart + nextLen
-    if (nextStart < 0) {
-      nextStart = 0
-      nextEnd = nextLen
+        let nextStart = Math.round(anchorAbs - ratio * nextLen)
+        let nextEnd = nextStart + nextLen
+        if (nextStart < 0) {
+          nextStart = 0
+          nextEnd = nextLen
+        }
+        if (nextEnd > series.length) {
+          nextEnd = series.length
+          nextStart = nextEnd - nextLen
+        }
+        return { start: nextStart, end: nextEnd }
+      })
     }
-    if (nextEnd > series.length) {
-      nextEnd = series.length
-      nextStart = nextEnd - nextLen
-    }
-    setView({ start: nextStart, end: nextEnd })
-  }
+    el.addEventListener("wheel", handler, { passive: false })
+    return () => el.removeEventListener("wheel", handler)
+  }, [series.length])
 
   function zoom(delta: number) {
     const len = view.end - view.start
@@ -300,8 +311,7 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
 
       <div
         ref={wrapRef}
-        className="relative bg-[#0d0d0f] select-none"
-        onWheel={onWheel}
+        className="relative bg-[#0d0d0f] select-none touch-none overscroll-contain"
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
