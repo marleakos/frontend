@@ -1,20 +1,17 @@
 import { Header } from "@/components/header"
 import { TradesTicker } from "@/components/trades-ticker"
-import { KingOfTheHill } from "@/components/king-of-the-hill"
-import { FiltersBar } from "@/components/filters-bar"
-import { TokenGrid } from "@/components/token-grid"
+import { LiveBoard } from "@/components/live-board"
 import { tokens } from "@/lib/mock-data"
 
 export default function Page() {
   const koth = tokens[0]
+  const rest = tokens.slice(1)
   return (
     <main className="min-h-screen text-foreground">
       <Header />
       <TradesTicker />
       <div className="mx-auto max-w-[1400px] px-4">
-        <KingOfTheHill token={koth} />
-        <FiltersBar />
-        <TokenGrid tokens={tokens.slice(1)} />
+        <LiveBoard initial={rest} koth={koth} />
       </div>
       <footer className="border-t border-border mt-16 py-6">
         <div className="mx-auto max-w-[1400px] px-4 flex items-center justify-between font-mono text-[11px] text-muted-foreground">
