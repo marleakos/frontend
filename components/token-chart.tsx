@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { Crosshair, LineChart as LineIcon, CandlestickChart, Maximize2, ZoomIn, ZoomOut, Camera, Settings } from "lucide-react"
 
-const ranges = ["15s", "1m", "5m", "1h", "1d"] as const
+const ranges = ["15s", "1m", "5m", "15m", "1h", "4h", "1d"] as const
 type Range = (typeof ranges)[number]
 type Mode = "candles" | "line"
 
@@ -15,10 +15,24 @@ const DOWN = "#ef4444"
 const GRID = "rgba(255,255,255,0.06)"
 const AXIS = "rgba(255,255,255,0.45)"
 
-function makeCandles(n: number, start = 0.0034): Candle[] {
+function rangeToMs(r: Range): number {
+  const m: Record<Range, number> = {
+    "15s": 15_000,
+    "1m": 60_000,
+    "5m": 5 * 60_000,
+    "15m": 15 * 60_000,
+    "1h": 60 * 60_000,
+    "4h": 4 * 60 * 60_000,
+    "1d": 24 * 60 * 60_000,
+  }
+  return m[r]
+}
+
+function makeCandles(n: number, range: Range, start = 0.0034): Candle[] {
   const out: Candle[] = []
   let p = start
-  let t = Date.now() - n * 60_000
+  const intervalMs = rangeToMs(range)
+  let t = Date.now() - n * intervalMs
   for (let i = 0; i < n; i++) {
     const o = p
     const drift = (Math.random() - 0.45) * 0.06
@@ -28,7 +42,7 @@ function makeCandles(n: number, start = 0.0034): Candle[] {
     const v = Math.random() * 100 + 20
     out.push({ o, h, l, c, v, t })
     p = c
-    t += 60_000
+    t += intervalMs
   }
   return out
 }
@@ -39,10 +53,19 @@ function fmtPrice(v: number) {
   return v.toFixed(6)
 }
 
-function fmtTime(t: number) {
-  const d = new Date(t)
-  return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`
-}
+  function fmtTime(t: number, range: Range = "1m") {
+    const d = new Date(t)
+    const h = d.getHours().toString().padStart(2, "0")
+    const m = d.getMinutes().toString().padStart(2, "0")
+    const s = d.getSeconds().toString().padStart(2, "0")
+    if (range === "15s") return `${h}:${m}:${s}`
+    if (range === "1d" || range === "4h") {
+      const mth = (d.getMonth() + 1).toString().padStart(2, "0")
+      const day = d.getDate().toString().padStart(2, "0")
+      return `${mth}/${day}`
+    }
+    return `${h}:${m}`
+  }
 
 const MIN_VISIBLE = 14
 const MAX_VISIBLE = 200
@@ -52,7 +75,7 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
   const [mode, setMode] = useState<Mode>("candles")
   const [showCrosshair, setShowCrosshair] = useState(true)
   const [showVolume, setShowVolume] = useState(true)
-  const seed = useMemo(() => makeCandles(MAX_VISIBLE), [range])
+  const seed = useMemo(() => makeCandles(MAX_VISIBLE, range), [range])
   const [series, setSeries] = useState<Candle[]>(seed)
   const [lastTrade, setLastTrade] = useState<{ side: "BUY" | "SELL"; at: number } | null>(null)
   const [hover, setHover] = useState<number | null>(null)
@@ -74,6 +97,7 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
     const tick = () => {
       if (!alive) return
       setSeries((s) => {
+        if (s.length === 0) return s
         const last = s[s.length - 1]
         const isBuy = Math.random() < 0.55
         const drift = (Math.random() - (isBuy ? 0.25 : 0.55)) * 0.05
@@ -84,7 +108,8 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
         const v = Math.random() * 120 + 30
         if (isBuy && Math.random() < 0.35) setLastTrade({ side: "BUY", at: Date.now() })
         else if (!isBuy && Math.random() < 0.18) setLastTrade({ side: "SELL", at: Date.now() })
-        const next = [...s.slice(1), { o, h, l, c, v, t: last.t + 60_000 }]
+        const intervalMs = rangeToMs(range)
+        const next = [...s.slice(1), { o, h, l, c, v, t: last.t + intervalMs }]
         return next
       })
       timer = window.setTimeout(tick, 900 + Math.random() * 1100)
@@ -94,7 +119,7 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
       alive = false
       window.clearTimeout(timer)
     }
-  }, [])
+  }, [range])
 
   const visible = useMemo(
     () => series.slice(Math.max(0, view.start), Math.max(0, view.end)),
@@ -268,46 +293,45 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
         </div>
       </div>
 
-      {/* tools strip */}
-      <div className="flex items-center gap-1 px-2 py-1.5 border-b border-border bg-[#0a0a0c]">
-        <ToolBtn
-          active={mode === "candles"}
-          onClick={() => setMode("candles")}
-          title="candles"
-        >
-          <CandlestickChart className="h-3.5 w-3.5" />
-        </ToolBtn>
-        <ToolBtn active={mode === "line"} onClick={() => setMode("line")} title="line">
-          <LineIcon className="h-3.5 w-3.5" />
-        </ToolBtn>
-        <Sep />
-        <ToolBtn active={showCrosshair} onClick={() => setShowCrosshair((v) => !v)} title="crosshair">
-          <Crosshair className="h-3.5 w-3.5" />
-        </ToolBtn>
-        <ToolBtn active={showVolume} onClick={() => setShowVolume((v) => !v)} title="volume">
-          <span className="font-mono text-[10px] font-bold">vol</span>
-        </ToolBtn>
-        <Sep />
-        <ToolBtn onClick={() => zoom(0.7)} title="zoom in">
-          <ZoomIn className="h-3.5 w-3.5" />
-        </ToolBtn>
-        <ToolBtn onClick={() => zoom(1.4)} title="zoom out">
-          <ZoomOut className="h-3.5 w-3.5" />
-        </ToolBtn>
-        <ToolBtn onClick={resetView} title="reset / fit">
-          <Maximize2 className="h-3.5 w-3.5" />
-        </ToolBtn>
-        <Sep />
-        <ToolBtn title="screenshot">
-          <Camera className="h-3.5 w-3.5" />
-        </ToolBtn>
-        <ToolBtn title="settings">
-          <Settings className="h-3.5 w-3.5" />
-        </ToolBtn>
-        <div className="ml-auto font-mono text-[10px] text-muted-foreground">
-          {view.end - view.start} bars · scroll to zoom · drag to pan
+        <div className="flex items-center gap-1 px-2 py-1.5 border-b border-border bg-[#0a0a0c]">
+          <ToolBtn
+            active={mode === "candles"}
+            onClick={() => setMode("candles")}
+            title="candles"
+          >
+            <CandlestickChart className="h-3.5 w-3.5" />
+          </ToolBtn>
+          <ToolBtn active={mode === "line"} onClick={() => setMode("line")} title="line">
+            <LineIcon className="h-3.5 w-3.5" />
+          </ToolBtn>
+          <Sep />
+          <ToolBtn active={showCrosshair} onClick={() => setShowCrosshair((v) => !v)} title="crosshair">
+            <Crosshair className="h-3.5 w-3.5" />
+          </ToolBtn>
+          <ToolBtn active={showVolume} onClick={() => setShowVolume((v) => !v)} title="volume">
+            <span className="font-mono text-[10px] font-bold">vol</span>
+          </ToolBtn>
+          <Sep />
+          <ToolBtn onClick={() => zoom(0.7)} title="zoom in">
+            <ZoomIn className="h-3.5 w-3.5" />
+          </ToolBtn>
+          <ToolBtn onClick={() => zoom(1.4)} title="zoom out">
+            <ZoomOut className="h-3.5 w-3.5" />
+          </ToolBtn>
+          <ToolBtn onClick={resetView} title="reset / fit">
+            <Maximize2 className="h-3.5 w-3.5" />
+          </ToolBtn>
+          <Sep />
+          <ToolBtn title="screenshot">
+            <Camera className="h-3.5 w-3.5" />
+          </ToolBtn>
+          <ToolBtn title="settings">
+            <Settings className="h-3.5 w-3.5" />
+          </ToolBtn>
+          <div className="ml-auto font-mono text-[10px] text-muted-foreground">
+            {view.end - view.start} bars · scroll to zoom · drag to pan
+          </div>
         </div>
-      </div>
 
       <div
         ref={wrapRef}
@@ -467,7 +491,7 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
               fontFamily="ui-monospace, monospace"
               fill={AXIS}
             >
-              {visible[i] ? fmtTime(visible[i].t) : ""}
+              {visible[i] ? fmtTime(visible[i].t, range) : ""}
             </text>
           ))}
         </svg>
@@ -532,7 +556,7 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
       {/* OHLC tooltip */}
       {hovered && (
         <div className="px-3 py-1.5 border-t border-border bg-secondary/20 font-mono text-[11px] flex items-center gap-3">
-          <span className="text-muted-foreground">{fmtTime(hovered.t)}</span>
+          <span className="text-muted-foreground">{fmtTime(hovered.t, range)}</span>
           <span className="text-muted-foreground">
             o <span className="text-foreground">{fmtPrice(hovered.o)}</span>
           </span>
