@@ -105,10 +105,11 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
     setView({ start: Math.max(0, seed.length - 40), end: seed.length })
   }, [seed])
 
-  // live tick — keep view stuck to the right edge unless user has panned away
+  // live tick — update at the rate matching the timeframe
   useEffect(() => {
     let alive = true
     let timer: number
+    const intervalMs = rangeToMs(range)
     const tick = () => {
       if (!alive) return
       setSeries((s) => {
@@ -123,13 +124,12 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
         const v = Math.random() * 120 + 30
         if (isBuy && Math.random() < 0.35) setLastTrade({ side: "BUY", at: Date.now() })
         else if (!isBuy && Math.random() < 0.18) setLastTrade({ side: "SELL", at: Date.now() })
-        const intervalMs = rangeToMs(range)
         const next = [...s.slice(1), { o, h, l, c, v, t: last.t + intervalMs }]
         return next
       })
-      timer = window.setTimeout(tick, 900 + Math.random() * 1100)
+      timer = window.setTimeout(tick, intervalMs)
     }
-    timer = window.setTimeout(tick, 1200)
+    timer = window.setTimeout(tick, intervalMs)
     return () => {
       alive = false
       window.clearTimeout(timer)
