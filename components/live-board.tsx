@@ -226,61 +226,79 @@ function LiveCard({ token, pumpedAt }: { token: Token; pumpedAt?: number }) {
 
 function KOTH({ token, pumped }: { token: Token; pumped?: number }) {
   return (
-    <section className="my-8 grid place-items-center">
-      <div className="relative">
-        <div className="absolute -inset-6 rounded-[2rem] rainbow-aura blur-2xl opacity-70" />
-        <div className="absolute -inset-2 rounded-[1.25rem] rainbow-aura" />
-        <motion.div
-          key={token.id + (pumped ?? 0)}
-          initial={{ scale: 0.94, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 320, damping: 22 }}
-        >
-          <Link
-            href={`/token/${token.id}`}
-            className="relative grid grid-cols-[auto_1fr] items-center gap-4 rounded-2xl bg-background px-5 py-4 min-w-[460px] max-w-[520px]"
+    <section className="my-10 grid place-items-center">
+      <div className="mb-3 font-mono text-[11px] uppercase tracking-[0.3em] text-muted-foreground">
+        — king of the hill —
+      </div>
+
+      {/* arcade scoreboard strip */}
+      <div className="relative w-full max-w-[640px] overflow-hidden">
+        <AnimatePresence mode="popLayout" initial={false}>
+          <motion.div
+            key={token.id}
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "-100%" }}
+            transition={{ type: "spring", stiffness: 380, damping: 32 }}
           >
-            <div className="grid h-20 w-20 place-items-center rounded-xl bg-card text-5xl border border-border">
-              {token.emoji}
-            </div>
-            <div className="min-w-0">
-              <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">
-                king of the hill
+            <Link
+              href={`/token/${token.id}`}
+              className="grid grid-cols-[auto_auto_1fr_auto] items-center gap-4 border-2 border-foreground bg-card px-4 py-3 hover:bg-secondary transition-colors"
+              style={{ boxShadow: "6px 6px 0 0 hsl(var(--foreground))" }}
+            >
+              {/* #1 tag — solid black block, looks like a sticker */}
+              <div className="grid h-14 w-14 place-items-center bg-foreground font-display text-3xl text-background">
+                #1
               </div>
-              <div className="font-display text-2xl leading-none truncate">
-                {token.name.toUpperCase()}{" "}
-                <span className="text-muted-foreground text-base">${token.ticker}</span>
+
+              <div className="grid h-14 w-14 place-items-center bg-secondary text-3xl">
+                {token.emoji}
               </div>
-              <div className="mt-2 flex items-center gap-3 font-mono text-xs">
-                <span className="text-primary font-bold">
-                  {token.leverage}x {token.direction.toLowerCase()}
-                </span>
-                <span className="text-muted-foreground">·</span>
-                <span>{token.underlying}</span>
-                <span className="text-muted-foreground">·</span>
-                <motion.span
-                  key={token.marketCap}
-                  initial={{ color: "hsl(var(--primary))", scale: 1.1 }}
-                  animate={{ color: "hsl(var(--foreground))", scale: 1 }}
-                  transition={{ duration: 0.5 }}
-                  className="font-bold"
-                >
-                  ${token.marketCap.toLocaleString()}
-                </motion.span>
-                <span className="text-muted-foreground">mcap</span>
+
+              <div className="min-w-0">
+                <div className="font-display text-xl leading-none truncate">
+                  {token.name.toUpperCase()}{" "}
+                  <span className="text-muted-foreground">${token.ticker}</span>
+                </div>
+                <div className="mt-1 font-mono text-[11px] text-muted-foreground">
+                  <span className="text-foreground font-bold">
+                    {token.leverage}x {token.direction.toLowerCase()}
+                  </span>{" "}
+                  {token.underlying}
+                </div>
               </div>
-            </div>
-          </Link>
-        </motion.div>
+
+              {/* odometer-style mcap */}
+              <div className="text-right font-mono">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">mcap</div>
+                <Odometer value={token.marketCap} bump={pumped} />
+              </div>
+            </Link>
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       <Link
         href="/create"
-        className="brick mt-8 inline-flex items-center rounded-md bg-primary px-6 h-12 font-display text-lg uppercase text-primary-foreground hover:animate-wobble"
+        className="brick mt-8 inline-flex items-center rounded-md bg-primary px-6 h-12 font-display text-lg uppercase text-primary-foreground"
       >
         [ start a new coin ]
       </Link>
     </section>
+  )
+}
+
+function Odometer({ value, bump }: { value: number; bump?: number }) {
+  return (
+    <motion.div
+      key={bump ?? 0}
+      initial={{ y: -6, opacity: 0.6 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 500, damping: 24 }}
+      className="font-display text-2xl text-foreground tabular-nums"
+    >
+      ${value.toLocaleString()}
+    </motion.div>
   )
 }
 
