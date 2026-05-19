@@ -22,11 +22,8 @@ export function TradePanel({ token }: { token: Token }) {
   }
 
   return (
-    <div
-      className="relative border-2 border-foreground bg-card"
-      style={{ boxShadow: "6px 6px 0 0 hsl(var(--foreground))" }}
-    >
-      <div className="grid grid-cols-2 border-b-2 border-foreground">
+    <div className="relative rounded-lg border border-border bg-card overflow-hidden">
+      <div className="grid grid-cols-2 border-b border-border">
         <button
           onClick={() => setSide("buy")}
           className={
@@ -60,7 +57,7 @@ export function TradePanel({ token }: { token: Token }) {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.0"
-              className="w-full h-12 border-2 border-foreground bg-input px-3 font-display text-2xl outline-none focus:bg-secondary"
+              className="w-full h-12 rounded-md border border-border bg-input px-3 font-display text-2xl outline-none focus:border-foreground"
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-xs text-muted-foreground">
               {isBuy ? "SOL" : token.ticker}
@@ -71,21 +68,21 @@ export function TradePanel({ token }: { token: Token }) {
               <button
                 key={p}
                 onClick={() => setAmount(String(p))}
-                className="flex-1 py-1.5 border border-border bg-secondary hover:border-foreground font-mono text-xs"
+                className="flex-1 py-1.5 rounded border border-border bg-secondary hover:border-foreground font-mono text-xs"
               >
                 {p}
               </button>
             ))}
             <button
               onClick={() => setAmount("12.4")}
-              className="flex-1 py-1.5 border border-foreground bg-foreground text-background font-mono text-xs font-bold"
+              className="flex-1 py-1.5 rounded border border-foreground bg-foreground text-background font-mono text-xs font-bold"
             >
               max
             </button>
           </div>
         </div>
 
-        <div className="border-2 border-border bg-background/40 p-3 space-y-1.5 font-mono text-[11px]">
+        <div className="rounded-md border border-border bg-secondary/30 p-3 space-y-1.5 font-mono text-[11px]">
           <Row
             label="leverage"
             value={`${token.leverage}x ${token.direction}`}
@@ -103,7 +100,7 @@ export function TradePanel({ token }: { token: Token }) {
         </div>
 
         {danger && (
-          <div className="flex items-start gap-2 border-2 border-destructive bg-destructive/10 p-2.5 text-[11px] font-mono text-destructive">
+          <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-2.5 text-[11px] font-mono text-destructive">
             <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
             <span>
               this token is <b>{token.liqDistance}%</b> from liquidation. one bad move and the token goes to{" "}
@@ -130,8 +127,8 @@ export function TradePanel({ token }: { token: Token }) {
             transition={{ duration: 0.3 }}
             className={
               isBuy
-                ? "brick w-full py-3 border-2 border-foreground bg-primary text-primary-foreground font-display uppercase tracking-wide text-base"
-                : "brick w-full py-3 border-2 border-foreground bg-destructive text-destructive-foreground font-display uppercase tracking-wide text-base"
+                ? "w-full h-11 rounded-md bg-primary text-primary-foreground font-display uppercase tracking-wide text-base hover:brightness-110"
+                : "w-full h-11 rounded-md bg-destructive text-destructive-foreground font-display uppercase tracking-wide text-base hover:brightness-110"
             }
           >
             {isBuy ? `[ ape ${amount || "0"} sol ]` : "[ dump bags ]"}

@@ -47,31 +47,28 @@ export function ThreadSection({ ticker, replies }: { ticker: string; replies: nu
   }
 
   return (
-    <div
-      className="border-2 border-foreground bg-card"
-      style={{ boxShadow: "6px 6px 0 0 hsl(var(--foreground))" }}
-    >
-      <div className="flex items-center justify-between px-4 py-2.5 border-b-2 border-foreground bg-secondary/40">
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-secondary/20">
         <div className="font-display uppercase text-sm">
           thread <span className="text-muted-foreground font-mono normal-case text-xs">/ ${ticker}</span>
         </div>
         <span className="font-mono text-[11px] text-muted-foreground">{replies} replies</span>
       </div>
 
-      <div className="p-3 border-b-2 border-foreground">
+      <div className="p-3 border-b border-border">
         <div className="flex gap-2">
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && post()}
             placeholder="post a reply"
-            className="flex-1 h-10 border-2 border-foreground bg-input px-3 font-mono text-sm outline-none focus:bg-secondary"
+            className="flex-1 h-10 rounded-md border border-border bg-input px-3 font-mono text-sm outline-none focus:border-foreground"
           />
           <button
             onClick={post}
-            className="brick h-10 px-4 border-2 border-foreground bg-primary text-primary-foreground font-display uppercase tracking-wide text-sm"
+            className="h-10 px-4 rounded-md bg-primary text-primary-foreground font-display uppercase tracking-wide text-sm hover:brightness-110"
           >
-            [ post ]
+            post
           </button>
         </div>
       </div>
@@ -89,7 +86,7 @@ export function ThreadSection({ ticker, replies }: { ticker: string; replies: nu
             >
               <div className="flex items-center gap-2 font-mono text-[11px] text-muted-foreground">
                 <span
-                  className="grid h-6 w-6 place-items-center border-2 border-foreground text-[10px] font-bold text-foreground"
+                  className="grid h-6 w-6 place-items-center rounded-full text-[10px] font-bold text-background"
                   style={{ background: avatarColor(r.user) }}
                 >
                   {r.user[0].toUpperCase()}

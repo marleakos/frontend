@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
 
 const ranges = ["1m", "5m", "1h", "1d", "all"] as const
@@ -26,9 +26,11 @@ function makeCandles(n: number, start = 0.0034): Candle[] {
 
 export function TokenChart({ ticker, underlying }: { ticker: string; underlying: string }) {
   const [range, setRange] = useState<Range>("1h")
-  const seed = useMemo(() => makeCandles(72), [range])
+  const seed = useMemo(() => makeCandles(60), [range])
   const [series, setSeries] = useState<Candle[]>(seed)
   const [lastTrade, setLastTrade] = useState<{ side: "BUY" | "SELL"; at: number } | null>(null)
+  const [hover, setHover] = useState<number | null>(null)
+  const wrapRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => setSeries(seed), [seed])
 
@@ -51,7 +53,7 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
         else if (!isBuy && Math.random() < 0.18) setLastTrade({ side: "SELL", at: Date.now() })
         return [...s.slice(1), { o, h, l, c, v }]
       })
-      timer = window.setTimeout(tick, 800 + Math.random() * 1000)
+      timer = window.setTimeout(tick, 900 + Math.random() * 1100)
     }
     timer = window.setTimeout(tick, 1200)
     return () => {
@@ -65,19 +67,40 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
   const positive = last.c >= first.o
   const min = Math.min(...series.map((c) => c.l))
   const max = Math.max(...series.map((c) => c.h))
+  const range01 = Math.max(1e-9, max - min)
+  const padded = { min: min - range01 * 0.08, max: max + range01 * 0.08 }
   const maxV = Math.max(...series.map((c) => c.v))
-  const W = 800
+
+  // SVG geometry
+  const W = 900
   const PRICE_H = 320
-  const VOL_H = 64
-  const pad = 14
-  const innerW = W - pad * 2
-  const candleW = (innerW / series.length) * 0.7
+  const VOL_H = 70
+  const padL = 8
+  const padR = 64 // dedicated gutter for price labels
+  const padT = 10
+  const padB = 8
+  const innerW = W - padL - padR
+  const innerH = PRICE_H - padT - padB
   const stepX = innerW / series.length
-  const yScale = (v: number) => pad + (PRICE_H - pad * 2) * (1 - (v - min) / Math.max(1e-9, max - min))
+  const candleW = Math.max(2, stepX * 0.7)
+
+  const yScale = (v: number) =>
+    padT + innerH * (1 - (v - padded.min) / (padded.max - padded.min))
+
+  function pickIndex(clientX: number) {
+    const el = wrapRef.current
+    if (!el) return null
+    const rect = el.getBoundingClientRect()
+    const xRel = ((clientX - rect.left) / rect.width) * W - padL
+    const i = Math.floor(xRel / stepX)
+    return Math.max(0, Math.min(series.length - 1, i))
+  }
+
+  const hovered = hover != null ? series[hover] : null
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-secondary/30 flex-wrap gap-2">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-secondary/20 flex-wrap gap-2">
         <div className="flex items-center gap-3">
           <div className="font-display text-base">${ticker}</div>
           <div className="font-mono text-[11px] text-muted-foreground">vs {underlying}</div>
@@ -106,112 +129,164 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
         </div>
       </div>
 
-      <div className="relative bg-background/40">
+      <div
+        ref={wrapRef}
+        className="relative bg-background/30"
+        onMouseMove={(e) => setHover(pickIndex(e.clientX))}
+        onMouseLeave={() => setHover(null)}
+      >
         <svg viewBox={`0 0 ${W} ${PRICE_H}`} className="w-full block" style={{ height: PRICE_H }}>
-          {/* grid */}
-          {[0.2, 0.4, 0.6, 0.8].map((g) => (
-            <line
-              key={g}
-              x1={pad}
-              x2={W - pad}
-              y1={pad + (PRICE_H - pad * 2) * g}
-              y2={pad + (PRICE_H - pad * 2) * g}
-              stroke="hsl(var(--border))"
-              strokeOpacity={0.5}
-              strokeDasharray="2 4"
-            />
-          ))}
-
-          {/* y-axis price labels */}
+          {/* horizontal grid + right-gutter labels */}
           {[0, 0.25, 0.5, 0.75, 1].map((g) => {
-            const v = max - (max - min) * g
+            const y = padT + innerH * g
+            const v = padded.max - (padded.max - padded.min) * g
             return (
-              <text
-                key={g}
-                x={W - pad - 2}
-                y={pad + (PRICE_H - pad * 2) * g + 3}
-                fontSize={9}
-                fontFamily="monospace"
-                fill="hsl(var(--muted-foreground))"
-                textAnchor="end"
-              >
-                {v.toFixed(5)}
-              </text>
+              <g key={g}>
+                <line
+                  x1={padL}
+                  x2={W - padR}
+                  y1={y}
+                  y2={y}
+                  stroke="hsl(var(--border))"
+                  strokeOpacity={0.45}
+                  strokeDasharray="2 4"
+                />
+                <text
+                  x={W - padR + 4}
+                  y={y + 3}
+                  fontSize={10}
+                  fontFamily="monospace"
+                  fill="hsl(var(--muted-foreground))"
+                >
+                  {v.toFixed(5)}
+                </text>
+              </g>
             )
           })}
 
           {/* candles */}
           {series.map((c, i) => {
-            const x = pad + i * stepX + (stepX - candleW) / 2
-            const cx = x + candleW / 2
+            const cx = padL + i * stepX + stepX / 2
+            const x = cx - candleW / 2
             const up = c.c >= c.o
             const yHigh = yScale(c.h)
             const yLow = yScale(c.l)
             const yOpen = yScale(c.o)
             const yClose = yScale(c.c)
             const top = Math.min(yOpen, yClose)
-            const bodyH = Math.max(1, Math.abs(yClose - yOpen))
+            const bodyH = Math.max(1.5, Math.abs(yClose - yOpen))
             const color = up ? "hsl(var(--primary))" : "hsl(var(--destructive))"
             return (
               <g key={i}>
-                <line x1={cx} x2={cx} y1={yHigh} y2={yLow} stroke={color} strokeWidth={1} />
-                <rect x={x} y={top} width={candleW} height={bodyH} fill={color} />
+                <line x1={cx} x2={cx} y1={yHigh} y2={yLow} stroke={color} strokeWidth={1.4} />
+                <rect x={x} y={top} width={candleW} height={bodyH} fill={color} rx={0.5} />
               </g>
             )
           })}
 
-          {/* live last-price dashed line */}
-          <line
-            x1={pad}
-            x2={W - pad}
-            y1={yScale(last.c)}
-            y2={yScale(last.c)}
-            stroke={positive ? "hsl(var(--primary))" : "hsl(var(--destructive))"}
-            strokeOpacity={0.5}
-            strokeDasharray="3 3"
-          />
-          <rect
-            x={W - pad - 70}
-            y={yScale(last.c) - 8}
-            width={68}
-            height={16}
-            rx={2}
-            fill={positive ? "hsl(var(--primary))" : "hsl(var(--destructive))"}
-          />
-          <text
-            x={W - pad - 4}
-            y={yScale(last.c) + 3}
-            fontSize={10}
-            fontFamily="monospace"
-            fontWeight={700}
-            fill={positive ? "hsl(var(--primary-foreground))" : "hsl(var(--destructive-foreground))"}
-            textAnchor="end"
-          >
-            {last.c.toFixed(6)}
-          </text>
+          {/* crosshair */}
+          {hover != null && (
+            <g pointerEvents="none">
+              <line
+                x1={padL + hover * stepX + stepX / 2}
+                x2={padL + hover * stepX + stepX / 2}
+                y1={padT}
+                y2={padT + innerH}
+                stroke="hsl(var(--foreground))"
+                strokeOpacity={0.25}
+                strokeDasharray="2 3"
+              />
+              <line
+                x1={padL}
+                x2={W - padR}
+                y1={yScale(series[hover].c)}
+                y2={yScale(series[hover].c)}
+                stroke="hsl(var(--foreground))"
+                strokeOpacity={0.25}
+                strokeDasharray="2 3"
+              />
+            </g>
+          )}
+
+          {/* live last-price tag (sits in right gutter, not over candles) */}
+          <g>
+            <line
+              x1={padL}
+              x2={W - padR}
+              y1={yScale(last.c)}
+              y2={yScale(last.c)}
+              stroke={positive ? "hsl(var(--primary))" : "hsl(var(--destructive))"}
+              strokeOpacity={0.55}
+              strokeDasharray="3 3"
+            />
+            <rect
+              x={W - padR + 1}
+              y={yScale(last.c) - 9}
+              width={padR - 2}
+              height={18}
+              rx={2}
+              fill={positive ? "hsl(var(--primary))" : "hsl(var(--destructive))"}
+            />
+            <text
+              x={W - padR + 5}
+              y={yScale(last.c) + 4}
+              fontSize={10.5}
+              fontFamily="monospace"
+              fontWeight={700}
+              fill={positive ? "hsl(var(--primary-foreground))" : "hsl(var(--destructive-foreground))"}
+            >
+              {last.c.toFixed(5)}
+            </text>
+          </g>
         </svg>
 
+        {/* OHLC tooltip */}
+        {hovered && hover != null && (
+          <div className="pointer-events-none absolute top-2 left-2 rounded border border-border bg-card/90 backdrop-blur px-2 py-1 font-mono text-[10px] flex gap-2.5">
+            <span className="text-muted-foreground">
+              o <span className="text-foreground">{hovered.o.toFixed(5)}</span>
+            </span>
+            <span className="text-muted-foreground">
+              h <span className="text-primary">{hovered.h.toFixed(5)}</span>
+            </span>
+            <span className="text-muted-foreground">
+              l <span className="text-destructive">{hovered.l.toFixed(5)}</span>
+            </span>
+            <span className="text-muted-foreground">
+              c{" "}
+              <span className={hovered.c >= hovered.o ? "text-primary" : "text-destructive"}>
+                {hovered.c.toFixed(5)}
+              </span>
+            </span>
+          </div>
+        )}
+
         {/* volume strip */}
-        <svg viewBox={`0 0 ${W} ${VOL_H}`} className="w-full block border-t border-border" style={{ height: VOL_H }}>
+        <svg
+          viewBox={`0 0 ${W} ${VOL_H}`}
+          className="w-full block border-t border-border"
+          style={{ height: VOL_H }}
+        >
+          <text x={padL + 2} y={12} fontSize={9} fontFamily="monospace" fill="hsl(var(--muted-foreground))">
+            volume
+          </text>
           {series.map((c, i) => {
-            const x = pad + i * stepX + (stepX - candleW) / 2
+            const cx = padL + i * stepX + stepX / 2
+            const x = cx - candleW / 2
             const up = c.c >= c.o
-            const h = (VOL_H - 4) * (c.v / maxV)
+            const h = (VOL_H - 6) * (c.v / maxV)
             return (
               <rect
                 key={i}
                 x={x}
-                y={VOL_H - 2 - h}
+                y={VOL_H - 3 - h}
                 width={candleW}
                 height={h}
                 fill={up ? "hsl(var(--primary))" : "hsl(var(--destructive))"}
-                opacity={0.45}
+                opacity={0.5}
               />
             )
           })}
-          <text x={pad + 2} y={11} fontSize={9} fontFamily="monospace" fill="hsl(var(--muted-foreground))">
-            volume
-          </text>
         </svg>
 
         {/* trade flash */}
