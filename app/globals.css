@@ -156,3 +156,20 @@
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
+
+/* KOTH — flat caution-tape style banner, no AI glow */
+.koth-banner {
+  background: #ffd400; /* flat yellow */
+  box-shadow: 6px 6px 0 0 #000;
+}
+@keyframes stripes-slide {
+  to { background-position: 56px 0; }
+}
+.koth-stripes {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 14px,
+    rgba(0,0,0,0.18) 14px 28px
+  );
+  animation: stripes-slide 1.6s linear infinite;
+}
