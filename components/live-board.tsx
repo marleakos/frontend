@@ -25,6 +25,7 @@ export function LiveBoard({ initial, koth }: { initial: Token[]; koth: Token }) 
   const [sort, setSort] = useState<Sort>("featured")
   const [search, setSearch] = useState("")
   const [pumped, setPumped] = useState<Record<string, number>>({}) // id -> timestamp
+  const [rugged, setRugged] = useState<Record<string, number>>({}) // id -> timestamp when liquidated
   const [bought, setBought] = useState<{ id: string; ticker: string; sol: number } | null>(null)
 
   // Simulate buys: every 900-1800ms a random token gets bought
@@ -34,6 +35,17 @@ export function LiveBoard({ initial, koth }: { initial: Token[]; koth: Token }) 
       if (!alive) return
       const candidates = [kothToken, ...list]
       const winner = candidates[Math.floor(Math.random() * candidates.length)]
+
+      // ~8% of buys cause a liquidation on a near-liq token (separate from this winner)
+      if (Math.random() < 0.08) {
+        const nearLiq = list
+          .filter((t) => t.liqDistance < 20 && !rugged[t.id])
+          .sort((a, b) => a.liqDistance - b.liqDistance)[0]
+        if (nearLiq) {
+          setRugged((r) => ({ ...r, [nearLiq.id]: Date.now() }))
+        }
+      }
+
       const sol = +(Math.random() * 8 + 0.2).toFixed(2)
       const mcapBump = Math.floor(sol * 1200 + Math.random() * 800)
 
@@ -132,7 +144,7 @@ export function LiveBoard({ initial, koth }: { initial: Token[]; koth: Token }) 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         <AnimatePresence initial={false}>
           {sorted.map((t) => (
-            <LiveCard key={t.id} token={t} pumpedAt={pumped[t.id]} />
+            <LiveCard key={t.id} token={t} pumpedAt={pumped[t.id]} ruggedAt={rugged[t.id]} />
           ))}
         </AnimatePresence>
       </div>
@@ -160,8 +172,9 @@ export function LiveBoard({ initial, koth }: { initial: Token[]; koth: Token }) 
   )
 }
 
-function LiveCard({ token, pumpedAt }: { token: Token; pumpedAt?: number }) {
+function LiveCard({ token, pumpedAt, ruggedAt }: { token: Token; pumpedAt?: number; ruggedAt?: number }) {
   const positive = token.change24h >= 0
+  const isRugged = !!ruggedAt
   return (
     <motion.div
       layout
@@ -173,7 +186,7 @@ function LiveCard({ token, pumpedAt }: { token: Token; pumpedAt?: number }) {
       <motion.div
         key={pumpedAt ?? 0}
         animate={
-          pumpedAt
+          pumpedAt && !isRugged
             ? {
                 scale: [1, 1.06, 1],
                 boxShadow: [
@@ -189,12 +202,16 @@ function LiveCard({ token, pumpedAt }: { token: Token; pumpedAt?: number }) {
       >
         <Link
           href={`/token/${token.id}`}
-          className="group flex gap-3 rounded-lg border border-border bg-card p-3 hover:border-primary transition-colors"
+          className={
+            isRugged
+              ? "relative overflow-hidden flex gap-3 rounded-lg border border-destructive/40 bg-card p-3 pointer-events-none"
+              : "group flex gap-3 rounded-lg border border-border bg-card p-3 hover:border-primary transition-colors"
+          }
         >
           <div className="grid h-20 w-20 shrink-0 place-items-center rounded-md bg-secondary text-4xl">
-            {token.emoji}
+            <span className={isRugged ? "grayscale opacity-50" : ""}>{token.emoji}</span>
           </div>
-          <div className="min-w-0 flex flex-col gap-1">
+          <div className={`min-w-0 flex flex-col gap-1 ${isRugged ? "opacity-60" : ""}`}>
             <div className="font-mono text-[10px] text-muted-foreground">
               created by <span className="text-foreground">{token.creator}</span>{" "}
               <span className="text-primary">{ageLabel(token.ageMinutes)}</span>
@@ -218,7 +235,29 @@ function LiveCard({ token, pumpedAt }: { token: Token; pumpedAt?: number }) {
               <span className="text-muted-foreground">{token.underlying}</span>
             </div>
           </div>
+
+          {/* RUGGED stamp — slanted, translucent red, sits in front like the screenshot */}
+          {isRugged && (
+            <motion.div
+              initial={{ scale: 1.4, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 260, damping: 14 }}
+              className="pointer-events-none absolute inset-0 grid place-items-center"
+            >
+              <span
+                className="font-display text-5xl sm:text-6xl text-destructive/60 italic select-none"
+                style={{ transform: "rotate(-12deg)", letterSpacing: "-0.02em" }}
+              >
+                Rugged!
+              </span>
+            </motion.div>
+          )}
         </Link>
+        {isRugged && (
+          <div className="mt-1 px-1 font-mono text-[10px] text-muted-foreground">
+            thanks for playing — {token.leverage}x {token.direction.toLowerCase()} liquidated
+          </div>
+        )}
       </motion.div>
     </motion.div>
   )
