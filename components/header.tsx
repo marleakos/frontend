@@ -6,7 +6,6 @@ import { Search } from "lucide-react"
 
 const NAV = [
   { href: "/", label: "board" },
-  { href: "/advanced", label: "advanced" },
   { href: "/liq-arena", label: "liq arena" },
   { href: "/leaderboard", label: "leaderboard" },
   { href: "/docs", label: "support" },
