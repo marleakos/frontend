@@ -1,3 +1,4 @@
+import Link from "next/link"
 import type { Token } from "@/lib/mock-data"
 import { LeverageBadge } from "@/components/leverage-badge"
 import { MessageSquare, TrendingUp, TrendingDown, Skull } from "lucide-react"
@@ -82,9 +83,12 @@ export function TokenCard({ token }: { token: Token }) {
         </div>
       </div>
 
-      <button className="mt-auto border-t border-border bg-secondary/40 group-hover:bg-primary group-hover:text-primary-foreground py-2 font-mono text-xs font-bold text-foreground transition-colors">
+      <Link
+        href={`/token/${token.id}`}
+        className="mt-auto border-t border-border bg-secondary/40 group-hover:bg-primary group-hover:text-primary-foreground py-2 font-mono text-xs font-bold text-foreground transition-colors text-center"
+      >
         [ ape in ]
-      </button>
+      </Link>
     </article>
   )
 }
