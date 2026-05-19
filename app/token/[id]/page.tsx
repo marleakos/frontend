@@ -64,7 +64,7 @@ export default async function TokenPage({ params }: { params: Promise<{ id: stri
                     <button className="inline-flex items-center gap-1 rounded border border-border bg-secondary px-2 py-0.5 hover:border-foreground">
                       <Copy className="h-3 w-3" /> 7Hk29...mP3qr
                     </button>
-                    <span>by <span className="text-foreground">{token.creator}</span></span>
+                    <span>by <Link href={`/user/${token.creator.split("...")[0]}`} className="text-foreground hover:text-primary">{token.creator}</Link></span>
                     <span className="text-foreground/40">·</span>
                     <a href="#" className="hover:text-foreground"><Twitter className="h-3 w-3" /></a>
                     <a href="#" className="hover:text-foreground"><Send className="h-3 w-3" /></a>
@@ -183,7 +183,9 @@ function HoldersList() {
             <div className="relative flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <span className="text-muted-foreground w-4">{i + 1}</span>
-                <span>{h.addr}</span>
+                <Link href={`/user/${h.addr.split("...")[0]}`} className="hover:text-primary">
+                  {h.addr}
+                </Link>
                 {h.isCreator && (
                   <span className="text-[9px] px-1 rounded border border-primary/40 bg-primary/15 text-primary font-bold uppercase">
                     dev

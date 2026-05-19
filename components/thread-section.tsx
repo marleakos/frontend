@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { motion, AnimatePresence } from "motion/react"
 
 type Reply = { id: string; user: string; ago: string; text: string; likes: number; pnl?: number }
@@ -130,7 +131,9 @@ export function ThreadSection({ ticker, replies }: { ticker: string; replies: nu
                     >
                       {r.user[0].toUpperCase()}
                     </span>
-                    <span className="text-foreground font-bold">{r.user}</span>
+                    <Link href={`/user/${r.user}`} className="text-foreground font-bold hover:text-primary">
+                      {r.user}
+                    </Link>
                     {typeof r.pnl === "number" && (
                       <span
                         className={
@@ -185,7 +188,9 @@ export function ThreadSection({ ticker, replies }: { ticker: string; replies: nu
                     >
                       {tx.user[0].toUpperCase()}
                     </span>
-                    <span className="text-foreground">{tx.user}</span>
+                    <Link href={`/user/${tx.user}`} className="text-foreground hover:text-primary">
+                      {tx.user}
+                    </Link>
                   </div>
                   <div className="flex items-center gap-2 text-[11px]">
                     <span
