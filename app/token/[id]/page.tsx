@@ -64,6 +64,14 @@ export default async function TokenPage({ params }: { params: Promise<{ id: stri
                     <button className="inline-flex items-center gap-1 rounded border border-border bg-secondary px-2 py-0.5 hover:border-foreground">
                       <Copy className="h-3 w-3" /> 7Hk29...mP3qr
                     </button>
+                    <a
+                      href="https://solscan.io/token/7Hk29mP3qr"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 rounded border border-border bg-secondary px-2 py-0.5 hover:border-foreground hover:text-primary"
+                    >
+                      solscan <span className="text-[10px]">↗</span>
+                    </a>
                     <span>by <Link href={`/user/${token.creator.split("...")[0]}`} className="text-foreground hover:text-primary">{token.creator}</Link></span>
                     <span className="text-foreground/40">·</span>
                     <a href="#" className="hover:text-foreground"><Twitter className="h-3 w-3" /></a>
@@ -186,6 +194,14 @@ function HoldersList() {
                 <Link href={`/user/${h.addr.split("...")[0]}`} className="hover:text-primary">
                   {h.addr}
                 </Link>
+                <a
+                  href={`https://solscan.io/account/${h.addr}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-primary"
+                >
+                  <span className="text-[9px]">↗</span>
+                </a>
                 {h.isCreator && (
                   <span className="text-[9px] px-1 rounded border border-primary/40 bg-primary/15 text-primary font-bold uppercase">
                     dev

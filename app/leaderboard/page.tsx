@@ -1,8 +1,9 @@
+import Link from "next/link"
 import { Header } from "@/components/header"
 import { TradesTicker } from "@/components/trades-ticker"
 import { traders } from "@/lib/extra-data"
 import { tokens } from "@/lib/mock-data"
-import { Trophy, Crown, Medal } from "lucide-react"
+import { Trophy, Crown, Medal, ExternalLink } from "lucide-react"
 
 export default function LeaderboardPage() {
   const topTokens = [...tokens].sort((a, b) => b.marketCap - a.marketCap).slice(0, 5)
@@ -60,7 +61,19 @@ export default function LeaderboardPage() {
                       </div>
                       <span className="font-mono text-[11px] text-muted-foreground">{t.trades} trades</span>
                     </div>
-                    <div className="font-mono text-base font-bold truncate">{t.user}</div>
+                    <div className="font-mono text-base font-bold truncate">
+                      <Link href={`/user/${t.user}`} className="hover:text-primary">
+                        {t.user}
+                      </Link>
+                    </div>
+                    <a
+                      href={`https://solscan.io/account/${t.user}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 mt-0.5 text-[10px] text-muted-foreground hover:text-primary"
+                    >
+                      solscan <ExternalLink className="h-2.5 w-2.5" />
+                    </a>
                     <div className={isFirst ? "mt-1 font-display text-4xl text-primary" : "mt-1 font-display text-2xl text-primary"}>
                       +${(t.pnl / 1000).toFixed(1)}k
                     </div>
@@ -97,7 +110,19 @@ export default function LeaderboardPage() {
                   {traders.map((t) => (
                     <tr key={t.user} className="hover:bg-secondary/40">
                       <td className="px-4 py-2.5 text-muted-foreground font-display">{t.rank}</td>
-                      <td className="px-4 py-2.5 font-bold">{t.user}</td>
+                      <td className="px-4 py-2.5">
+                        <Link href={`/user/${t.user}`} className="font-bold hover:text-primary">
+                          {t.user}
+                        </Link>
+                        <a
+                          href={`https://solscan.io/account/${t.user}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-2 inline-flex items-center text-muted-foreground hover:text-primary"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </td>
                       <td className="px-4 py-2.5 text-primary font-display">+${(t.pnl / 1000).toFixed(1)}k</td>
                       <td className="px-4 py-2.5 text-foreground">${(t.volume / 1000).toFixed(0)}k</td>
                       <td className="px-4 py-2.5 text-muted-foreground">{t.trades}</td>

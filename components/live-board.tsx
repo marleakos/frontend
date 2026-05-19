@@ -246,7 +246,14 @@ function LiveCard({ token, pumpedAt }: { token: Token; pumpedAt?: number }) {
           </div>
           <div className="min-w-0 flex flex-col gap-1">
             <div className="font-mono text-[10px] text-muted-foreground">
-              created by <span className="text-foreground">{token.creator}</span>{" "}
+              created by{" "}
+              <Link
+                href={`/user/${token.creator.split("...")[0]}`}
+                className="text-foreground hover:text-primary"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {token.creator}
+              </Link>{" "}
               <span className="text-primary">{ageLabel(token.ageMinutes)}</span>
             </div>
             <div className="font-mono text-[11px] text-primary">
@@ -344,7 +351,13 @@ function KOTH({
                     </div>
                     <div className="mt-1 font-mono text-[11px] text-muted-foreground">
                       ${token.ticker} · by{" "}
-                      <span className="text-foreground">{token.creator}</span>
+                      <Link
+                        href={`/user/${token.creator.split("...")[0]}`}
+                        className="text-foreground hover:text-primary"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {token.creator}
+                      </Link>
                     </div>
                   </div>
 

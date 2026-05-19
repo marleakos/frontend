@@ -94,6 +94,16 @@ export default function UserPage({ params }: { params: Promise<{ id: string }> }
                 <button className="inline-flex items-center gap-1.5 mt-1 font-mono text-xs text-muted-foreground hover:text-foreground">
                   <Copy className="h-3 w-3" /> {user.fullAddr}
                 </button>
+                <div className="flex items-center gap-2 mt-1">
+                  <a
+                    href={`https://solscan.io/account/${id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-mono text-[11px] text-muted-foreground hover:text-primary"
+                  >
+                    <ExternalLink className="h-3 w-3" /> solscan
+                  </a>
+                </div>
                 <div className="mt-1 font-mono text-[11px] text-muted-foreground">
                   joined {user.joinedDaysAgo}d ago
                 </div>
