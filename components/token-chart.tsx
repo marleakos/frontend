@@ -70,24 +70,39 @@ function fmtMcap(v: number) {
 const MIN_VISIBLE = 14
 const MAX_VISIBLE = 200
 
+function candlesForRange(range: Range): number {
+  const m: Record<Range, number> = {
+    "15s": 40, // ~10 min of 15s candles
+    "1m": 60, // ~1 hour of 1m candles
+    "5m": 72, // ~6 hours of 5m candles
+    "15m": 96, // ~1 day of 15m candles
+    "1h": 168, // ~1 week of 1h candles
+    "4h": 90, // ~15 days of 4h candles
+    "1d": 90, // ~90 days of 1d candles
+  }
+  return m[range]
+}
+
 export function TokenChart({ ticker, underlying }: { ticker: string; underlying: string }) {
   const [range, setRange] = useState<Range>("1m")
   const [mode, setMode] = useState<Mode>("candles")
   const [showCrosshair, setShowCrosshair] = useState(true)
   const [showVolume, setShowVolume] = useState(true)
-  const seed = useMemo(() => makeCandles(MAX_VISIBLE, range), [range])
+  
+  const numCandles = useMemo(() => candlesForRange(range), [range])
+  const seed = useMemo(() => makeCandles(numCandles, range), [range, numCandles])
   const [series, setSeries] = useState<Candle[]>(seed)
   const [lastTrade, setLastTrade] = useState<{ side: "BUY" | "SELL"; at: number } | null>(null)
   const [hover, setHover] = useState<number | null>(null)
 
-  // visible window — controlled by wheel zoom and pan
-  const [view, setView] = useState({ start: MAX_VISIBLE - 60, end: MAX_VISIBLE })
+  // visible window — controlled by wheel zoom and pan, starts at right edge
+  const [view, setView] = useState({ start: Math.max(0, numCandles - 40), end: numCandles })
   const wrapRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<{ x: number; start: number; end: number } | null>(null)
 
   useEffect(() => {
     setSeries(seed)
-    setView({ start: seed.length - 60, end: seed.length })
+    setView({ start: Math.max(0, seed.length - 40), end: seed.length })
   }, [seed])
 
   // live tick — keep view stuck to the right edge unless user has panned away
@@ -172,7 +187,7 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
         const len = cur.end - cur.start
         const factor = e.deltaY > 0 ? 1.18 : 1 / 1.18
         let nextLen = Math.round(len * factor)
-        nextLen = Math.max(MIN_VISIBLE, Math.min(MAX_VISIBLE, nextLen))
+        nextLen = Math.max(MIN_VISIBLE, Math.min(numCandles, nextLen))
         if (nextLen === len) return cur
 
         const rect = el.getBoundingClientRect()
@@ -211,7 +226,7 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
   }
 
   function resetView() {
-    setView({ start: Math.max(0, series.length - 60), end: series.length })
+    setView({ start: Math.max(0, series.length - 40), end: series.length })
   }
 
   function onMouseDown(e: React.MouseEvent) {
