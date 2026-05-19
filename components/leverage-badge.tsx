@@ -8,14 +8,14 @@ export function LeverageBadge({
   const isLong = direction === "LONG"
   return (
     <span
-      className={`inline-flex items-center gap-1 font-mono font-bold text-[11px] px-2 py-0.5 rounded border ${
+      className={`inline-flex items-center gap-1 font-display text-[10px] px-2 py-0.5 rounded border-2 leading-none ${
         isLong
-          ? "bg-primary/15 text-primary border-primary/40"
-          : "bg-destructive/15 text-destructive border-destructive/40"
+          ? "bg-primary text-primary-foreground border-primary-foreground/20"
+          : "bg-destructive text-destructive-foreground border-destructive-foreground/20"
       }`}
     >
       <span>{leverage}x</span>
-      <span className="opacity-70">·</span>
+      <span className="opacity-50">/</span>
       <span>{direction}</span>
     </span>
   )

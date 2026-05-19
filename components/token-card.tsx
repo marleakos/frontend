@@ -1,103 +1,141 @@
 import Link from "next/link"
 import type { Token } from "@/lib/mock-data"
 import { LeverageBadge } from "@/components/leverage-badge"
-import { MessageSquare, TrendingUp, TrendingDown, Skull } from "lucide-react"
+import { MessageSquare, TrendingUp, TrendingDown, Skull, Users } from "lucide-react"
 
-export function TokenCard({ token }: { token: Token }) {
+const HUES = [
+  "from-primary/30 to-accent/20",
+  "from-accent/25 to-info/20",
+  "from-info/25 to-primary/20",
+  "from-chart-5/25 to-primary/20",
+  "from-chart-4/25 to-accent/20",
+] as const
+
+export function TokenCard({ token, index = 0 }: { token: Token; index?: number }) {
   const positive = token.change24h >= 0
   const danger = token.liqDistance < 15
+  const hue = HUES[index % HUES.length]
   return (
-    <article className="group rounded-lg border border-border bg-card hover:border-primary/60 transition-colors overflow-hidden flex flex-col">
-      <div className="flex gap-3 p-3">
-        <div className="grid h-16 w-16 shrink-0 place-items-center rounded-md bg-secondary text-3xl border border-border">
+    <Link
+      href={`/token/${token.id}`}
+      className="group relative block rounded-xl border-2 border-border bg-card overflow-hidden transition-all hover:-translate-y-1 hover:border-primary hover:shadow-[0_8px_0_0_color-mix(in_oklch,var(--primary)_60%,#000)] flex flex-col"
+    >
+      {/* avatar header */}
+      <div className={`relative h-20 bg-gradient-to-br ${hue}`}>
+        <div className="absolute inset-0 halftone opacity-40" />
+        <div className="absolute inset-0 stripes opacity-30 mix-blend-overlay" />
+        <div className="absolute -bottom-7 left-3 grid h-14 w-14 place-items-center rounded-xl bg-card border-2 border-foreground/10 text-3xl shadow-lg">
           {token.emoji}
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <h3 className="font-mono font-bold text-sm text-foreground truncate">
-              {token.name}
-            </h3>
-          </div>
-          <div className="flex items-center gap-1.5 mt-0.5 font-mono text-[11px] text-muted-foreground">
-            <span>${token.ticker}</span>
-            <span>·</span>
-            <span>{ageLabel(token.ageMinutes)}</span>
-            <span>·</span>
-            <span className="truncate">by {token.creator}</span>
-          </div>
-          <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-            <LeverageBadge leverage={token.leverage} direction={token.direction} />
-            <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
-              {token.underlying}
-            </span>
-            {danger && (
-              <span className="inline-flex items-center gap-1 font-mono text-[10px] px-1.5 py-0.5 rounded bg-destructive/15 text-destructive border border-destructive/40">
-                <Skull className="h-2.5 w-2.5" />
-                near liq
-              </span>
-            )}
-          </div>
+        <div className="absolute top-2 right-2 flex items-center gap-1">
+          <LeverageBadge leverage={token.leverage} direction={token.direction} />
+        </div>
+        <div className="absolute bottom-2 right-2 font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-background/70 text-foreground border border-border backdrop-blur-sm">
+          {token.underlying}
         </div>
       </div>
 
-      <p className="px-3 text-xs text-muted-foreground line-clamp-2 mb-3">
-        {token.description}
-      </p>
+      <div className="px-3 pt-9 pb-3 flex-1 flex flex-col">
+        <div className="flex items-baseline gap-2">
+          <h3 className="font-display text-base leading-tight truncate">
+            {token.name.toUpperCase()}
+          </h3>
+        </div>
+        <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
+          <span className="text-primary font-bold">${token.ticker}</span>
+          <span>·</span>
+          <span>{ageLabel(token.ageMinutes)}</span>
+          <span>·</span>
+          <span className="truncate">by {token.creator}</span>
+        </div>
 
-      <div className="px-3 grid grid-cols-3 gap-2 font-mono text-[11px]">
-        <div>
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">mcap</div>
-          <div className="text-accent font-bold">${formatK(token.marketCap)}</div>
-        </div>
-        <div>
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">24h</div>
-          <div
-            className={`font-bold flex items-center gap-0.5 ${
-              positive ? "text-primary" : "text-destructive"
-            }`}
-          >
-            {positive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-            {positive ? "+" : ""}
-            {token.change24h.toFixed(1)}%
-          </div>
-        </div>
-        <div>
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">replies</div>
-          <div className="text-foreground font-bold flex items-center gap-1">
-            <MessageSquare className="h-3 w-3" />
-            {token.replies}
-          </div>
-        </div>
-      </div>
+        <p className="mt-2 text-[12px] text-foreground/70 line-clamp-2 leading-snug">
+          {token.description}
+        </p>
 
-      <div className="p-3 mt-3">
-        <div className="flex items-center justify-between font-mono text-[10px] mb-1">
-          <span className="text-muted-foreground">graduation</span>
-          <span className="text-primary font-bold">{token.progress}%</span>
-        </div>
-        <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
-          <div
-            className="h-full bg-primary"
-            style={{ width: `${token.progress}%` }}
+        {/* stats */}
+        <div className="mt-3 grid grid-cols-3 gap-1 font-mono text-[10px]">
+          <Cell label="mcap" value={`$${formatK(token.marketCap)}`} className="text-accent" />
+          <Cell
+            label="24h"
+            value={`${positive ? "+" : ""}${token.change24h.toFixed(1)}%`}
+            className={positive ? "text-primary" : "text-destructive"}
+            icon={positive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+          />
+          <Cell
+            label="replies"
+            value={String(token.replies)}
+            icon={<MessageSquare className="h-3 w-3" />}
           />
         </div>
+
+        {/* progress */}
+        <div className="mt-3">
+          <div className="flex items-center justify-between font-mono text-[9px] mb-1 uppercase tracking-wider">
+            <span className="text-muted-foreground">to raydium</span>
+            <span className="text-primary font-bold">{token.progress}%</span>
+          </div>
+          <div className="relative h-1.5 rounded-full bg-secondary overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-primary to-accent"
+              style={{ width: `${token.progress}%` }}
+            />
+          </div>
+        </div>
+
+        {/* footer chips */}
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <span className="inline-flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
+            <Users className="h-3 w-3" /> {Math.floor(token.replies * 0.6)}
+          </span>
+          {danger ? (
+            <span className="inline-flex items-center gap-1 font-mono text-[10px] px-1.5 py-0.5 rounded bg-destructive/15 text-destructive border border-destructive/40 animate-pulse">
+              <Skull className="h-3 w-3" /> liq {token.liqDistance}%
+            </span>
+          ) : (
+            <span className="font-mono text-[10px] text-muted-foreground">
+              liq {token.liqDistance}%
+            </span>
+          )}
+        </div>
       </div>
 
-      <Link
-        href={`/token/${token.id}`}
-        className="mt-auto border-t border-border bg-secondary/40 group-hover:bg-primary group-hover:text-primary-foreground py-2 font-mono text-xs font-bold text-foreground transition-colors text-center"
-      >
-        [ ape in ]
-      </Link>
-    </article>
+      {/* CTA strip */}
+      <div className="border-t-2 border-border bg-secondary/40 group-hover:bg-primary group-hover:text-primary-foreground py-2 text-center font-display text-xs uppercase tracking-wide transition-colors">
+        ape in
+      </div>
+    </Link>
+  )
+}
+
+function Cell({
+  label,
+  value,
+  className,
+  icon,
+}: {
+  label: string
+  value: string
+  className?: string
+  icon?: React.ReactNode
+}) {
+  return (
+    <div className="rounded border border-border/60 bg-background/60 px-1.5 py-1 min-w-0">
+      <div className="text-[9px] uppercase tracking-wider text-muted-foreground leading-none mb-0.5">
+        {label}
+      </div>
+      <div className={`flex items-center gap-0.5 font-bold truncate ${className ?? "text-foreground"}`}>
+        {icon}
+        <span className="truncate">{value}</span>
+      </div>
+    </div>
   )
 }
 
 function ageLabel(min: number) {
   if (min < 1) return "now"
   if (min < 60) return `${min}m`
-  const h = Math.floor(min / 60)
-  return `${h}h`
+  return `${Math.floor(min / 60)}h`
 }
 
 function formatK(n: number) {
