@@ -28,6 +28,16 @@ export function LiveBoard({ initial, koth }: { initial: Token[]; koth: Token }) 
   const [rugged, setRugged] = useState<Record<string, number>>({}) // id -> timestamp when liquidated
   const [bought, setBought] = useState<{ id: string; ticker: string; sol: number } | null>(null)
 
+  // Seed one initial liquidation so it's visible right away.
+  useEffect(() => {
+    const seed = [...initial].sort((a, b) => a.liqDistance - b.liqDistance)[0]
+    if (seed) {
+      const t = setTimeout(() => setRugged((r) => ({ ...r, [seed.id]: Date.now() })), 1200)
+      return () => clearTimeout(t)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Simulate buys: every 900-1800ms a random token gets bought
   useEffect(() => {
     let alive = true
@@ -36,10 +46,10 @@ export function LiveBoard({ initial, koth }: { initial: Token[]; koth: Token }) 
       const candidates = [kothToken, ...list]
       const winner = candidates[Math.floor(Math.random() * candidates.length)]
 
-      // ~8% of buys cause a liquidation on a near-liq token (separate from this winner)
-      if (Math.random() < 0.08) {
+      // ~25% of buys cause a liquidation on a near-liq token
+      if (Math.random() < 0.25) {
         const nearLiq = list
-          .filter((t) => t.liqDistance < 20 && !rugged[t.id])
+          .filter((t) => t.liqDistance < 35 && !rugged[t.id])
           .sort((a, b) => a.liqDistance - b.liqDistance)[0]
         if (nearLiq) {
           setRugged((r) => ({ ...r, [nearLiq.id]: Date.now() }))
