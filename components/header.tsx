@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Search } from "lucide-react"
+import { HeaderSearch } from "@/components/header-search"
 
 const NAV = [
   { href: "/", label: "board" },
@@ -36,13 +36,7 @@ export function Header() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          <div className="relative hidden lg:block">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <input
-              placeholder="search ticker / contract"
-              className="h-8 w-64 rounded border border-border bg-input pl-8 pr-3 text-xs font-mono outline-none focus:border-primary"
-            />
-          </div>
+          <HeaderSearch />
           <button className="hidden sm:inline-flex h-8 items-center rounded border border-border bg-secondary px-3 font-mono text-xs hover:border-foreground">
             connect wallet
           </button>

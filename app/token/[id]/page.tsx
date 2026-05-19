@@ -6,6 +6,7 @@ import { LeverageBadge } from "@/components/leverage-badge"
 import { TokenChart } from "@/components/token-chart"
 import { TradePanel } from "@/components/trade-panel"
 import { ThreadSection } from "@/components/thread-section"
+import { TokenRuggedGate } from "@/components/token-rugged-gate"
 import { tokens } from "@/lib/mock-data"
 import { ArrowLeft, Copy, ExternalLink, Skull, TrendingDown, TrendingUp, Users, Twitter, Globe, Send } from "lucide-react"
 
@@ -118,7 +119,9 @@ export default async function TokenPage({ params }: { params: Promise<{ id: stri
               </div>
             </div>
 
-            <TokenChart ticker={token.ticker} underlying={token.underlying} />
+            <TokenRuggedGate id={token.id} ticker={token.ticker} leverage={token.leverage} direction={token.direction}>
+              <TokenChart ticker={token.ticker} underlying={token.underlying} />
+            </TokenRuggedGate>
 
             <ThreadSection ticker={token.ticker} replies={token.replies} />
           </div>

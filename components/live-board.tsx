@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import Link from "next/link"
 import type { Token } from "@/lib/mock-data"
+import { ruggedStore, useRugged } from "@/lib/rugged-store"
 
 type Sort = "featured" | "trending" | "new" | "gainers" | "near liq"
 
@@ -15,7 +16,6 @@ function sortTokens(list: Token[], sort: Sort) {
   else if (sort === "new") arr.sort((a, b) => a.ageMinutes - b.ageMinutes)
   else if (sort === "gainers") arr.sort((a, b) => b.change24h - a.change24h)
   else if (sort === "near liq") arr.sort((a, b) => a.liqDistance - b.liqDistance)
-  // featured: leave as-is (gets reordered by buy events)
   return arr
 }
 
@@ -24,42 +24,37 @@ export function LiveBoard({ initial, koth }: { initial: Token[]; koth: Token }) 
   const [kothToken, setKothToken] = useState<Token>(koth)
   const [sort, setSort] = useState<Sort>("featured")
   const [search, setSearch] = useState("")
-  const [pumped, setPumped] = useState<Record<string, number>>({}) // id -> timestamp
-  const [rugged, setRugged] = useState<Record<string, number>>({}) // id -> timestamp when liquidated
+  const [pumped, setPumped] = useState<Record<string, number>>({})
   const [bought, setBought] = useState<{ id: string; ticker: string; sol: number } | null>(null)
+  const [rektFlash, setRektFlash] = useState<{ id: string; ticker: string } | null>(null)
+  const rugged = useRugged()
 
-  // Seed one initial liquidation so it's visible right away.
+  // Visible tokens = not rugged
+  const visible = useMemo(() => list.filter((t) => !rugged[t.id]), [list, rugged])
+
+  // If KOTH gets rugged, promote next-best by mcap
   useEffect(() => {
-    const seed = [...initial].sort((a, b) => a.liqDistance - b.liqDistance)[0]
-    if (seed) {
-      const t = setTimeout(() => setRugged((r) => ({ ...r, [seed.id]: Date.now() })), 1200)
-      return () => clearTimeout(t)
+    if (rugged[kothToken.id]) {
+      const next = visible.sort((a, b) => b.marketCap - a.marketCap)[0]
+      if (next) setKothToken(next)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [rugged, kothToken.id, visible])
 
-  // Simulate buys: every 900-1800ms a random token gets bought
+  // Simulate buys + occasional liquidations
   useEffect(() => {
     let alive = true
     function tick() {
       if (!alive) return
-      const candidates = [kothToken, ...list]
-      const winner = candidates[Math.floor(Math.random() * candidates.length)]
-
-      // ~25% of buys cause a liquidation on a near-liq token
-      if (Math.random() < 0.25) {
-        const nearLiq = list
-          .filter((t) => t.liqDistance < 35 && !rugged[t.id])
-          .sort((a, b) => a.liqDistance - b.liqDistance)[0]
-        if (nearLiq) {
-          setRugged((r) => ({ ...r, [nearLiq.id]: Date.now() }))
-        }
+      const live = list.filter((t) => !ruggedStore.isRugged(t.id))
+      if (live.length === 0) {
+        setTimeout(tick, 1200)
+        return
       }
-
+      const candidates = ruggedStore.isRugged(kothToken.id) ? live : [kothToken, ...live]
+      const winner = candidates[Math.floor(Math.random() * candidates.length)]
       const sol = +(Math.random() * 8 + 0.2).toFixed(2)
       const mcapBump = Math.floor(sol * 1200 + Math.random() * 800)
 
-      // bump mcap + replies on buy
       setList((prev) =>
         prev.map((t) =>
           t.id === winner.id
@@ -68,7 +63,6 @@ export function LiveBoard({ initial, koth }: { initial: Token[]; koth: Token }) 
         ),
       )
 
-      // featured = reorder to top (the pumpfun pop-to-front effect)
       if (sort === "featured") {
         setList((prev) => {
           const idx = prev.findIndex((t) => t.id === winner.id)
@@ -80,38 +74,48 @@ export function LiveBoard({ initial, koth }: { initial: Token[]; koth: Token }) 
         })
       }
 
-      // possibly dethrone KOTH
-      if (winner.id !== kothToken.id && Math.random() < 0.18) {
-        setKothToken(winner)
-      } else if (winner.id === kothToken.id) {
-        setKothToken((k) => ({ ...k, marketCap: k.marketCap + mcapBump }))
-      }
+      if (winner.id !== kothToken.id && Math.random() < 0.18) setKothToken(winner)
+      else if (winner.id === kothToken.id) setKothToken((k) => ({ ...k, marketCap: k.marketCap + mcapBump }))
 
-      // mark as pumped (animation trigger)
       setPumped((p) => ({ ...p, [winner.id]: Date.now() }))
       setBought({ id: winner.id, ticker: winner.ticker, sol })
 
-      const next = 700 + Math.random() * 1300
-      setTimeout(tick, next)
+      // ~22% chance: a near-liq position gets liquidated
+      if (Math.random() < 0.22) {
+        const victim = live
+          .filter((t) => t.liqDistance < 35 && !ruggedStore.isRugged(t.id))
+          .sort((a, b) => a.liqDistance - b.liqDistance)[0]
+        if (victim) {
+          // brief flash before removal
+          setRektFlash({ id: victim.id, ticker: victim.ticker })
+          setTimeout(() => ruggedStore.rug(victim.id), 600)
+        }
+      }
+
+      setTimeout(tick, 700 + Math.random() * 1300)
     }
     const t = setTimeout(tick, 800)
-    return () => {
-      alive = false
-      clearTimeout(t)
-    }
+    return () => { alive = false; clearTimeout(t) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sort])
 
+  // clear rekt flash after 1.4s
+  useEffect(() => {
+    if (!rektFlash) return
+    const t = setTimeout(() => setRektFlash(null), 1400)
+    return () => clearTimeout(t)
+  }, [rektFlash])
+
   const sorted = useMemo(() => {
     const filtered = search
-      ? list.filter(
+      ? visible.filter(
           (t) =>
             t.name.toLowerCase().includes(search.toLowerCase()) ||
             t.ticker.toLowerCase().includes(search.toLowerCase()),
         )
-      : list
+      : visible
     return sortTokens(filtered, sort)
-  }, [list, sort, search])
+  }, [visible, sort, search])
 
   return (
     <>
@@ -154,21 +158,21 @@ export function LiveBoard({ initial, koth }: { initial: Token[]; koth: Token }) 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         <AnimatePresence initial={false}>
           {sorted.map((t) => (
-            <LiveCard key={t.id} token={t} pumpedAt={pumped[t.id]} ruggedAt={rugged[t.id]} />
+            <LiveCard key={t.id} token={t} pumpedAt={pumped[t.id]} />
           ))}
         </AnimatePresence>
       </div>
 
-      {/* floating buy toast bottom-right */}
+      {/* buy toast */}
       <AnimatePresence>
-        {bought && (
+        {bought && !rektFlash && (
           <motion.div
             key={bought.id + bought.sol}
             initial={{ y: 40, opacity: 0, scale: 0.9 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: -10, opacity: 0 }}
             transition={{ type: "spring", stiffness: 400, damping: 20 }}
-            className="fixed bottom-6 right-6 z-50 rounded-lg border border-primary bg-card px-4 py-2 font-mono text-xs shadow-lg"
+            className="fixed bottom-6 right-6 z-40 rounded-lg border border-primary bg-card px-4 py-2 font-mono text-xs shadow-lg"
             style={{ boxShadow: "0 0 30px hsl(var(--primary) / 0.4)" }}
           >
             <span className="text-primary font-bold">BUY</span>{" "}
@@ -178,25 +182,43 @@ export function LiveBoard({ initial, koth }: { initial: Token[]; koth: Token }) 
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* liquidation toast — different style, red, sits ABOVE buy toast */}
+      <AnimatePresence>
+        {rektFlash && (
+          <motion.div
+            key={rektFlash.id}
+            initial={{ y: 40, opacity: 0, scale: 0.9 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: -10, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 20 }}
+            className="fixed bottom-6 right-6 z-50 rounded-lg border-2 border-destructive bg-card px-4 py-2 font-mono text-xs"
+            style={{ boxShadow: "6px 6px 0 0 hsl(var(--destructive))" }}
+          >
+            <span className="font-display text-destructive italic text-base mr-1">Rugged!</span>
+            <span className="text-foreground">${rektFlash.ticker}</span>{" "}
+            <span className="text-muted-foreground">liquidated</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   )
 }
 
-function LiveCard({ token, pumpedAt, ruggedAt }: { token: Token; pumpedAt?: number; ruggedAt?: number }) {
+function LiveCard({ token, pumpedAt }: { token: Token; pumpedAt?: number }) {
   const positive = token.change24h >= 0
-  const isRugged = !!ruggedAt
   return (
     <motion.div
       layout
       initial={{ opacity: 0, scale: 0.92 }}
       animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.92 }}
+      exit={{ opacity: 0, scale: 0.85, filter: "blur(4px)" }}
       transition={{ type: "spring", stiffness: 380, damping: 28 }}
     >
       <motion.div
         key={pumpedAt ?? 0}
         animate={
-          pumpedAt && !isRugged
+          pumpedAt
             ? {
                 scale: [1, 1.06, 1],
                 boxShadow: [
@@ -212,16 +234,12 @@ function LiveCard({ token, pumpedAt, ruggedAt }: { token: Token; pumpedAt?: numb
       >
         <Link
           href={`/token/${token.id}`}
-          className={
-            isRugged
-              ? "relative overflow-hidden flex gap-3 rounded-lg border border-destructive/40 bg-card p-3 pointer-events-none"
-              : "group flex gap-3 rounded-lg border border-border bg-card p-3 hover:border-primary transition-colors"
-          }
+          className="group flex gap-3 rounded-lg border border-border bg-card p-3 hover:border-primary transition-colors"
         >
           <div className="grid h-20 w-20 shrink-0 place-items-center rounded-md bg-secondary text-4xl">
-            <span className={isRugged ? "grayscale opacity-50" : ""}>{token.emoji}</span>
+            {token.emoji}
           </div>
-          <div className={`min-w-0 flex flex-col gap-1 ${isRugged ? "opacity-60" : ""}`}>
+          <div className="min-w-0 flex flex-col gap-1">
             <div className="font-mono text-[10px] text-muted-foreground">
               created by <span className="text-foreground">{token.creator}</span>{" "}
               <span className="text-primary">{ageLabel(token.ageMinutes)}</span>
@@ -245,29 +263,7 @@ function LiveCard({ token, pumpedAt, ruggedAt }: { token: Token; pumpedAt?: numb
               <span className="text-muted-foreground">{token.underlying}</span>
             </div>
           </div>
-
-          {/* RUGGED stamp — slanted, translucent red, sits in front like the screenshot */}
-          {isRugged && (
-            <motion.div
-              initial={{ scale: 1.4, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 260, damping: 14 }}
-              className="pointer-events-none absolute inset-0 grid place-items-center"
-            >
-              <span
-                className="font-display text-5xl sm:text-6xl text-destructive/60 italic select-none"
-                style={{ transform: "rotate(-12deg)", letterSpacing: "-0.02em" }}
-              >
-                Rugged!
-              </span>
-            </motion.div>
-          )}
         </Link>
-        {isRugged && (
-          <div className="mt-1 px-1 font-mono text-[10px] text-muted-foreground">
-            thanks for playing — {token.leverage}x {token.direction.toLowerCase()} liquidated
-          </div>
-        )}
       </motion.div>
     </motion.div>
   )
@@ -279,8 +275,6 @@ function KOTH({ token, pumped }: { token: Token; pumped?: number }) {
       <div className="mb-3 font-mono text-[11px] uppercase tracking-[0.3em] text-muted-foreground">
         — king of the hill —
       </div>
-
-      {/* arcade scoreboard strip */}
       <div className="relative w-full max-w-[640px] overflow-hidden">
         <AnimatePresence mode="popLayout" initial={false}>
           <motion.div
@@ -295,15 +289,10 @@ function KOTH({ token, pumped }: { token: Token; pumped?: number }) {
               className="grid grid-cols-[auto_auto_1fr_auto] items-center gap-4 border-2 border-foreground bg-card px-4 py-3 hover:bg-secondary transition-colors"
               style={{ boxShadow: "6px 6px 0 0 hsl(var(--foreground))" }}
             >
-              {/* #1 tag — solid black block, looks like a sticker */}
               <div className="grid h-14 w-14 place-items-center bg-foreground font-display text-3xl text-background">
                 #1
               </div>
-
-              <div className="grid h-14 w-14 place-items-center bg-secondary text-3xl">
-                {token.emoji}
-              </div>
-
+              <div className="grid h-14 w-14 place-items-center bg-secondary text-3xl">{token.emoji}</div>
               <div className="min-w-0">
                 <div className="font-display text-xl leading-none truncate">
                   {token.name.toUpperCase()}{" "}
@@ -316,8 +305,6 @@ function KOTH({ token, pumped }: { token: Token; pumped?: number }) {
                   {token.underlying}
                 </div>
               </div>
-
-              {/* odometer-style mcap */}
               <div className="text-right font-mono">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground">mcap</div>
                 <Odometer value={token.marketCap} bump={pumped} />
@@ -326,7 +313,6 @@ function KOTH({ token, pumped }: { token: Token; pumped?: number }) {
           </motion.div>
         </AnimatePresence>
       </div>
-
       <Link
         href="/create"
         className="brick mt-8 inline-flex items-center rounded-md bg-primary px-6 h-12 font-display text-lg uppercase text-primary-foreground"
