@@ -294,29 +294,29 @@ function KOTH({
         <span className="h-px w-12 bg-border" />
       </div>
 
-      <div className="relative w-full max-w-[760px]">
+      <div className="relative w-full max-w-[560px]">
         <AnimatePresence mode="popLayout" initial={false}>
           <motion.div
             key={token.id}
-            initial={{ y: 24, opacity: 0, rotate: -1.2 }}
+            initial={{ y: 20, opacity: 0, rotate: -1 }}
             animate={{ y: 0, opacity: 1, rotate: 0 }}
-            exit={{ y: -24, opacity: 0, rotate: 1.2 }}
+            exit={{ y: -20, opacity: 0, rotate: 1 }}
             transition={{ type: "spring", stiffness: 320, damping: 26 }}
           >
             <Link
               href={`/token/${token.id}`}
               className="relative block border-2 border-foreground bg-card transition-transform hover:-translate-y-0.5"
-              style={{ boxShadow: "8px 8px 0 0 hsl(var(--foreground))" }}
+              style={{ boxShadow: "6px 6px 0 0 hsl(var(--foreground))" }}
             >
               {/* corner sticker badge */}
               <div
-                className="absolute -top-3 -right-3 z-10 select-none border-2 border-foreground bg-primary px-3 py-1 font-display text-xs uppercase tracking-wider text-primary-foreground"
-                style={{ transform: "rotate(6deg)", boxShadow: "3px 3px 0 0 hsl(var(--foreground))" }}
+                className="absolute -top-2.5 -right-2.5 z-10 select-none border-2 border-foreground bg-primary px-2.5 py-0.5 font-display text-[11px] uppercase tracking-wider text-primary-foreground"
+                style={{ transform: "rotate(6deg)", boxShadow: "2px 2px 0 0 hsl(var(--foreground))" }}
               >
                 #1 · king
               </div>
 
-              <div className="grid grid-cols-[200px_1fr] gap-0">
+              <div className="grid grid-cols-[140px_1fr] gap-0">
                 {/* big lime emoji panel */}
                 <motion.div
                   key={"emoji-" + (pumped ?? 0)}
@@ -325,31 +325,31 @@ function KOTH({
                   transition={{ duration: 0.5, ease: "easeOut" }}
                   className="relative grid place-items-center bg-primary border-r-2 border-foreground"
                 >
-                  <div className="text-[110px] leading-none drop-shadow-[2px_2px_0_rgba(0,0,0,0.25)]">
+                  <div className="text-[78px] leading-none drop-shadow-[2px_2px_0_rgba(0,0,0,0.25)]">
                     {token.emoji}
                   </div>
-                  <div className="absolute bottom-2 left-2 font-mono text-[10px] font-bold uppercase tracking-wider text-primary-foreground/80">
+                  <div className="absolute bottom-1.5 left-1.5 font-mono text-[9px] font-bold uppercase tracking-wider text-primary-foreground/80">
                     {token.underlying}
                   </div>
-                  <div className="absolute top-2 right-2 border border-primary-foreground/40 bg-primary-foreground/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-primary-foreground">
+                  <div className="absolute top-1.5 right-1.5 border border-primary-foreground/40 bg-primary-foreground/10 px-1 py-0.5 font-mono text-[9px] font-bold text-primary-foreground">
                     {token.leverage}x {token.direction.toLowerCase()}
                   </div>
                 </motion.div>
 
                 {/* stats stack */}
-                <div className="flex flex-col justify-between gap-3 p-5">
+                <div className="flex flex-col justify-between gap-2 p-3.5">
                   <div>
-                    <div className="font-display text-2xl leading-none truncate">
+                    <div className="font-display text-lg leading-none truncate">
                       {token.name.toUpperCase()}
                     </div>
-                    <div className="mt-1 font-mono text-xs text-muted-foreground">
-                      ${token.ticker} · created by{" "}
+                    <div className="mt-1 font-mono text-[11px] text-muted-foreground">
+                      ${token.ticker} · by{" "}
                       <span className="text-foreground">{token.creator}</span>
                     </div>
                   </div>
 
                   <div>
-                    <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                    <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
                       market cap
                     </div>
                     <Odometer value={token.marketCap} bump={pumped} />
@@ -357,18 +357,18 @@ function KOTH({
 
                   {/* bonding curve to graduation */}
                   <div>
-                    <div className="mb-1 flex items-center justify-between font-mono text-[10px] uppercase tracking-wider">
+                    <div className="mb-1 flex items-center justify-between font-mono text-[9px] uppercase tracking-wider">
                       <span className="text-muted-foreground">bonding curve</span>
                       <span className="text-primary font-bold">{progress.toFixed(0)}%</span>
                     </div>
-                    <div className="relative h-2 w-full border border-foreground bg-secondary">
+                    <div className="relative h-1.5 w-full border border-foreground bg-secondary">
                       <motion.div
                         animate={{ width: `${progress}%` }}
                         transition={{ type: "spring", stiffness: 220, damping: 28 }}
                         className="absolute left-0 top-0 h-full bg-primary"
                       />
                     </div>
-                    <div className="mt-1 font-mono text-[10px] text-muted-foreground">
+                    <div className="mt-1 font-mono text-[9px] text-muted-foreground">
                       graduates to raydium at $69k
                     </div>
                   </div>
