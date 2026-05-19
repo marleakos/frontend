@@ -7,7 +7,7 @@ import { TokenChart } from "@/components/token-chart"
 import { TradePanel } from "@/components/trade-panel"
 import { ThreadSection } from "@/components/thread-section"
 import { tokens } from "@/lib/mock-data"
-import { ArrowLeft, Copy, ExternalLink, Skull, TrendingDown, TrendingUp, Users } from "lucide-react"
+import { ArrowLeft, Copy, ExternalLink, Skull, TrendingDown, TrendingUp, Users, Twitter, Globe, Send } from "lucide-react"
 
 export default async function TokenPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -25,7 +25,7 @@ export default async function TokenPage({ params }: { params: Promise<{ id: stri
       <main className="mx-auto max-w-[1400px] px-4 py-6">
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground hover:text-foreground mb-4"
+          className="inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground hover:text-primary mb-4"
         >
           <ArrowLeft className="h-3 w-3" /> back to board
         </Link>
@@ -33,69 +33,87 @@ export default async function TokenPage({ params }: { params: Promise<{ id: stri
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4">
           <div className="space-y-4">
             {/* Token header */}
-            <div className="rounded-lg border border-border bg-card p-4">
-              <div className="flex items-start gap-4 flex-wrap">
-                <div className="grid h-20 w-20 shrink-0 place-items-center rounded-md bg-secondary text-5xl border border-border">
-                  {token.emoji}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h1 className="font-mono font-bold text-2xl text-foreground">{token.name}</h1>
-                    <span className="font-mono text-sm text-muted-foreground">${token.ticker}</span>
+            <div className="rainbow-border rounded-xl">
+              <div className="rounded-xl bg-card p-5 relative overflow-hidden">
+                <div className="absolute inset-0 halftone opacity-20 pointer-events-none" />
+                <div className="relative flex items-start gap-4 flex-wrap">
+                  <div className="relative shrink-0">
+                    <div className="grid h-24 w-24 place-items-center rounded-2xl bg-gradient-to-br from-primary/30 to-accent/30 text-6xl border-2 border-foreground/10">
+                      {token.emoji}
+                    </div>
+                    <div className="absolute -bottom-2 -right-2">
+                      <LeverageBadge leverage={token.leverage} direction={token.direction} />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    <LeverageBadge leverage={token.leverage} direction={token.direction} />
-                    <span className="font-mono text-[11px] px-2 py-1 rounded bg-secondary text-muted-foreground">
-                      {token.underlying}
-                    </span>
-                    <span className="font-mono text-[11px] px-2 py-1 rounded bg-secondary text-muted-foreground inline-flex items-center gap-1">
-                      <Users className="h-3 w-3" /> 1,284 holders
-                    </span>
-                    {danger && (
-                      <span className="inline-flex items-center gap-1 font-mono text-[11px] px-2 py-1 rounded bg-destructive/15 text-destructive border border-destructive/40">
-                        <Skull className="h-3 w-3" />
-                        near liquidation
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h1 className="font-display text-3xl md:text-4xl leading-none uppercase">
+                        {token.name}
+                      </h1>
+                      <span className="font-mono text-sm text-muted-foreground">${token.ticker}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-2 flex-wrap font-mono text-[11px]">
+                      <span className="px-2 py-1 rounded bg-secondary text-muted-foreground border border-border">
+                        {token.underlying}
                       </span>
-                    )}
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-secondary text-muted-foreground border border-border">
+                        <Users className="h-3 w-3" /> 1,284 holders
+                      </span>
+                      {danger && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-destructive/15 text-destructive border-2 border-destructive/60 animate-pulse">
+                          <Skull className="h-3 w-3" />
+                          near liq
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-3 text-sm text-foreground/80 max-w-xl">{token.description}</p>
+                    <div className="flex items-center gap-3 mt-3 font-mono text-[11px] text-muted-foreground flex-wrap">
+                      <button className="inline-flex items-center gap-1 hover:text-primary">
+                        <Copy className="h-3 w-3" /> 7Hk29...mP3qr
+                      </button>
+                      <span>·</span>
+                      <span>by <span className="text-foreground">{token.creator}</span></span>
+                      <span>·</span>
+                      <a className="inline-flex items-center gap-1 hover:text-primary" href="#">
+                        drift <ExternalLink className="h-3 w-3" />
+                      </a>
+                      <span>·</span>
+                      <a href="#" className="hover:text-primary"><Twitter className="h-3 w-3" /></a>
+                      <a href="#" className="hover:text-primary"><Send className="h-3 w-3" /></a>
+                      <a href="#" className="hover:text-primary"><Globe className="h-3 w-3" /></a>
+                    </div>
                   </div>
-                  <p className="mt-3 text-sm text-muted-foreground">{token.description}</p>
-                  <div className="flex items-center gap-3 mt-3 font-mono text-[11px] text-muted-foreground">
-                    <button className="inline-flex items-center gap-1 hover:text-foreground">
-                      <Copy className="h-3 w-3" /> 7Hk29...mP3qr
-                    </button>
-                    <span>by {token.creator}</span>
-                    <a className="inline-flex items-center gap-1 hover:text-foreground" href="#">
-                      drift <ExternalLink className="h-3 w-3" />
-                    </a>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full sm:w-auto">
+                    <Stat label="price" value={`$0.00${Math.floor(Math.random() * 9000 + 1000)}`} />
+                    <Stat
+                      label="24h"
+                      value={`${positive ? "+" : ""}${token.change24h.toFixed(1)}%`}
+                      valueClass={positive ? "text-primary" : "text-destructive"}
+                      icon={positive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                    />
+                    <Stat label="mcap" value={`$${formatK(token.marketCap)}`} valueClass="text-accent" />
+                    <Stat
+                      label="liq dist"
+                      value={`${token.liqDistance}%`}
+                      valueClass={danger ? "text-destructive" : "text-foreground"}
+                    />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full sm:w-auto">
-                  <Stat label="price" value={`$0.0${"0".repeat(2)}${Math.floor(Math.random() * 9000 + 1000)}`} />
-                  <Stat
-                    label="24h"
-                    value={`${positive ? "+" : ""}${token.change24h.toFixed(1)}%`}
-                    valueClass={positive ? "text-primary" : "text-destructive"}
-                    icon={positive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                  />
-                  <Stat label="mcap" value={`$${formatK(token.marketCap)}`} valueClass="text-accent" />
-                  <Stat
-                    label="liq dist"
-                    value={`${token.liqDistance}%`}
-                    valueClass={danger ? "text-destructive" : "text-foreground"}
-                  />
-                </div>
-              </div>
-
-              <div className="mt-4 pt-4 border-t border-border">
-                <div className="flex items-center justify-between font-mono text-[11px] mb-1.5">
-                  <span className="text-muted-foreground">graduation to raydium @ $69k</span>
-                  <span className="text-primary font-bold">
-                    {token.progress}% — ${formatK(token.marketCap)} / $69k
-                  </span>
-                </div>
-                <div className="h-2 rounded-full bg-secondary overflow-hidden">
-                  <div className="h-full bg-primary" style={{ width: `${token.progress}%` }} />
+                <div className="relative mt-5 pt-5 border-t-2 border-dashed border-border">
+                  <div className="flex items-center justify-between font-mono text-[11px] mb-2">
+                    <span className="text-muted-foreground uppercase tracking-wider">graduation to raydium</span>
+                    <span className="text-primary font-bold">
+                      {token.progress}% — ${formatK(token.marketCap)} / $69k
+                    </span>
+                  </div>
+                  <div className="h-3 rounded-full bg-background border border-border overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_100%] animate-marquee"
+                      style={{ width: `${token.progress}%` }}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -127,9 +145,9 @@ function Stat({
   icon?: React.ReactNode
 }) {
   return (
-    <div>
+    <div className="rounded-md border border-border/70 bg-background/60 px-3 py-2">
       <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className={`font-mono font-bold text-base flex items-center gap-1 ${valueClass ?? "text-foreground"}`}>
+      <div className={`font-display text-base flex items-center gap-1 ${valueClass ?? "text-foreground"}`}>
         {icon}
         {value}
       </div>
@@ -149,14 +167,15 @@ function HoldersList() {
     { addr: "Vb2x...5Hg", pct: 1.2 },
   ]
   return (
-    <div className="rounded-lg border border-border bg-card">
-      <div className="px-3 py-2 border-b border-border font-mono text-xs text-muted-foreground">
+    <div className="rounded-xl border-2 border-border bg-card overflow-hidden">
+      <div className="px-3 py-2 border-b-2 border-border font-display text-xs uppercase tracking-wider text-muted-foreground bg-secondary/40">
         top holders
       </div>
       <ul className="divide-y divide-border">
-        {holders.map((h) => (
+        {holders.map((h, i) => (
           <li key={h.addr} className="flex items-center justify-between px-3 py-2 font-mono text-xs">
             <span className="flex items-center gap-2">
+              <span className="text-muted-foreground w-4">{i + 1}</span>
               <span>{h.addr}</span>
               {h.isCreator && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/40">
@@ -164,7 +183,7 @@ function HoldersList() {
                 </span>
               )}
             </span>
-            <span className="text-foreground">{h.pct.toFixed(1)}%</span>
+            <span className="text-foreground font-bold">{h.pct.toFixed(1)}%</span>
           </li>
         ))}
       </ul>

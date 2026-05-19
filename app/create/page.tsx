@@ -3,12 +3,12 @@
 import { useState } from "react"
 import { Header } from "@/components/header"
 import { TradesTicker } from "@/components/trades-ticker"
-import { Button } from "@/components/ui/button"
 import { LeverageBadge } from "@/components/leverage-badge"
-import { ImagePlus, Info, Zap } from "lucide-react"
+import { ImagePlus, Info, Zap, Sparkles } from "lucide-react"
 
 const UNDERLYINGS = ["SOL-PERP", "BTC-PERP", "ETH-PERP", "DOGE-PERP"] as const
 const LEVERAGES = [2, 3, 5, 10] as const
+const EMOJIS = ["🚀", "🐻", "💎", "🐕", "🐸", "🎩", "☀️", "💀", "🔻", "⚔️", "🦍", "🤡", "👑", "🔥"]
 
 export default function CreatePage() {
   const [name, setName] = useState("")
@@ -26,27 +26,34 @@ export default function CreatePage() {
       <TradesTicker />
 
       <main className="mx-auto max-w-[1100px] px-4 py-8">
-        <div className="text-center mb-8">
-          <h1 className="font-mono font-bold text-3xl md:text-4xl">launch a leveraged coin</h1>
-          <p className="mt-2 text-sm text-muted-foreground font-mono">
+        <div className="text-center mb-8 relative">
+          <div className="absolute inset-x-0 top-1/2 -z-10 h-32 -translate-y-1/2 stripes opacity-20" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border-2 border-accent bg-accent/10 text-accent font-mono text-[11px] uppercase tracking-widest mb-3">
+            <Sparkles className="h-3 w-3" /> fair launch · no presale · no team alloc
+          </div>
+          <h1 className="font-display text-4xl md:text-6xl uppercase leading-none">
+            launch a <span className="rainbow-text">leveraged</span> coin
+          </h1>
+          <p className="mt-3 text-sm text-muted-foreground font-mono max-w-xl mx-auto">
             deploy a meme token backed by a perp position. graduates to raydium at $69k mcap.
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
           <form className="space-y-5">
-            <Section title="01. identity">
-              <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr] gap-3">
+            <Section step="01" title="identity">
+              <div className="grid grid-cols-1 sm:grid-cols-[140px_1fr] gap-4">
                 <div>
-                  <label className="font-mono text-[11px] text-muted-foreground block mb-1.5">image</label>
+                  <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground block mb-1.5">image</label>
                   <button
                     type="button"
-                    className="grid h-28 w-28 place-items-center rounded-md border border-dashed border-border bg-secondary/40 text-4xl hover:border-primary"
-                    onClick={() =>
-                      setEmoji(["🚀", "🐻", "💎", "🐕", "🐸", "🎩", "☀️", "💀", "🔻", "⚔️"][Math.floor(Math.random() * 10)])
-                    }
+                    onClick={() => setEmoji(EMOJIS[Math.floor(Math.random() * EMOJIS.length)])}
+                    className="group relative grid h-32 w-32 place-items-center rounded-xl border-2 border-dashed border-border bg-secondary/40 text-5xl hover:border-primary"
                   >
                     {emoji || <ImagePlus className="h-6 w-6 text-muted-foreground" />}
+                    <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-primary text-primary-foreground font-mono text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                      randomize
+                    </span>
                   </button>
                 </div>
                 <div className="space-y-3">
@@ -79,7 +86,7 @@ export default function CreatePage() {
               </div>
             </Section>
 
-            <Section title="02. leverage config">
+            <Section step="02" title="leverage config">
               <Field label="underlying perp">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {UNDERLYINGS.map((u) => (
@@ -89,8 +96,8 @@ export default function CreatePage() {
                       onClick={() => setUnderlying(u)}
                       className={
                         u === underlying
-                          ? "py-2.5 rounded-md border border-primary bg-primary/10 text-primary font-mono text-xs font-bold"
-                          : "py-2.5 rounded-md border border-border bg-secondary/40 text-foreground hover:border-primary/50 font-mono text-xs"
+                          ? "py-3 rounded-md border-2 border-primary bg-primary/10 text-primary font-display text-xs uppercase"
+                          : "py-3 rounded-md border-2 border-border bg-secondary/40 hover:border-primary/50 font-mono text-xs"
                       }
                     >
                       {u}
@@ -106,22 +113,22 @@ export default function CreatePage() {
                     onClick={() => setDirection("LONG")}
                     className={
                       direction === "LONG"
-                        ? "py-3 rounded-md border border-primary bg-primary/10 text-primary font-mono font-bold"
-                        : "py-3 rounded-md border border-border bg-secondary/40 hover:border-primary/50 font-mono"
+                        ? "py-4 rounded-md border-2 border-primary bg-primary/10 text-primary font-display uppercase text-base"
+                        : "py-4 rounded-md border-2 border-border bg-secondary/40 hover:border-primary/50 font-mono"
                     }
                   >
-                    LONG
+                    long ↗
                   </button>
                   <button
                     type="button"
                     onClick={() => setDirection("SHORT")}
                     className={
                       direction === "SHORT"
-                        ? "py-3 rounded-md border border-destructive bg-destructive/10 text-destructive font-mono font-bold"
-                        : "py-3 rounded-md border border-border bg-secondary/40 hover:border-destructive/50 font-mono"
+                        ? "py-4 rounded-md border-2 border-destructive bg-destructive/10 text-destructive font-display uppercase text-base"
+                        : "py-4 rounded-md border-2 border-border bg-secondary/40 hover:border-destructive/50 font-mono"
                     }
                   >
-                    SHORT
+                    short ↘
                   </button>
                 </div>
               </Field>
@@ -135,8 +142,8 @@ export default function CreatePage() {
                       onClick={() => setLeverage(lv)}
                       className={
                         lv === leverage
-                          ? "py-3 rounded-md border border-accent bg-accent/10 text-accent font-mono font-bold"
-                          : "py-3 rounded-md border border-border bg-secondary/40 hover:border-accent/50 font-mono"
+                          ? "py-4 rounded-md border-2 border-accent bg-accent/10 text-accent font-display uppercase text-base"
+                          : "py-4 rounded-md border-2 border-border bg-secondary/40 hover:border-accent/50 font-mono"
                       }
                     >
                       {lv}x
@@ -150,7 +157,7 @@ export default function CreatePage() {
               </Field>
             </Section>
 
-            <Section title="03. dev buy (optional)">
+            <Section step="03" title="dev buy (optional)">
               <Field label="initial buy in SOL">
                 <input
                   value={initialBuy}
@@ -161,62 +168,69 @@ export default function CreatePage() {
               </Field>
             </Section>
 
-            <Section title="04. fees">
+            <Section step="04" title="fees">
               <ul className="font-mono text-xs space-y-1.5 text-muted-foreground">
-                <li className="flex justify-between"><span>deploy</span><span className="text-foreground">0.1 SOL</span></li>
-                <li className="flex justify-between"><span>trading</span><span className="text-foreground">0.5%</span></li>
-                <li className="flex justify-between"><span>leverage borrow</span><span className="text-foreground">0.1% / day</span></li>
+                <li className="flex justify-between border-b border-dashed border-border pb-1.5"><span>deploy</span><span className="text-foreground">0.1 SOL</span></li>
+                <li className="flex justify-between border-b border-dashed border-border pb-1.5"><span>trading</span><span className="text-foreground">0.5%</span></li>
+                <li className="flex justify-between border-b border-dashed border-border pb-1.5"><span>leverage borrow</span><span className="text-foreground">0.1% / day</span></li>
                 <li className="flex justify-between"><span>graduation</span><span className="text-foreground">1%</span></li>
               </ul>
             </Section>
           </form>
 
           <aside className="lg:sticky lg:top-24 self-start space-y-4">
-            <div className="rounded-lg border border-border bg-card overflow-hidden">
-              <div className="px-3 py-2 border-b border-border font-mono text-xs text-muted-foreground">
-                live preview
-              </div>
-              <div className="p-4 flex gap-3">
-                <div className="grid h-16 w-16 shrink-0 place-items-center rounded-md bg-secondary text-3xl border border-border">
-                  {emoji}
+            <div className="rainbow-border rounded-xl">
+              <div className="rounded-xl bg-card overflow-hidden">
+                <div className="px-3 py-2 border-b-2 border-border font-display text-xs uppercase tracking-wider bg-secondary/40">
+                  live preview
                 </div>
-                <div className="min-w-0">
-                  <div className="font-mono font-bold text-sm truncate">{name || "your token name"}</div>
-                  <div className="font-mono text-[11px] text-muted-foreground">${ticker || "TICKER"}</div>
-                  <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                    <LeverageBadge leverage={leverage} direction={direction} />
-                    <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
-                      {underlying}
-                    </span>
+                <div className="p-4 flex gap-3">
+                  <div className="grid h-16 w-16 shrink-0 place-items-center rounded-md bg-gradient-to-br from-primary/30 to-accent/30 text-3xl border-2 border-foreground/10">
+                    {emoji}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-display text-base truncate uppercase">{name || "your token"}</div>
+                    <div className="font-mono text-[11px] text-muted-foreground">${ticker || "TICKER"}</div>
+                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                      <LeverageBadge leverage={leverage} direction={direction} />
+                      <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
+                        {underlying}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="px-4 pb-4 text-xs text-muted-foreground">
-                {desc || "your description shows up on the token page and the board card."}
+                <div className="px-4 pb-4 text-xs text-foreground/70 font-mono">
+                  {desc || "your description shows up on the token page and the board card."}
+                </div>
               </div>
             </div>
 
-            <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-mono font-bold glow-primary">
-              <Zap className="h-4 w-4 mr-1.5" strokeWidth={3} />
-              [ deploy for 0.1 SOL ]
-            </Button>
-            <p className="font-mono text-[11px] text-muted-foreground text-center">
-              by deploying you accept that the token can go to zero if the perp liquidates
+            <button className="brick w-full bg-primary text-primary-foreground py-4 rounded-md font-display uppercase tracking-wide text-lg hover:-translate-y-0.5 transition-transform inline-flex items-center justify-center gap-2">
+              <Zap className="h-5 w-5" strokeWidth={3} />
+              deploy for 0.1 sol
+            </button>
+            <p className="font-mono text-[11px] text-muted-foreground text-center text-balance">
+              by deploying you accept that the token can go to <span className="text-destructive">zero</span> if the perp liquidates
             </p>
           </aside>
         </div>
       </main>
 
-      <style>{`.input{width:100%;height:42px;border-radius:.5rem;border:1px solid var(--color-border);background:var(--color-input);padding:0 .75rem;font-family:var(--font-mono);font-size:.875rem;outline:none}.input:focus{box-shadow:0 0 0 2px var(--color-ring)}textarea.input{height:auto;padding:.5rem .75rem}`}</style>
+      <style>{`.input{width:100%;height:44px;border-radius:.5rem;border:2px solid var(--color-border);background:var(--color-input);padding:0 .75rem;font-family:var(--font-mono);font-size:.875rem;outline:none;transition:border-color .15s}.input:focus{border-color:var(--color-primary)}textarea.input{height:auto;padding:.5rem .75rem}`}</style>
     </div>
   )
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ step, title, children }: { step: string; title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
-      <h2 className="font-mono font-bold text-sm text-foreground mb-3">{title}</h2>
-      <div className="space-y-3">{children}</div>
+    <section className="rounded-xl border-2 border-border bg-card p-5 relative overflow-hidden">
+      <div className="absolute top-0 right-0 font-display text-7xl text-foreground/[0.04] leading-none pr-3 pt-1 select-none pointer-events-none">
+        {step}
+      </div>
+      <h2 className="font-display uppercase text-base text-foreground mb-4 flex items-baseline gap-2">
+        <span className="text-primary">{step}.</span> {title}
+      </h2>
+      <div className="space-y-3 relative">{children}</div>
     </section>
   )
 }
@@ -224,7 +238,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="font-mono text-[11px] text-muted-foreground block mb-1.5">{label}</label>
+      <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground block mb-1.5">{label}</label>
       {children}
     </div>
   )

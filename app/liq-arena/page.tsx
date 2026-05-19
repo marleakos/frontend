@@ -17,49 +17,58 @@ export default function LiqArenaPage() {
       <TradesTicker />
 
       <main className="mx-auto max-w-[1400px] px-4 py-8">
-        <div className="flex items-end justify-between flex-wrap gap-4 mb-6">
-          <div>
-            <h1 className="font-mono font-bold text-3xl md:text-4xl flex items-center gap-3">
-              <Flame className="h-8 w-8 text-destructive" />
-              liquidation arena
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground font-mono">
-              live perp positions backing every token. closer to 0% = closer to zero.
-            </p>
-          </div>
-          <div className="flex gap-3 font-mono text-xs">
-            <Pill label="near liq" value={danger.length} tone="destructive" />
-            <Pill label="watchlist" value={watch.length} tone="accent" />
-            <Pill label="safe" value={safe.length} tone="primary" />
+        {/* Hero */}
+        <div className="relative rounded-2xl border-2 border-destructive/50 bg-card overflow-hidden mb-6">
+          <div className="absolute inset-0 stripes opacity-30 pointer-events-none" style={{ filter: "hue-rotate(-90deg)" }} />
+          <div className="absolute inset-0 halftone opacity-20 pointer-events-none" />
+          <div className="relative p-6 flex items-end justify-between flex-wrap gap-4">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border-2 border-destructive bg-destructive/10 text-destructive font-mono text-[11px] uppercase tracking-widest mb-3 animate-pulse">
+                <Flame className="h-3 w-3" /> live · updates every block
+              </div>
+              <h1 className="font-display text-4xl md:text-6xl uppercase leading-none">
+                liquidation <span className="text-destructive">arena</span>
+              </h1>
+              <p className="mt-2 text-sm text-muted-foreground font-mono max-w-xl">
+                live perp positions backing every token. closer to 0% = closer to <span className="text-destructive font-bold">zero</span>.
+              </p>
+            </div>
+            <div className="flex gap-2 font-mono text-xs">
+              <Pill label="near liq" value={danger.length} tone="destructive" />
+              <Pill label="watchlist" value={watch.length} tone="accent" />
+              <Pill label="safe" value={safe.length} tone="primary" />
+            </div>
           </div>
         </div>
 
         {/* Heatmap */}
-        <section className="rounded-lg border border-border bg-card p-4 mb-6">
+        <section className="rounded-xl border-2 border-border bg-card p-4 mb-6">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-mono font-bold text-sm">heatmap</h2>
+            <h2 className="font-display uppercase text-base">heatmap</h2>
             <div className="flex items-center gap-2 font-mono text-[11px] text-muted-foreground">
               <span className="inline-block w-3 h-3 rounded bg-destructive" /> &lt;15%
               <span className="inline-block w-3 h-3 rounded bg-accent ml-2" /> &lt;30%
               <span className="inline-block w-3 h-3 rounded bg-primary ml-2" /> safe
             </div>
           </div>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1.5">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1.5">
             {sorted.map((t) => {
               const tone =
                 t.liqDistance < 15
-                  ? "bg-destructive/80 text-destructive-foreground"
+                  ? "bg-destructive text-destructive-foreground"
                   : t.liqDistance < 30
-                    ? "bg-accent/80 text-accent-foreground"
-                    : "bg-primary/70 text-primary-foreground"
+                    ? "bg-accent text-accent-foreground"
+                    : "bg-primary text-primary-foreground"
+              const intensity = Math.min(1, Math.max(0.4, 1 - t.liqDistance / 60))
               return (
                 <Link
                   key={t.id}
                   href={`/token/${t.id}`}
-                  className={`rounded-md p-2 ${tone} hover:opacity-90 transition-opacity`}
+                  className={`rounded-md p-2 ${tone} hover:scale-105 transition-transform relative overflow-hidden`}
+                  style={{ opacity: 0.6 + intensity * 0.4 }}
                 >
-                  <div className="font-mono text-[11px] font-bold truncate">${t.ticker}</div>
-                  <div className="font-mono text-[10px] opacity-80">{t.liqDistance}% to liq</div>
+                  <div className="font-display text-xs uppercase truncate leading-none">${t.ticker}</div>
+                  <div className="font-mono text-[10px] opacity-90 mt-1">{t.liqDistance}% to liq</div>
                   <div className="font-mono text-[10px] opacity-80">
                     {t.leverage}x {t.direction}
                   </div>
@@ -80,13 +89,14 @@ export default function LiqArenaPage() {
 function Pill({ label, value, tone }: { label: string; value: number; tone: "destructive" | "accent" | "primary" }) {
   const cls =
     tone === "destructive"
-      ? "border-destructive/40 bg-destructive/10 text-destructive"
+      ? "border-destructive bg-destructive/10 text-destructive"
       : tone === "accent"
-        ? "border-accent/40 bg-accent/10 text-accent"
-        : "border-primary/40 bg-primary/10 text-primary"
+        ? "border-accent bg-accent/10 text-accent"
+        : "border-primary bg-primary/10 text-primary"
   return (
-    <div className={`px-3 py-1.5 rounded-md border ${cls}`}>
-      <span className="opacity-70">{label}</span> <span className="font-bold">{value}</span>
+    <div className={`px-3 py-1.5 rounded-md border-2 ${cls} font-mono`}>
+      <span className="opacity-70 uppercase tracking-wider text-[10px]">{label}</span>{" "}
+      <span className="font-display text-base">{value}</span>
     </div>
   )
 }
@@ -105,23 +115,25 @@ function Group({
   if (rows.length === 0) return null
   const bar =
     tone === "destructive" ? "bg-destructive" : tone === "accent" ? "bg-accent" : "bg-primary"
+  const border =
+    tone === "destructive" ? "border-destructive/40" : tone === "accent" ? "border-accent/40" : "border-primary/40"
   return (
-    <section className="rounded-lg border border-border bg-card mb-4 overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border font-mono text-sm font-bold">
+    <section className={`rounded-xl border-2 ${border} bg-card mb-4 overflow-hidden`}>
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b-2 border-border font-display uppercase text-sm bg-secondary/40">
         {icon}
         {title}
-        <span className="text-muted-foreground font-normal">({rows.length})</span>
+        <span className="text-muted-foreground font-mono text-xs normal-case">({rows.length})</span>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full font-mono text-xs">
-          <thead className="text-muted-foreground">
+          <thead className="text-muted-foreground bg-background/40">
             <tr className="text-left">
-              <th className="px-4 py-2 font-normal">token</th>
-              <th className="px-4 py-2 font-normal">leverage</th>
-              <th className="px-4 py-2 font-normal">underlying</th>
-              <th className="px-4 py-2 font-normal">mcap</th>
-              <th className="px-4 py-2 font-normal">24h</th>
-              <th className="px-4 py-2 font-normal">liq distance</th>
+              <th className="px-4 py-2 font-normal uppercase tracking-wider text-[10px]">token</th>
+              <th className="px-4 py-2 font-normal uppercase tracking-wider text-[10px]">leverage</th>
+              <th className="px-4 py-2 font-normal uppercase tracking-wider text-[10px]">underlying</th>
+              <th className="px-4 py-2 font-normal uppercase tracking-wider text-[10px]">mcap</th>
+              <th className="px-4 py-2 font-normal uppercase tracking-wider text-[10px]">24h</th>
+              <th className="px-4 py-2 font-normal uppercase tracking-wider text-[10px]">liq distance</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -130,8 +142,8 @@ function Group({
                 <td className="px-4 py-2.5">
                   <Link href={`/token/${t.id}`} className="flex items-center gap-2 hover:text-primary">
                     <span className="text-xl">{t.emoji}</span>
-                    <span className="font-bold">${t.ticker}</span>
-                    <span className="text-muted-foreground truncate">{t.name}</span>
+                    <span className="font-display uppercase">${t.ticker}</span>
+                    <span className="text-muted-foreground truncate normal-case">{t.name}</span>
                   </Link>
                 </td>
                 <td className="px-4 py-2.5">
@@ -145,10 +157,10 @@ function Group({
                 </td>
                 <td className="px-4 py-2.5 w-64">
                   <div className="flex items-center gap-2">
-                    <div className="h-1.5 flex-1 rounded-full bg-secondary overflow-hidden">
+                    <div className="h-2 flex-1 rounded-full bg-background border border-border overflow-hidden">
                       <div className={`h-full ${bar}`} style={{ width: `${Math.min(100, t.liqDistance * 2)}%` }} />
                     </div>
-                    <span className="text-foreground w-10 text-right">{t.liqDistance}%</span>
+                    <span className="text-foreground w-10 text-right font-display">{t.liqDistance}%</span>
                   </div>
                 </td>
               </tr>

@@ -8,7 +8,7 @@ import { LeverageBadge } from "@/components/leverage-badge"
 import { TokenChart } from "@/components/token-chart"
 import { TradePanel } from "@/components/trade-panel"
 import { tokens, liveTrades } from "@/lib/mock-data"
-import { Search } from "lucide-react"
+import { Search, Activity } from "lucide-react"
 
 export default function AdvancedPage() {
   const [activeId, setActiveId] = useState(tokens[0].id)
@@ -29,15 +29,15 @@ export default function AdvancedPage() {
       <main className="mx-auto max-w-[1600px] px-3 py-3">
         <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_320px] gap-3 h-[calc(100dvh-9rem)]">
           {/* Watchlist */}
-          <aside className="rounded-lg border border-border bg-card overflow-hidden flex flex-col">
-            <div className="p-2 border-b border-border">
+          <aside className="rounded-xl border-2 border-border bg-card overflow-hidden flex flex-col">
+            <div className="p-2 border-b-2 border-border bg-secondary/40">
               <div className="relative">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <input
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
-                  placeholder="filter"
-                  className="w-full h-8 rounded-md border border-border bg-input pl-7 pr-2 text-xs font-mono outline-none focus:ring-2 focus:ring-ring"
+                  placeholder="filter ticker"
+                  className="w-full h-8 rounded-md border border-border bg-input pl-7 pr-2 text-xs font-mono outline-none focus:border-primary"
                 />
               </div>
             </div>
@@ -48,13 +48,13 @@ export default function AdvancedPage() {
                     onClick={() => setActiveId(t.id)}
                     className={
                       t.id === activeId
-                        ? "w-full flex items-center gap-2 px-3 py-2 bg-secondary text-left"
-                        : "w-full flex items-center gap-2 px-3 py-2 hover:bg-secondary/50 text-left"
+                        ? "w-full flex items-center gap-2 px-3 py-2 bg-primary/10 border-l-2 border-primary text-left"
+                        : "w-full flex items-center gap-2 px-3 py-2 hover:bg-secondary/50 border-l-2 border-transparent text-left"
                     }
                   >
                     <span className="text-xl">{t.emoji}</span>
                     <div className="min-w-0 flex-1">
-                      <div className="font-mono text-xs font-bold truncate">${t.ticker}</div>
+                      <div className="font-display text-sm uppercase truncate">${t.ticker}</div>
                       <div className="font-mono text-[10px] text-muted-foreground">
                         {t.leverage}x {t.direction}
                       </div>
@@ -62,8 +62,8 @@ export default function AdvancedPage() {
                     <span
                       className={
                         t.change24h >= 0
-                          ? "font-mono text-[11px] text-primary"
-                          : "font-mono text-[11px] text-destructive"
+                          ? "font-display text-xs text-primary"
+                          : "font-display text-xs text-destructive"
                       }
                     >
                       {t.change24h >= 0 ? "+" : ""}
@@ -77,31 +77,31 @@ export default function AdvancedPage() {
 
           {/* Chart + book area */}
           <section className="grid grid-rows-[auto_1fr_220px] gap-3 min-h-0">
-            <div className="rounded-lg border border-border bg-card px-4 py-2.5 flex items-center gap-3 flex-wrap">
+            <div className="rounded-xl border-2 border-border bg-card px-4 py-2.5 flex items-center gap-3 flex-wrap">
               <span className="text-2xl">{active.emoji}</span>
-              <Link href={`/token/${active.id}`} className="font-mono font-bold hover:text-primary">
+              <Link href={`/token/${active.id}`} className="font-display uppercase text-base hover:text-primary">
                 ${active.ticker}
               </Link>
               <span className="font-mono text-xs text-muted-foreground">{active.name}</span>
               <LeverageBadge leverage={active.leverage} direction={active.direction} />
-              <span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
+              <span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground border border-border">
                 {active.underlying}
               </span>
               <div className="ml-auto flex items-center gap-4 font-mono text-xs">
                 <span>
-                  <span className="text-muted-foreground">mcap </span>
-                  <span className="text-accent font-bold">${(active.marketCap / 1000).toFixed(1)}k</span>
+                  <span className="text-muted-foreground uppercase tracking-wider text-[10px]">mcap </span>
+                  <span className="text-accent font-display">${(active.marketCap / 1000).toFixed(1)}k</span>
                 </span>
                 <span>
-                  <span className="text-muted-foreground">24h </span>
-                  <span className={active.change24h >= 0 ? "text-primary" : "text-destructive"}>
+                  <span className="text-muted-foreground uppercase tracking-wider text-[10px]">24h </span>
+                  <span className={active.change24h >= 0 ? "text-primary font-display" : "text-destructive font-display"}>
                     {active.change24h >= 0 ? "+" : ""}
                     {active.change24h.toFixed(1)}%
                   </span>
                 </span>
                 <span>
-                  <span className="text-muted-foreground">liq </span>
-                  <span className={active.liqDistance < 15 ? "text-destructive" : "text-foreground"}>
+                  <span className="text-muted-foreground uppercase tracking-wider text-[10px]">liq </span>
+                  <span className={active.liqDistance < 15 ? "text-destructive font-display" : "text-foreground font-display"}>
                     {active.liqDistance}%
                   </span>
                 </span>
@@ -112,23 +112,24 @@ export default function AdvancedPage() {
               <TokenChart ticker={active.ticker} underlying={active.underlying} />
             </div>
 
-            <div className="rounded-lg border border-border bg-card overflow-hidden">
-              <div className="px-4 py-2 border-b border-border font-mono text-xs text-muted-foreground">
+            <div className="rounded-xl border-2 border-border bg-card overflow-hidden">
+              <div className="px-4 py-2 border-b-2 border-border font-display uppercase text-xs flex items-center gap-2 bg-secondary/40">
+                <Activity className="h-3 w-3 text-primary animate-pulse" />
                 live trades — ${active.ticker}
               </div>
               <div className="overflow-y-auto h-[180px]">
                 <table className="w-full font-mono text-[11px]">
-                  <thead className="text-muted-foreground sticky top-0 bg-card">
+                  <thead className="text-muted-foreground sticky top-0 bg-card border-b border-border">
                     <tr className="text-left">
-                      <th className="px-4 py-1.5 font-normal">side</th>
-                      <th className="px-4 py-1.5 font-normal">amount</th>
-                      <th className="px-4 py-1.5 font-normal">user</th>
-                      <th className="px-4 py-1.5 font-normal text-right">ago</th>
+                      <th className="px-4 py-1.5 font-normal uppercase tracking-wider text-[10px]">side</th>
+                      <th className="px-4 py-1.5 font-normal uppercase tracking-wider text-[10px]">amount</th>
+                      <th className="px-4 py-1.5 font-normal uppercase tracking-wider text-[10px]">user</th>
+                      <th className="px-4 py-1.5 font-normal uppercase tracking-wider text-[10px] text-right">ago</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
                     {liveTrades.map((tr) => (
-                      <tr key={tr.id}>
+                      <tr key={tr.id} className="hover:bg-secondary/40">
                         <td
                           className={
                             tr.side === "BUY" ? "px-4 py-1.5 text-primary font-bold" : "px-4 py-1.5 text-destructive font-bold"
