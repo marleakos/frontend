@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { motion, AnimatePresence } from "motion/react"
+import { motion } from "motion/react"
 import { tokens } from "@/lib/mock-data"
 import { useRugged } from "@/lib/rugged-store"
 import { LeverageBadge } from "@/components/leverage-badge"
@@ -14,9 +14,6 @@ export function LiqArena() {
   const danger = sorted.filter((t) => t.liqDistance < 15)
   const watch = sorted.filter((t) => t.liqDistance >= 15 && t.liqDistance < 30)
   const safe = sorted.filter((t) => t.liqDistance >= 30)
-  const graveyard = tokens
-    .filter((t) => rugged[t.id])
-    .sort((a, b) => (rugged[b.id] ?? 0) - (rugged[a.id] ?? 0))
 
   return (
     <main className="mx-auto max-w-[1400px] px-4 py-8">
@@ -40,7 +37,6 @@ export function LiqArena() {
             <Pill label="near liq" value={danger.length} tone="destructive" />
             <Pill label="watchlist" value={watch.length} tone="accent" />
             <Pill label="safe" value={safe.length} tone="primary" />
-            <Pill label="rekt" value={graveyard.length} tone="rekt" />
           </div>
         </div>
       </div>
@@ -83,81 +79,17 @@ export function LiqArena() {
       <Group title="near liquidation" icon={<Skull className="h-4 w-4 text-destructive" />} rows={danger} tone="destructive" />
       <Group title="watchlist" icon={<AlertTriangle className="h-4 w-4 text-accent" />} rows={watch} tone="accent" />
       <Group title="safe" icon={<ShieldCheck className="h-4 w-4 text-primary" />} rows={safe} tone="primary" />
-
-      {/* Graveyard */}
-      <section className="rounded-xl border-2 border-destructive/40 bg-card overflow-hidden">
-        <div className="flex items-center gap-2 px-4 py-2.5 border-b-2 border-border font-display uppercase text-sm bg-secondary/40">
-          <Skull className="h-4 w-4 text-destructive" />
-          rekt graveyard
-          <span className="text-muted-foreground font-mono text-xs normal-case">({graveyard.length})</span>
-          <span className="ml-auto text-[10px] font-mono normal-case text-muted-foreground italic">thanks for playing</span>
-        </div>
-
-        {graveyard.length === 0 ? (
-          <div className="p-10 grid place-items-center font-mono text-xs text-muted-foreground">
-            no liquidations yet — chill in the morgue, the longs are coming
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-3">
-            <AnimatePresence initial={false}>
-              {graveyard.map((t) => (
-                <motion.div
-                  key={t.id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.9, rotate: -2 }}
-                  animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 22 }}
-                  className="relative overflow-hidden rounded-lg border border-destructive/40 bg-background"
-                >
-                  <Link href={`/token/${t.id}`} className="flex gap-3 p-3">
-                    <div className="grid h-20 w-20 shrink-0 place-items-center rounded-md bg-secondary text-4xl">
-                      <span className="grayscale opacity-50">{t.emoji}</span>
-                    </div>
-                    <div className="min-w-0 flex flex-col gap-1 opacity-60">
-                      <div className="font-display text-base truncate">
-                        {t.name} <span className="text-muted-foreground">${t.ticker}</span>
-                      </div>
-                      <div className="font-mono text-[11px] text-muted-foreground">
-                        liquidated <span className="text-foreground">{relTime(rugged[t.id])}</span>
-                      </div>
-                      <div className="font-mono text-[11px] text-muted-foreground">
-                        <span className="text-destructive font-bold">
-                          {t.leverage}x {t.direction.toLowerCase()}
-                        </span>{" "}
-                        {t.underlying}
-                      </div>
-                    </div>
-                  </Link>
-
-                  {/* slanted Rugged! stamp */}
-                  <div className="pointer-events-none absolute inset-0 grid place-items-center">
-                    <span
-                      className="font-display italic text-5xl text-destructive/55 select-none"
-                      style={{ transform: "rotate(-12deg)" }}
-                    >
-                      Rugged!
-                    </span>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-        )}
-      </section>
     </main>
   )
 }
 
-function Pill({ label, value, tone }: { label: string; value: number; tone: "destructive" | "accent" | "primary" | "rekt" }) {
+function Pill({ label, value, tone }: { label: string; value: number; tone: "destructive" | "accent" | "primary" }) {
   const cls =
     tone === "destructive"
       ? "border-destructive bg-destructive/10 text-destructive"
       : tone === "accent"
         ? "border-accent bg-accent/10 text-accent"
-        : tone === "rekt"
-          ? "border-foreground bg-foreground text-background"
-          : "border-primary bg-primary/10 text-primary"
+        : "border-primary bg-primary/10 text-primary"
   return (
     <div className={`px-3 py-1.5 rounded-md border-2 ${cls} font-mono`}>
       <span className="opacity-70 uppercase tracking-wider text-[10px]">{label}</span>{" "}
