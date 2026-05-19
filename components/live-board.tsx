@@ -22,6 +22,7 @@ function sortTokens(list: Token[], sort: Sort) {
 export function LiveBoard({ initial, koth }: { initial: Token[]; koth: Token }) {
   const [list, setList] = useState<Token[]>(initial)
   const [kothToken, setKothToken] = useState<Token>(koth)
+  const [prevKing, setPrevKing] = useState<{ ticker: string; at: number } | null>(null)
   const [sort, setSort] = useState<Sort>("featured")
   const [search, setSearch] = useState("")
   const [pumped, setPumped] = useState<Record<string, number>>({})
@@ -74,8 +75,12 @@ export function LiveBoard({ initial, koth }: { initial: Token[]; koth: Token }) 
         })
       }
 
-      if (winner.id !== kothToken.id && Math.random() < 0.18) setKothToken(winner)
-      else if (winner.id === kothToken.id) setKothToken((k) => ({ ...k, marketCap: k.marketCap + mcapBump }))
+      if (winner.id !== kothToken.id && Math.random() < 0.18) {
+        setPrevKing({ ticker: kothToken.ticker, at: Date.now() })
+        setKothToken(winner)
+      } else if (winner.id === kothToken.id) {
+        setKothToken((k) => ({ ...k, marketCap: k.marketCap + mcapBump }))
+      }
 
       setPumped((p) => ({ ...p, [winner.id]: Date.now() }))
       setBought({ id: winner.id, ticker: winner.ticker, sol })
@@ -119,7 +124,7 @@ export function LiveBoard({ initial, koth }: { initial: Token[]; koth: Token }) 
 
   return (
     <>
-      <KOTH token={kothToken} pumped={pumped[kothToken.id]} />
+      <KOTH token={kothToken} pumped={pumped[kothToken.id]} prev={prevKing} />
 
       <div className="my-6 flex flex-wrap items-center gap-3 font-mono text-xs">
         <div className="flex items-center gap-1">
@@ -269,53 +274,130 @@ function LiveCard({ token, pumpedAt }: { token: Token; pumpedAt?: number }) {
   )
 }
 
-function KOTH({ token, pumped }: { token: Token; pumped?: number }) {
+function KOTH({
+  token,
+  pumped,
+  prev,
+}: {
+  token: Token
+  pumped?: number
+  prev: { ticker: string; at: number } | null
+}) {
+  const GRAD = 69000
+  const progress = Math.min(100, (token.marketCap / GRAD) * 100)
+
   return (
     <section className="my-10 grid place-items-center">
-      <div className="mb-3 font-mono text-[11px] uppercase tracking-[0.3em] text-muted-foreground">
-        — king of the hill —
+      <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.3em] text-muted-foreground">
+        <span className="h-px w-12 bg-border" />
+        king of the hill
+        <span className="h-px w-12 bg-border" />
       </div>
-      <div className="relative w-full max-w-[640px] overflow-hidden">
+
+      <div className="relative w-full max-w-[760px]">
         <AnimatePresence mode="popLayout" initial={false}>
           <motion.div
             key={token.id}
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "-100%" }}
-            transition={{ type: "spring", stiffness: 380, damping: 32 }}
+            initial={{ y: 24, opacity: 0, rotate: -1.2 }}
+            animate={{ y: 0, opacity: 1, rotate: 0 }}
+            exit={{ y: -24, opacity: 0, rotate: 1.2 }}
+            transition={{ type: "spring", stiffness: 320, damping: 26 }}
           >
             <Link
               href={`/token/${token.id}`}
-              className="grid grid-cols-[auto_auto_1fr_auto] items-center gap-4 border-2 border-foreground bg-card px-4 py-3 hover:bg-secondary transition-colors"
-              style={{ boxShadow: "6px 6px 0 0 hsl(var(--foreground))" }}
+              className="relative block border-2 border-foreground bg-card transition-transform hover:-translate-y-0.5"
+              style={{ boxShadow: "8px 8px 0 0 hsl(var(--foreground))" }}
             >
-              <div className="grid h-14 w-14 place-items-center bg-foreground font-display text-3xl text-background">
-                #1
+              {/* corner sticker badge */}
+              <div
+                className="absolute -top-3 -right-3 z-10 select-none border-2 border-foreground bg-primary px-3 py-1 font-display text-xs uppercase tracking-wider text-primary-foreground"
+                style={{ transform: "rotate(6deg)", boxShadow: "3px 3px 0 0 hsl(var(--foreground))" }}
+              >
+                #1 · king
               </div>
-              <div className="grid h-14 w-14 place-items-center bg-secondary text-3xl">{token.emoji}</div>
-              <div className="min-w-0">
-                <div className="font-display text-xl leading-none truncate">
-                  {token.name.toUpperCase()}{" "}
-                  <span className="text-muted-foreground">${token.ticker}</span>
-                </div>
-                <div className="mt-1 font-mono text-[11px] text-muted-foreground">
-                  <span className="text-foreground font-bold">
+
+              <div className="grid grid-cols-[200px_1fr] gap-0">
+                {/* big lime emoji panel */}
+                <motion.div
+                  key={"emoji-" + (pumped ?? 0)}
+                  initial={pumped ? { scale: 0.94 } : false}
+                  animate={pumped ? { scale: [0.94, 1.04, 1] } : {}}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                  className="relative grid place-items-center bg-primary border-r-2 border-foreground"
+                >
+                  <div className="text-[110px] leading-none drop-shadow-[2px_2px_0_rgba(0,0,0,0.25)]">
+                    {token.emoji}
+                  </div>
+                  <div className="absolute bottom-2 left-2 font-mono text-[10px] font-bold uppercase tracking-wider text-primary-foreground/80">
+                    {token.underlying}
+                  </div>
+                  <div className="absolute top-2 right-2 border border-primary-foreground/40 bg-primary-foreground/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-primary-foreground">
                     {token.leverage}x {token.direction.toLowerCase()}
-                  </span>{" "}
-                  {token.underlying}
+                  </div>
+                </motion.div>
+
+                {/* stats stack */}
+                <div className="flex flex-col justify-between gap-3 p-5">
+                  <div>
+                    <div className="font-display text-2xl leading-none truncate">
+                      {token.name.toUpperCase()}
+                    </div>
+                    <div className="mt-1 font-mono text-xs text-muted-foreground">
+                      ${token.ticker} · created by{" "}
+                      <span className="text-foreground">{token.creator}</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                      market cap
+                    </div>
+                    <Odometer value={token.marketCap} bump={pumped} />
+                  </div>
+
+                  {/* bonding curve to graduation */}
+                  <div>
+                    <div className="mb-1 flex items-center justify-between font-mono text-[10px] uppercase tracking-wider">
+                      <span className="text-muted-foreground">bonding curve</span>
+                      <span className="text-primary font-bold">{progress.toFixed(0)}%</span>
+                    </div>
+                    <div className="relative h-2 w-full border border-foreground bg-secondary">
+                      <motion.div
+                        animate={{ width: `${progress}%` }}
+                        transition={{ type: "spring", stiffness: 220, damping: 28 }}
+                        className="absolute left-0 top-0 h-full bg-primary"
+                      />
+                    </div>
+                    <div className="mt-1 font-mono text-[10px] text-muted-foreground">
+                      graduates to raydium at $69k
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="text-right font-mono">
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">mcap</div>
-                <Odometer value={token.marketCap} bump={pumped} />
               </div>
             </Link>
           </motion.div>
         </AnimatePresence>
+
+        {/* dethroned line */}
+        <div className="mt-3 grid h-5 place-items-center font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          <AnimatePresence mode="wait">
+            {prev && (
+              <motion.div
+                key={prev.at}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+              >
+                previously: <span className="text-foreground">${prev.ticker}</span> dethroned
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
+
       <Link
         href="/create"
-        className="brick mt-8 inline-flex items-center rounded-md bg-primary px-6 h-12 font-display text-lg uppercase text-primary-foreground"
+        className="brick mt-6 inline-flex items-center rounded-md bg-primary px-6 h-12 font-display text-lg uppercase text-primary-foreground"
       >
         [ start a new coin ]
       </Link>
