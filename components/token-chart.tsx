@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { Crosshair, LineChart as LineIcon, CandlestickChart, Maximize2, ZoomIn, ZoomOut, Camera, Settings } from "lucide-react"
 
-const ranges = ["15s", "1m", "5m", "15m", "1h", "4h", "1d"] as const
+const ranges = ["1s", "5s", "15s", "1m", "5m", "15m", "1h", "4h", "1d"] as const
 type Range = (typeof ranges)[number]
 type Mode = "candles" | "line"
 
@@ -17,6 +17,8 @@ const AXIS = "rgba(255,255,255,0.45)"
 
 function rangeToMs(r: Range): number {
   const m: Record<Range, number> = {
+    "1s": 1_000,
+    "5s": 5_000,
     "15s": 15_000,
     "1m": 60_000,
     "5m": 5 * 60_000,
@@ -58,6 +60,7 @@ function fmtMcap(v: number) {
     const h = d.getHours().toString().padStart(2, "0")
     const m = d.getMinutes().toString().padStart(2, "0")
     const s = d.getSeconds().toString().padStart(2, "0")
+    if (range === "1s" || range === "5s") return `${m}:${s}`
     if (range === "15s") return `${h}:${m}:${s}`
     if (range === "1d" || range === "4h") {
       const mth = (d.getMonth() + 1).toString().padStart(2, "0")
@@ -72,6 +75,8 @@ const MAX_VISIBLE = 200
 
 function candlesForRange(range: Range): number {
   const m: Record<Range, number> = {
+    "1s": 60, // ~1 minute of 1s candles
+    "5s": 60, // ~5 minutes of 5s candles
     "15s": 40, // ~10 min of 15s candles
     "1m": 60, // ~1 hour of 1m candles
     "5m": 72, // ~6 hours of 5m candles
