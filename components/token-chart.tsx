@@ -28,29 +28,29 @@ function rangeToMs(r: Range): number {
   return m[r]
 }
 
-function makeCandles(n: number, range: Range, start = 0.0034): Candle[] {
+function makeCandles(n: number, range: Range, startMcap = 8000): Candle[] {
   const out: Candle[] = []
-  let p = start
+  let mcap = startMcap
   const intervalMs = rangeToMs(range)
   let t = Date.now() - n * intervalMs
   for (let i = 0; i < n; i++) {
-    const o = p
-    const drift = (Math.random() - 0.45) * 0.06
-    const c = Math.max(0.0001, o * (1 + drift))
-    const h = Math.max(o, c) * (1 + Math.random() * 0.025)
-    const l = Math.min(o, c) * (1 - Math.random() * 0.025)
+    const o = mcap
+    const drift = (Math.random() - 0.35) * 0.15 // mcap changes more wildly
+    const c = Math.max(100, o * (1 + drift))
+    const h = Math.max(o, c) * (1 + Math.random() * 0.04)
+    const l = Math.min(o, c) * (1 - Math.random() * 0.04)
     const v = Math.random() * 100 + 20
     out.push({ o, h, l, c, v, t })
-    p = c
+    mcap = c
     t += intervalMs
   }
   return out
 }
 
-function fmtPrice(v: number) {
-  if (v >= 1) return v.toFixed(4)
-  if (v >= 0.01) return v.toFixed(5)
-  return v.toFixed(6)
+function fmtMcap(v: number) {
+  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`
+  if (v >= 1_000) return `$${(v / 1_000).toFixed(1)}K`
+  return `$${v.toFixed(0)}`
 }
 
   function fmtTime(t: number, range: Range = "1m") {
@@ -263,13 +263,13 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
           <div className="font-mono text-[11px] text-muted-foreground">vs {underlying}</div>
           <div className="font-mono text-xs">
             <span className="text-muted-foreground">o </span>
-            <span className="text-foreground">{fmtPrice(first.o)}</span>
+            <span className="text-foreground">{fmtMcap(first.o)}</span>
             <span className="text-muted-foreground"> h </span>
-            <span style={{ color: UP }}>{fmtPrice(max)}</span>
+            <span style={{ color: UP }}>{fmtMcap(max)}</span>
             <span className="text-muted-foreground"> l </span>
-            <span style={{ color: DOWN }}>{fmtPrice(min)}</span>
+            <span style={{ color: DOWN }}>{fmtMcap(min)}</span>
             <span className="text-muted-foreground"> c </span>
-            <span style={{ color: positive ? UP : DOWN }}>{fmtPrice(last.c)}</span>
+            <span style={{ color: positive ? UP : DOWN }}>{fmtMcap(last.c)}</span>
             <span className="ml-2" style={{ color: positive ? UP : DOWN }}>
               {positive ? "+" : ""}
               {(((last.c - first.o) / first.o) * 100).toFixed(2)}%
@@ -360,7 +360,7 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
                   fontFamily="ui-monospace, monospace"
                   fill={AXIS}
                 >
-                  {fmtPrice(v)}
+                  {fmtMcap(v)}
                 </text>
               </g>
             )
@@ -444,7 +444,7 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
                 fontWeight={700}
                 fill="#0d0d0f"
               >
-                {fmtPrice(visible[hover].c)}
+                {fmtMcap(visible[hover].c)}
               </text>
             </g>
           )}
@@ -475,7 +475,7 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
               fontWeight={700}
               fill="#000"
             >
-              {fmtPrice(last.c)}
+              {fmtMcap(last.c)}
             </text>
           </g>
 
@@ -558,7 +558,16 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
         <div className="px-3 py-1.5 border-t border-border bg-secondary/20 font-mono text-[11px] flex items-center gap-3">
           <span className="text-muted-foreground">{fmtTime(hovered.t, range)}</span>
           <span className="text-muted-foreground">
-            o <span className="text-foreground">{fmtPrice(hovered.o)}</span>
+            o <span className="text-foreground">{fmtMcap(hovered.o)}</span>
+          </span>
+          <span className="text-muted-foreground">
+            h <span style={{ color: UP }}>{fmtMcap(hovered.h)}</span>
+          </span>
+          <span className="text-muted-foreground">
+            l <span style={{ color: DOWN }}>{fmtMcap(hovered.l)}</span>
+          </span>
+          <span className="text-muted-foreground">
+            c <span style={{ color: hovered.c >= hovered.o ? UP : DOWN }}>{fmtMcap(hovered.c)}</span>
           </span>
           <span className="text-muted-foreground">
             h <span style={{ color: UP }}>{fmtPrice(hovered.h)}</span>
