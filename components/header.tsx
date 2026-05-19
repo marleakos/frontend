@@ -15,9 +15,9 @@ export function Header() {
   const pathname = usePathname()
   return (
     <header className="border-b border-border">
-      <div className="mx-auto flex max-w-[1400px] items-center gap-5 px-4 py-3">
-        <Link href="/" className="font-display text-xl leading-none">
-          leverage<span className="text-primary">.fun</span>
+      <div className="mx-auto flex max-w-[1400px] items-center gap-2 md:gap-5 px-2 md:px-4 py-2 md:py-3">
+        <Link href="/" className="font-display text-lg md:text-xl leading-none">
+          <span className="hidden md:inline">leverage</span><span className="md:hidden">lev</span><span className="text-primary">.fun</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-4 text-sm font-mono">
@@ -35,10 +35,10 @@ export function Header() {
           })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-1 md:gap-2">
           <HeaderSearch />
-          <button className="hidden sm:inline-flex h-8 items-center rounded border border-border bg-secondary px-3 font-mono text-xs hover:border-foreground">
-            connect wallet
+          <button className="hidden sm:inline-flex h-8 items-center rounded border border-border bg-secondary px-2 md:px-3 font-mono text-[11px] md:text-xs hover:border-foreground">
+            connect
           </button>
         </div>
       </div>

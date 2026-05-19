@@ -301,7 +301,7 @@ function KOTH({
         <span className="h-px w-12 bg-border" />
       </div>
 
-      <div className="relative w-full max-w-[560px]">
+      <div className="relative w-full max-w-[560px] px-2 md:px-0">
         <AnimatePresence mode="popLayout" initial={false}>
           <motion.div
             key={token.id}
@@ -323,7 +323,7 @@ function KOTH({
                 #1 · king
               </div>
 
-              <div className="grid grid-cols-[140px_1fr] gap-0">
+              <div className="grid grid-cols-[100px_1fr] gap-0 md:grid-cols-[140px_1fr]">
                 {/* big lime emoji panel */}
                 <motion.div
                   key={"emoji-" + (pumped ?? 0)}
@@ -332,24 +332,24 @@ function KOTH({
                   transition={{ duration: 0.5, ease: "easeOut" }}
                   className="relative grid place-items-center bg-primary border-r-2 border-foreground"
                 >
-                  <div className="text-[78px] leading-none drop-shadow-[2px_2px_0_rgba(0,0,0,0.25)]">
+                  <div className="text-[56px] md:text-[78px] leading-none drop-shadow-[2px_2px_0_rgba(0,0,0,0.25)]">
                     {token.emoji}
                   </div>
-                  <div className="absolute bottom-1.5 left-1.5 font-mono text-[9px] font-bold uppercase tracking-wider text-primary-foreground/80">
+                  <div className="absolute bottom-1 left-1 md:bottom-1.5 md:left-1.5 font-mono text-[7px] md:text-[9px] font-bold uppercase tracking-wider text-primary-foreground/80">
                     {token.underlying}
                   </div>
-                  <div className="absolute top-1.5 right-1.5 border border-primary-foreground/40 bg-primary-foreground/10 px-1 py-0.5 font-mono text-[9px] font-bold text-primary-foreground">
+                  <div className="absolute top-1 right-1 md:top-1.5 md:right-1.5 border border-primary-foreground/40 bg-primary-foreground/10 px-0.5 py-0.5 md:px-1 md:py-0.5 font-mono text-[7px] md:text-[9px] font-bold text-primary-foreground">
                     {token.leverage}x {token.direction.toLowerCase()}
                   </div>
                 </motion.div>
 
                 {/* stats stack */}
-                <div className="flex flex-col justify-between gap-2 p-3.5">
+                <div className="flex flex-col justify-between gap-2 md:gap-2 p-2.5 md:p-3.5">
                   <div>
-                    <div className="font-display text-lg leading-none truncate">
+                    <div className="font-display text-sm md:text-lg leading-none truncate">
                       {token.name.toUpperCase()}
                     </div>
-                    <div className="mt-1 font-mono text-[11px] text-muted-foreground">
+                    <div className="mt-1 font-mono text-[9px] md:text-[11px] text-muted-foreground truncate">
                       ${token.ticker} · by{" "}
                       <Link
                         href={`/user/${token.creator.split("...")[0]}`}
@@ -362,7 +362,7 @@ function KOTH({
                   </div>
 
                   <div>
-                    <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+                    <div className="font-mono text-[8px] md:text-[9px] uppercase tracking-wider text-muted-foreground">
                       market cap
                     </div>
                     <Odometer value={token.marketCap} bump={pumped} />
@@ -370,19 +370,19 @@ function KOTH({
 
                   {/* bonding curve to graduation */}
                   <div>
-                    <div className="mb-1 flex items-center justify-between font-mono text-[9px] uppercase tracking-wider">
-                      <span className="text-muted-foreground">bonding curve</span>
+                    <div className="mb-1 flex items-center justify-between font-mono text-[8px] md:text-[9px] uppercase tracking-wider">
+                      <span className="text-muted-foreground">bonding</span>
                       <span className="text-primary font-bold">{progress.toFixed(0)}%</span>
                     </div>
-                    <div className="relative h-1.5 w-full border border-foreground bg-secondary">
+                    <div className="relative h-1 md:h-1.5 w-full border border-foreground bg-secondary">
                       <motion.div
                         animate={{ width: `${progress}%` }}
                         transition={{ type: "spring", stiffness: 220, damping: 28 }}
                         className="absolute left-0 top-0 h-full bg-primary"
                       />
                     </div>
-                    <div className="mt-1 font-mono text-[9px] text-muted-foreground">
-                      graduates to raydium at $69k
+                    <div className="mt-1 font-mono text-[8px] md:text-[9px] text-muted-foreground">
+                      graduates at $69k
                     </div>
                   </div>
                 </div>

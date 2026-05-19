@@ -8,28 +8,24 @@ export function TokenCard({ token }: { token: Token }) {
       href={`/token/${token.id}`}
       className="group flex gap-3 rounded-lg border border-border bg-card p-3 hover:border-primary transition-colors"
     >
-      <div className="grid h-20 w-20 shrink-0 place-items-center rounded-md bg-secondary text-4xl">
+      <div className="grid h-16 w-16 md:h-20 md:w-20 shrink-0 place-items-center rounded-md bg-secondary text-3xl md:text-4xl">
         {token.emoji}
       </div>
-      <div className="min-w-0 flex flex-col gap-1">
-        <div className="font-mono text-[10px] text-muted-foreground">
-          created by <span className="text-foreground">{token.creator}</span>{" "}
-          <span className="text-primary">{ageLabel(token.ageMinutes)}</span>
+      <div className="min-w-0 flex flex-col gap-0.5 md:gap-1">
+        <div className="font-mono text-[9px] md:text-[10px] text-muted-foreground truncate">
+          <span className="text-foreground">{token.creator}</span> <span className="text-primary">{ageLabel(token.ageMinutes)}</span>
         </div>
-        <div className="font-mono text-[11px] text-primary">
-          market cap: <span className="font-bold">${formatK(token.marketCap)}</span>{" "}
+        <div className="font-mono text-[10px] md:text-[11px] text-primary">
+          ${formatK(token.marketCap)}{" "}
           <span className={positive ? "text-primary" : "text-destructive"}>
             [{positive ? "+" : ""}{token.change24h.toFixed(0)}%]
           </span>
         </div>
-        <div className="font-mono text-[10px] text-muted-foreground">
+        <div className="font-mono text-[9px] md:text-[10px] text-muted-foreground">
           replies: <span className="text-foreground">{token.replies}</span>
         </div>
-        <div className="mt-auto font-mono text-[11px] truncate">
-          <span className="font-display text-sm">{token.name}</span>{" "}
-          <span className="text-muted-foreground">(${token.ticker})</span>{" "}
-          <span className="text-accent font-bold">{token.leverage}x {token.direction.toLowerCase()}</span>{" "}
-          <span className="text-muted-foreground">{token.underlying}</span>
+        <div className="mt-auto font-mono text-[10px] md:text-[11px] truncate">
+          <span className="font-display text-xs md:text-sm">{token.name}</span> <span className="text-accent">{token.leverage}x</span>
         </div>
       </div>
     </Link>
