@@ -570,16 +570,6 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
             c <span style={{ color: hovered.c >= hovered.o ? UP : DOWN }}>{fmtMcap(hovered.c)}</span>
           </span>
           <span className="text-muted-foreground">
-            h <span style={{ color: UP }}>{fmtPrice(hovered.h)}</span>
-          </span>
-          <span className="text-muted-foreground">
-            l <span style={{ color: DOWN }}>{fmtPrice(hovered.l)}</span>
-          </span>
-          <span className="text-muted-foreground">
-            c{" "}
-            <span style={{ color: hovered.c >= hovered.o ? UP : DOWN }}>{fmtPrice(hovered.c)}</span>
-          </span>
-          <span className="text-muted-foreground">
             v <span className="text-foreground">{hovered.v.toFixed(0)}</span>
           </span>
         </div>
