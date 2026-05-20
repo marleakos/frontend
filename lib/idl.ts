@@ -123,7 +123,6 @@ export const IDL = {
           { "name": "graduated", "type": "bool" },
           { "name": "ammPool", "type": { "option": "publicKey" } },
           { "name": "createdAt", "type": "i64" },
-          { "name": "paused", "type": "bool" },
           { "name": "totalFeesCollected", "type": "u64" },
           { "name": "leverage", "type": "u8" },
           { "name": "direction", "type": { "defined": "Direction" } },
@@ -264,11 +263,10 @@ export const IDL = {
     { "code": 6002, "name": "AlreadyGraduated", "msg": "Token already graduated" },
     { "code": 6003, "name": "InsufficientLiquidity", "msg": "Insufficient liquidity in curve" },
     { "code": 6004, "name": "GraduationThresholdNotMet", "msg": "Graduation threshold not reached" },
-    { "code": 6005, "name": "ContractPaused", "msg": "Contract is paused" },
-    { "code": 6006, "name": "Unauthorized", "msg": "Unauthorized" },
-    { "code": 6007, "name": "MathOverflow", "msg": "Math overflow" },
-    { "code": 6008, "name": "InvalidAmount", "msg": "Invalid amount" },
-    { "code": 6009, "name": "InvalidLeverage", "msg": "Invalid leverage (must be 2-10)" }
+    { "code": 6005, "name": "Unauthorized", "msg": "Unauthorized" },
+    { "code": 6006, "name": "MathOverflow", "msg": "Math overflow" },
+    { "code": 6007, "name": "InvalidAmount", "msg": "Invalid amount" },
+    { "code": 6008, "name": "InvalidLeverage", "msg": "Invalid leverage (must be 2-10)" }
   ]
 } as const
 
