@@ -64,8 +64,9 @@ export default function CreatePage() {
     
     try {
       console.log("Starting deployment...")
+      console.log("RPC_URL:", RPC_URL)
       const connection = new Connection(RPC_URL, "confirmed")
-      console.log("Connection created")
+      console.log("Connection created to:", connection.rpcEndpoint)
       const mintKeypair = Keypair.generate()
       console.log("Mint keypair:", mintKeypair.publicKey.toString())
 
