@@ -14,8 +14,8 @@ import { BN } from "@coral-xyz/anchor"
 const REFERENCE_ASSETS = ["SOL", "BTC", "ETH", "APT", "ARB", "DOGE", "BNB", "SUI", "BONK", "MATIC"] as const
 const LEVERAGE_OPTIONS = [2, 3, 5, 10] as const
 
-// Instruction discriminators
-const INITIALIZE_TOKEN_DISCRIMINATOR = new Uint8Array([69, 116, 107, 228, 81, 178, 49, 65])
+// Instruction discriminator for initialize_token (sha256("global:initialize_token")[0:8])
+const INITIALIZE_TOKEN_DISCRIMINATOR = new Uint8Array([38, 209, 150, 50, 190, 117, 16, 54])
 
 export default function CreatePage() {
   const { connected, publicKey, signTransaction } = useWallet()
