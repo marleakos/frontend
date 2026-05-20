@@ -63,8 +63,6 @@ export default function CreatePage() {
     toast.loading("Creating token...", { id: "deploy" })
     
     try {
-
-    try {
       console.log("Starting deployment...")
       const connection = new Connection(RPC_URL, "confirmed")
       console.log("Connection created")
