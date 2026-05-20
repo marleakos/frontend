@@ -44,6 +44,11 @@ export default function CreatePage() {
   }
 
   const handleDeploy = async () => {
+    console.log("Deploy clicked!")
+    console.log("Connected:", connected)
+    console.log("PublicKey:", publicKey?.toString())
+    console.log("SignTransaction:", !!signTransaction)
+    
     if (!connected || !publicKey || !signTransaction) {
       toast.error("Please connect your wallet first")
       return
@@ -56,10 +61,15 @@ export default function CreatePage() {
 
     setIsDeploying(true)
     toast.loading("Creating token...", { id: "deploy" })
+    
+    try {
 
     try {
+      console.log("Starting deployment...")
       const connection = new Connection(RPC_URL, "confirmed")
+      console.log("Connection created")
       const mintKeypair = Keypair.generate()
+      console.log("Mint keypair:", mintKeypair.publicKey.toString())
 
       // Get PDAs
       const [tokenStatePDA] = PublicKey.findProgramAddressSync(
@@ -181,6 +191,7 @@ export default function CreatePage() {
       
     } catch (error: any) {
       console.error("Deployment error:", error)
+      console.error("Error stack:", error.stack)
       toast.error(error.message || "Failed to create token", { id: "deploy" })
     } finally {
       setIsDeploying(false)
