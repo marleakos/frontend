@@ -573,27 +573,25 @@ export function TokenChart({ ticker, underlying }: { ticker: string; underlying:
         )}
       </div>
 
-      {/* OHLC tooltip */}
-      {hovered && (
-        <div className="px-3 py-1.5 border-t border-border bg-secondary/20 font-mono text-[11px] flex items-center gap-3">
-          <span className="text-muted-foreground">{fmtTime(hovered.t, range)}</span>
-          <span className="text-muted-foreground">
-            o <span className="text-foreground">{fmtMcap(hovered.o)}</span>
-          </span>
-          <span className="text-muted-foreground">
-            h <span style={{ color: UP }}>{fmtMcap(hovered.h)}</span>
-          </span>
-          <span className="text-muted-foreground">
-            l <span style={{ color: DOWN }}>{fmtMcap(hovered.l)}</span>
-          </span>
-          <span className="text-muted-foreground">
-            c <span style={{ color: hovered.c >= hovered.o ? UP : DOWN }}>{fmtMcap(hovered.c)}</span>
-          </span>
-          <span className="text-muted-foreground">
-            v <span className="text-foreground">{hovered.v.toFixed(0)}</span>
-          </span>
-        </div>
-      )}
+      {/* OHLC tooltip - always shows last candle */}
+      <div className="px-3 py-1.5 border-t border-border bg-secondary/20 font-mono text-[11px] flex items-center gap-3">
+        <span className="text-muted-foreground">{fmtTime((hovered ?? last).t, range)}</span>
+        <span className="text-muted-foreground">
+          o <span className="text-foreground">{fmtMcap((hovered ?? last).o)}</span>
+        </span>
+        <span className="text-muted-foreground">
+          h <span style={{ color: UP }}>{fmtMcap((hovered ?? last).h)}</span>
+        </span>
+        <span className="text-muted-foreground">
+          l <span style={{ color: DOWN }}>{fmtMcap((hovered ?? last).l)}</span>
+        </span>
+        <span className="text-muted-foreground">
+          c <span style={{ color: (hovered ?? last).c >= (hovered ?? last).o ? UP : DOWN }}>{fmtMcap((hovered ?? last).c)}</span>
+        </span>
+        <span className="text-muted-foreground">
+          v <span className="text-foreground">{(hovered ?? last).v.toFixed(0)}</span>
+        </span>
+      </div>
     </div>
   )
 }

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import Link from "next/link"
-import type { Token } from "@/lib/mock-data"
+import type { TokenData } from "@/hooks/use-tokens"
 import { ruggedStore, useRugged } from "@/lib/rugged-store"
 import { ChevronDown, RotateCcw, Search } from "lucide-react"
 
@@ -15,7 +15,7 @@ const DIR_OPTIONS = ["All", "Long", "Short"] as const
 const STATUS_OPTIONS = ["All", "Bonding", "Graduated"] as const
 const ASSET_OPTIONS = ["All", "SOL", "BTC", "ETH", "DOGE", "APT", "ARB", "BNB", "SUI", "BONK", "MATIC"] as const
 
-function sortTokens(list: Token[], sort: Sort) {
+function sortTokens(list: TokenData[], sort: Sort) {
   const arr = [...list]
   if (sort === "trending") arr.sort((a, b) => b.replies - a.replies)
   else if (sort === "new") arr.sort((a, b) => a.ageMinutes - b.ageMinutes)
@@ -24,9 +24,9 @@ function sortTokens(list: Token[], sort: Sort) {
   return arr
 }
 
-export function LiveBoard({ initial, koth }: { initial: Token[]; koth: Token }) {
-  const [list, setList] = useState<Token[]>(initial)
-  const [kothToken, setKothToken] = useState<Token>(koth)
+export function LiveBoard({ initial, koth }: { initial: TokenData[]; koth: TokenData }) {
+  const [list, setList] = useState<TokenData[]>(initial)
+  const [kothToken, setKothToken] = useState<TokenData>(koth)
   const [prevKing, setPrevKing] = useState<{ ticker: string; at: number } | null>(null)
   const [sort, setSort] = useState<Sort>("featured")
   const [search, setSearch] = useState("")
@@ -232,7 +232,7 @@ export function LiveBoard({ initial, koth }: { initial: Token[]; koth: Token }) 
               <button
                 key={opt}
                 onClick={() => setLevFilter(opt)}
-                className={`px-2 py-1 rounded ${levFilter === opt ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`px-2 py-1 rounded font-mono text-[11px] ${levFilter === opt ? 'bg-[#39ff14] text-black font-bold' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 {opt}
               </button>
@@ -243,7 +243,7 @@ export function LiveBoard({ initial, koth }: { initial: Token[]; koth: Token }) 
               <button
                 key={opt}
                 onClick={() => setDirFilter(opt)}
-                className={`px-2 py-1 rounded ${dirFilter === opt ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`px-2 py-1 rounded font-mono text-[11px] ${dirFilter === opt ? 'bg-[#39ff14] text-black font-bold' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 {opt}
               </button>
@@ -254,7 +254,7 @@ export function LiveBoard({ initial, koth }: { initial: Token[]; koth: Token }) 
               <button
                 key={opt}
                 onClick={() => setStatusFilter(opt)}
-                className={`px-2 py-1 rounded ${statusFilter === opt ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`px-2 py-1 rounded font-mono text-[11px] ${statusFilter === opt ? 'bg-[#39ff14] text-black font-bold' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 {opt}
               </button>
@@ -278,13 +278,18 @@ export function LiveBoard({ initial, koth }: { initial: Token[]; koth: Token }) 
               <button
                 key={opt}
                 onClick={() => setAssetFilter(opt)}
-                className={`px-2 py-1 rounded ${assetFilter === opt ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`px-2 py-1 rounded font-mono text-[11px] ${assetFilter === opt ? 'bg-[#39ff14] text-black font-bold' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 {opt}
               </button>
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Showing count */}
+      <div className="mb-3 font-mono text-xs text-muted-foreground">
+        Showing {sorted.length} tokens
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
@@ -337,7 +342,7 @@ export function LiveBoard({ initial, koth }: { initial: Token[]; koth: Token }) 
   )
 }
 
-function LiveCard({ token, pumpedAt }: { token: Token; pumpedAt?: number }) {
+function LiveCard({ token, pumpedAt }: { token: TokenData; pumpedAt?: number }) {
   const positive = token.change24h >= 0
   const graduated = token.marketCap >= 69000
   return (
@@ -419,7 +424,7 @@ function KOTH({
   pumped,
   prev,
 }: {
-  token: Token
+  token: TokenData
   pumped?: number
   prev: { ticker: string; at: number } | null
 }) {

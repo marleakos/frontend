@@ -3,14 +3,21 @@
 import { useState, useRef } from "react"
 import { Header } from "@/components/header"
 import { TradesTicker } from "@/components/trades-ticker"
-import { ImagePlus, Info, X } from "lucide-react"
+import { ImagePlus, Info, X, Loader2 } from "lucide-react"
 import { useWallet } from "@solana/wallet-adapter-react"
+import { useProgram } from "@/hooks/use-program"
+import { getInitializeTokenAccounts, getDirectionEnum, getUnderlyingEnum } from "@/lib/program-utils"
+import { Keypair, SystemProgram, SYSVAR_CLOCK_PUBKEY, SYSVAR_RENT_PUBKEY } from "@solana/web3.js"
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token"
+import { BN } from "@coral-xyz/anchor"
+import { toast } from "sonner"
 
 const REFERENCE_ASSETS = ["SOL", "BTC", "ETH", "APT", "ARB", "DOGE", "BNB", "SUI", "BONK", "MATIC"] as const
 const LEVERAGE_OPTIONS = [2, 3, 5, 10] as const
 
 export default function CreatePage() {
-  const { connected } = useWallet()
+  const { connected, publicKey } = useWallet()
+  const { program, isReady } = useProgram()
   const [name, setName] = useState("")
   const [ticker, setTicker] = useState("")
   const [image, setImage] = useState<string | null>(null)
@@ -23,6 +30,8 @@ export default function CreatePage() {
   const [leverage, setLeverage] = useState<number>(3)
   const [direction, setDirection] = useState<"LONG" | "SHORT">("LONG")
   const [initialBuy, setInitialBuy] = useState("0.5")
+  const [isDeploying, setIsDeploying] = useState(false)
+  const [txSignature, setTxSignature] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const getFeePercentage = () => {
@@ -32,6 +41,104 @@ export default function CreatePage() {
     if (leverage === 10) return '1.0%'
     return '0.6%'
   }
+
+  const handleDeploy = async () => {
+    if (!program || !publicKey) {
+      toast.error("Please connect your wallet first")
+      return
+    }
+
+    if (!name.trim()) {
+      toast.error("Please enter a token name")
+      return
+    }
+
+    if (!ticker.trim()) {
+      toast.error("Please enter a ticker symbol")
+      return
+    }
+
+    if (name.length > 32) {
+      toast.error("Name must be 32 characters or less")
+      return
+    }
+
+    if (ticker.length > 10) {
+      toast.error("Ticker must be 10 characters or less")
+      return
+    }
+
+    setIsDeploying(true)
+    setTxSignature(null)
+
+    try {
+      // Generate a new mint keypair
+      const mintKeypair = Keypair.generate()
+
+      // Get all the PDA accounts
+      const accounts = getInitializeTokenAccounts(
+        publicKey,
+        mintKeypair.publicKey
+      )
+
+      // Upload image to get metadata URI (placeholder - you'd need actual upload)
+      const metadataUri = "https://example.com/metadata.json"
+
+      // Get current oracle price (placeholder - you'd fetch real price)
+      const oraclePrice = new BN(100000000) // 1 SOL in lamports
+
+      toast.loading("Deploying token...", { id: "deploy" })
+
+      // Create the token
+      const tx = await (program as any).methods
+        .initializeToken(
+          name,
+          ticker,
+          metadataUri,
+          leverage,
+          getDirectionEnum(direction),
+          getUnderlyingEnum(referenceAsset),
+          oraclePrice,
+          null // referrer (optional)
+        )
+        .accounts({
+          creator: accounts.creator,
+          tokenMint: accounts.tokenMint,
+          tokenState: accounts.tokenState,
+          feeVault: accounts.feeVault,
+          userReferral: accounts.userReferral,
+          curveTokenAccount: accounts.curveTokenAccount,
+          lpTokenAccount: accounts.lpTokenAccount,
+          systemProgram: accounts.systemProgram,
+          tokenProgram: accounts.tokenProgram,
+          rent: accounts.rent,
+          clock: accounts.clock,
+        })
+        .signers([mintKeypair])
+        .rpc()
+
+      setTxSignature(tx)
+      toast.success("Token deployed successfully!", { id: "deploy" })
+      
+      // Reset form
+      setName("")
+      setTicker("")
+      setDesc("")
+      setImage(null)
+      setImageFile(null)
+      setWebsite("")
+      setTwitter("")
+      setTelegram("")
+      
+    } catch (error: any) {
+      console.error("Deployment error:", error)
+      toast.error(error.message || "Failed to deploy token", { id: "deploy" })
+    } finally {
+      setIsDeploying(false)
+    }
+  }
+
+  const canDeploy = connected && isReady && name.trim() && ticker.trim() && !isDeploying
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
@@ -103,16 +210,20 @@ export default function CreatePage() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Mega Sol Bull"
+                      maxLength={32}
                       className="input"
                     />
+                    <p className="font-mono text-[9px] text-muted-foreground mt-1">{name.length}/32</p>
                   </Field>
                   <Field label="TICKER">
                     <input
                       value={ticker}
                       onChange={(e) => setTicker(e.target.value.toUpperCase().slice(0, 10))}
                       placeholder="MSOL5"
+                      maxLength={10}
                       className="input"
                     />
+                    <p className="font-mono text-[9px] text-muted-foreground mt-1">{ticker.length}/10</p>
                   </Field>
                   <Field label="DESCRIPTION">
                     <textarea
@@ -286,11 +397,36 @@ export default function CreatePage() {
             </div>
 
             <button
-              disabled={!connected}
-              className="w-full bg-primary text-primary-foreground py-4 rounded-md font-display uppercase tracking-wide text-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleDeploy}
+              disabled={!canDeploy}
+              className="w-full bg-primary text-primary-foreground py-4 rounded-md font-display uppercase tracking-wide text-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {connected ? "DEPLOY TOKEN" : "CONNECT WALLET"}
+              {isDeploying ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  DEPLOYING...
+                </>
+              ) : !connected ? (
+                "CONNECT WALLET"
+              ) : (
+                "DEPLOY TOKEN"
+              )}
             </button>
+
+            {txSignature && (
+              <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                <p className="font-mono text-xs text-green-500 mb-1">✓ Token deployed!</p>
+                <a
+                  href={`https://explorer.solana.com/tx/${txSignature}?cluster=devnet`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-[10px] text-primary hover:underline break-all"
+                >
+                  View on Explorer →
+                </a>
+              </div>
+            )}
+
             <p className="font-mono text-[11px] text-muted-foreground text-center">
               leverage.fun style — <span className="text-primary">no liquidation risk</span>. price moves with leverage.
             </p>

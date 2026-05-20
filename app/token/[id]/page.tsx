@@ -6,8 +6,10 @@ import { TokenChart } from "@/components/token-chart"
 import { TradePanel } from "@/components/trade-panel"
 import { ThreadSection } from "@/components/thread-section"
 import { TokenRuggedGate } from "@/components/token-rugged-gate"
+import { TradeHistory } from "@/components/trade-history"
+import { TokenStats } from "@/components/token-stats"
 import { tokens } from "@/lib/mock-data"
-import { ArrowLeft, Copy, Twitter, Globe, Send, Skull } from "lucide-react"
+import { ArrowLeft, Copy, Twitter, Globe, Send, Skull, TrendingUp, Users, Activity, BarChart3 } from "lucide-react"
 
 export default async function TokenPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -117,14 +119,14 @@ export default async function TokenPage({ params }: { params: Promise<{ id: stri
               direction={token.direction}
             >
               <TokenChart ticker={token.ticker} underlying={token.underlying} />
+              <TokenStats />
+              <TradeHistory />
             </TokenRuggedGate>
-
-            <ThreadSection ticker={token.ticker} replies={token.replies} />
           </div>
 
           <aside className="space-y-3">
             <TradePanel token={token} />
-            <HoldersList />
+            <HoldersList creator={token.creator} />
           </aside>
         </div>
       </main>
@@ -159,7 +161,7 @@ function Stat({
   )
 }
 
-function HoldersList() {
+function HoldersList({ creator }: { creator: string }) {
   const holders = [
     { addr: "9xQe...4Rk", pct: 12.4, isCreator: true, pnl: 4820 },
     { addr: "Hk2p...9Lm", pct: 6.8, pnl: 1840 },
@@ -174,7 +176,8 @@ function HoldersList() {
 
   return (
     <div className="rounded-lg border border-border bg-card">
-      <div className="px-3 py-2 border-b border-border font-display text-xs uppercase tracking-wider">
+      <div className="px-3 py-2 border-b border-border font-display text-xs uppercase tracking-wider flex items-center gap-2">
+        <Users className="h-3.5 w-3.5 text-primary" />
         top holders
       </div>
       <ul>
@@ -193,27 +196,13 @@ function HoldersList() {
                 <Link href={`/user/${h.addr.split("...")[0]}`} className="hover:text-primary">
                   {h.addr}
                 </Link>
-                <a
-                  href={`https://solscan.io/account/${h.addr}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-primary"
-                >
-                  <span className="text-[9px]">↗</span>
-                </a>
                 {h.isCreator && (
-                  <span className="text-[9px] px-1 rounded border border-primary/40 bg-primary/15 text-primary font-bold uppercase">
-                    dev
+                  <span className="px-1 py-0.5 rounded bg-[#39ff14] text-black text-[9px] font-bold">
+                    DEV
                   </span>
                 )}
               </span>
-              <span className="flex items-center gap-2">
-                <span className={h.pnl >= 0 ? "text-primary text-[10px] font-bold" : "text-destructive text-[10px] font-bold"}>
-                  {h.pnl >= 0 ? "+" : ""}
-                  {h.pnl}$
-                </span>
-                <span className="text-foreground font-bold">{h.pct.toFixed(1)}%</span>
-              </span>
+              <span className="font-bold">{h.pct}%</span>
             </div>
           </li>
         ))}
@@ -222,7 +211,10 @@ function HoldersList() {
   )
 }
 
+
+
 function formatK(n: number) {
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
+  if (n >= 1000000) return `${(n / 1000000).toFixed(2)}M`
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`
   return String(n)
 }

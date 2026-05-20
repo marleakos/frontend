@@ -2,10 +2,11 @@
 
 import { use, useState } from "react"
 import Link from "next/link"
+import { useWallet } from "@solana/wallet-adapter-react"
 import { Header } from "@/components/header"
 import { TradesTicker } from "@/components/trades-ticker"
 import { tokens } from "@/lib/mock-data"
-import { ArrowLeft, Copy, ExternalLink, Gift, Share2, Wallet, AlertCircle } from "lucide-react"
+import { ArrowLeft, Copy, ExternalLink, Gift, Share2, Wallet, AlertCircle, Lock } from "lucide-react"
 
 const colors = [
   "hsl(var(--primary))",
@@ -54,9 +55,13 @@ function getUserData(userId: string) {
 
 export default function UserPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
+  const { connected, publicKey } = useWallet()
   const user = getUserData(id)
   const [copied, setCopied] = useState(false)
   const [showError, setShowError] = useState(false)
+  
+  // Check if this is the current user's own profile
+  const isOwnProfile = connected && publicKey?.toString().slice(0, 6) === id
   
   const copyReferral = () => {
     const refUrl = `https://v0-meme-launchpad-analysis-97o8evm3k.vercel.app/?ref=${user.id.slice(0, 6)}`
@@ -81,7 +86,14 @@ export default function UserPage({ params }: { params: Promise<{ id: string }> }
         {/* Profile header */}
         <div className="rounded-lg border border-border bg-card overflow-hidden mb-4">
           <div className="p-5">
-            <h1 className="font-display text-2xl uppercase">{user.id}...{user.id.slice(-4)}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display text-2xl uppercase">{user.id}...{user.id.slice(-4)}</h1>
+              {isOwnProfile && (
+                <span className="px-2 py-0.5 rounded bg-[#39ff14] text-black font-mono text-[10px] font-bold">
+                  YOU
+                </span>
+              )}
+            </div>
             <div className="font-mono text-xs text-muted-foreground mt-1">
               {user.fullAddr}
             </div>
@@ -99,91 +111,107 @@ export default function UserPage({ params }: { params: Promise<{ id: string }> }
             </div>
           </div>
           
-          {/* Stats strip */}
+          {/* Stats strip - only show basic stats for others, full for own */}
           <div className="grid grid-cols-4 border-t border-border">
-            <StatBox
-              label="TOTAL PnL"
-              value={`$${user.totalPnl.toLocaleString()}`}
-              accent={user.totalPnl >= 0 ? "primary" : "destructive"}
-            />
-            <StatBox label="TRADES" value={user.tradesCount.toString()} />
-            <StatBox label="WIN RATE" value={`${user.winRate}%`} />
-            <StatBox label="COINS CREATED" value={user.tokensCreated.length.toString()} />
+            {isOwnProfile ? (
+              <>
+                <StatBox
+                  label="TOTAL PnL"
+                  value={`$${user.totalPnl.toLocaleString()}`}
+                  accent={user.totalPnl >= 0 ? "primary" : "destructive"}
+                />
+                <StatBox label="TRADES" value={user.tradesCount.toString()} />
+                <StatBox label="WIN RATE" value={`${user.winRate}%`} />
+                <StatBox label="COINS CREATED" value={user.tokensCreated.length.toString()} />
+              </>
+            ) : (
+              <>
+                <StatBox label="TRADES" value={user.tradesCount.toString()} />
+                <StatBox label="WIN RATE" value={`${user.winRate}%`} />
+                <StatBox label="COINS CREATED" value={user.tokensCreated.length.toString()} />
+                <StatBox label="FOLLOWERS" value={(user.hash % 500).toString()} />
+              </>
+            )}
           </div>
         </div>
         
-        {/* Rewards & Referral Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-          {/* Rewards */}
-          <div className="rounded-lg border border-border bg-card overflow-hidden">
-            <div className="px-4 py-2.5 border-b border-border flex items-center gap-2">
-              <Gift className="h-4 w-4 text-primary" />
-              <span className="font-display text-xs uppercase tracking-wider">REWARDS</span>
-            </div>
-            <div className="p-4 space-y-3">
-              <div className="flex items-center justify-between font-mono text-sm">
-                <span className="text-muted-foreground">claimable</span>
-                <span className="text-primary font-bold">{user.claimableRewards.toFixed(2)} SOL</span>
+        {/* Private sections - only for own profile */}
+        {isOwnProfile && (
+          <>
+            {/* Rewards & Referral Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+              {/* Rewards */}
+              <div className="rounded-lg border border-border bg-card overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-border flex items-center gap-2">
+                  <Gift className="h-4 w-4 text-primary" />
+                  <span className="font-display text-xs uppercase tracking-wider">REWARDS</span>
+                </div>
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center justify-between font-mono text-sm">
+                    <span className="text-muted-foreground">claimable</span>
+                    <span className="text-primary font-bold">{user.claimableRewards.toFixed(2)} SOL</span>
+                  </div>
+                  <div className="flex items-center justify-between font-mono text-sm">
+                    <span className="text-muted-foreground">referral earnings</span>
+                    <span className="text-foreground">{user.referralEarnings.toFixed(2)} SOL</span>
+                  </div>
+                  <button 
+                    onClick={() => setShowError(true)}
+                    className="w-full py-2.5 rounded border border-primary bg-primary/10 text-primary font-mono text-xs uppercase hover:bg-primary/20 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Gift className="h-3.5 w-3.5" />
+                    claim rewards
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center justify-between font-mono text-sm">
-                <span className="text-muted-foreground">referral earnings</span>
-                <span className="text-foreground">{user.referralEarnings.toFixed(2)} SOL</span>
+              
+              {/* Referral Link */}
+              <div className="rounded-lg border border-border bg-card overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-border flex items-center gap-2">
+                  <Share2 className="h-4 w-4 text-pink-500" />
+                  <span className="font-display text-xs uppercase tracking-wider">REFERRAL LINK</span>
+                </div>
+                <div className="p-4 space-y-3">
+                  <div className="font-mono text-[10px] text-muted-foreground break-all">
+                    https://v0-meme-launchpad-analysis-97o8evm3k.vercel.app/?ref={user.id.slice(0, 6)}
+                  </div>
+                  <button 
+                    onClick={copyReferral}
+                    className="w-full py-2.5 rounded border border-border bg-secondary text-foreground font-mono text-xs uppercase hover:border-foreground transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    {copied ? "copied!" : "copy referral link"}
+                  </button>
+                </div>
               </div>
-              <button 
-                onClick={() => setShowError(true)}
-                className="w-full py-2.5 rounded border border-primary bg-primary/10 text-primary font-mono text-xs uppercase hover:bg-primary/20 transition-colors flex items-center justify-center gap-2"
-              >
-                <Gift className="h-3.5 w-3.5" />
-                claim rewards
-              </button>
             </div>
-          </div>
-          
-          {/* Referral Link */}
-          <div className="rounded-lg border border-border bg-card overflow-hidden">
-            <div className="px-4 py-2.5 border-b border-border flex items-center gap-2">
-              <Share2 className="h-4 w-4 text-pink-500" />
-              <span className="font-display text-xs uppercase tracking-wider">REFERRAL LINK</span>
-            </div>
-            <div className="p-4 space-y-3">
-              <div className="font-mono text-[10px] text-muted-foreground break-all">
-                https://v0-meme-launchpad-analysis-97o8evm3k.vercel.app/?ref={user.id.slice(0, 6)}
+            
+            {/* Creator Fees */}
+            <div className="rounded-lg border border-border bg-card overflow-hidden mb-4">
+              <div className="px-4 py-2.5 border-b border-border flex items-center gap-2">
+                <Wallet className="h-4 w-4 text-pink-500" />
+                <span className="font-display text-xs uppercase tracking-wider">CREATOR FEES</span>
               </div>
-              <button 
-                onClick={copyReferral}
-                className="w-full py-2.5 rounded border border-border bg-secondary text-foreground font-mono text-xs uppercase hover:border-foreground transition-colors flex items-center justify-center gap-2"
-              >
-                <Copy className="h-3.5 w-3.5" />
-                {copied ? "copied!" : "copy referral link"}
-              </button>
+              <div className="p-4 space-y-3">
+                <div className="flex items-center justify-between font-mono text-sm">
+                  <span className="text-muted-foreground">unclaimed fees</span>
+                  <span className="text-pink-500 font-bold">{user.unclaimedFees.toFixed(2)} SOL</span>
+                </div>
+                <button 
+                  onClick={() => setShowError(true)}
+                  className="w-full py-2.5 rounded border border-pink-500/50 bg-pink-500/10 text-pink-500 font-mono text-xs uppercase hover:bg-pink-500/20 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Wallet className="h-3.5 w-3.5" />
+                  claim creator fees
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
         
-        {/* Creator Fees */}
-        <div className="rounded-lg border border-border bg-card overflow-hidden mb-4">
-          <div className="px-4 py-2.5 border-b border-border flex items-center gap-2">
-            <Wallet className="h-4 w-4 text-pink-500" />
-            <span className="font-display text-xs uppercase tracking-wider">CREATOR FEES</span>
-          </div>
-          <div className="p-4 space-y-3">
-            <div className="flex items-center justify-between font-mono text-sm">
-              <span className="text-muted-foreground">unclaimed fees</span>
-              <span className="text-pink-500 font-bold">{user.unclaimedFees.toFixed(2)} SOL</span>
-            </div>
-            <button 
-              onClick={() => setShowError(true)}
-              className="w-full py-2.5 rounded border border-pink-500/50 bg-pink-500/10 text-pink-500 font-mono text-xs uppercase hover:bg-pink-500/20 transition-colors flex items-center justify-center gap-2"
-            >
-              <Wallet className="h-3.5 w-3.5" />
-              claim creator fees
-            </button>
-          </div>
-        </div>
-        
-        {/* Tokens Held & Created Row */}
+        {/* Public sections - visible to all */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Tokens held */}
+          {/* Tokens held - show limited info for others */}
           <div className="rounded-lg border border-border bg-card overflow-hidden">
             <div className="px-4 py-2.5 border-b border-border font-display text-xs uppercase tracking-wider">
               TOKENS HELD ({user.tokensHeld.length})
@@ -202,12 +230,19 @@ export default function UserPage({ params }: { params: Promise<{ id: string }> }
                           <div className="font-mono text-[10px] text-muted-foreground">${t.ticker}</div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-mono text-xs text-foreground">${(Math.random() * 100).toFixed(2)}</div>
-                        <div className={`font-mono text-[10px] ${Math.random() > 0.5 ? "text-destructive" : "text-primary"}`}>
-                          {Math.random() > 0.5 ? "-" : "+"}{(Math.random() * 20).toFixed(1)}%
+                      {isOwnProfile ? (
+                        <div className="text-right">
+                          <div className="font-mono text-xs text-foreground">${(Math.random() * 100).toFixed(2)}</div>
+                          <div className={`font-mono text-[10px] ${Math.random() > 0.5 ? "text-destructive" : "text-primary"}`}>
+                            {Math.random() > 0.5 ? "-" : "+"}{(Math.random() * 20).toFixed(1)}%
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <Lock className="h-3 w-3" />
+                          <span className="font-mono text-[10px]">private</span>
+                        </div>
+                      )}
                     </Link>
                   </li>
                 ))}
@@ -215,7 +250,7 @@ export default function UserPage({ params }: { params: Promise<{ id: string }> }
             )}
           </div>
           
-          {/* Tokens created */}
+          {/* Tokens created - visible to all */}
           <div className="rounded-lg border border-border bg-card overflow-hidden">
             <div className="px-4 py-2.5 border-b border-border font-display text-xs uppercase tracking-wider">
               TOKENS CREATED ({user.tokensCreated.length})
