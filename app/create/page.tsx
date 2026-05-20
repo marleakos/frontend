@@ -376,7 +376,7 @@ export default function CreatePage() {
               </div>
             </div>
 
-            <button onClick={handleDeploy} disabled={!canDeploy} className="w-full bg-primary text-primary-foreground py-4 rounded-md font-display uppercase tracking-wide text-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+            <button onClick={() => { console.log("Button clicked!"); handleDeploy(); }} disabled={!canDeploy} className="w-full bg-primary text-primary-foreground py-4 rounded-md font-display uppercase tracking-wide text-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
               {isDeploying ? <><Loader2 className="h-5 w-5 animate-spin" /> DEPLOYING...</> : !connected ? "CONNECT WALLET" : "DEPLOY TOKEN"}
             </button>
 
