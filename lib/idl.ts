@@ -1,5 +1,5 @@
 export const IDL = {
-  "address": "9siEsegivtASLpuRHzMC9UEBcCuzeKe8iREadFEZqCAP",
+  "address": "GPRJg91n5fxsP9cXcdo6fsmHhUZnDFVtTr3R5ZCiQ5oq",
   "metadata": {
     "name": "leveraged_meme",
     "version": "0.1.0",
