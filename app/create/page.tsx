@@ -54,8 +54,8 @@ export default function CreatePage() {
       return
     }
 
-    if (!name.trim() || !ticker.trim()) {
-      toast.error("Please fill in all required fields")
+    if (!name.trim() || !ticker.trim() || !image) {
+      toast.error("Please fill in all required fields (name, ticker, and image)")
       return
     }
 
@@ -199,7 +199,7 @@ export default function CreatePage() {
     }
   }
 
-  const canDeploy = connected && name.trim() && ticker.trim() && !isDeploying
+  const canDeploy = connected && name.trim() && ticker.trim() && image && !isDeploying
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
