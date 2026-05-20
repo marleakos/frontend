@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { useProgram, useConnectionOnly } from "./use-program"
-import { PublicKey } from "@solana/web3.js"
-import { Program } from "@coral-xyz/anchor"
+import { Connection, PublicKey } from "@solana/web3.js"
+import { Program, AnchorProvider } from "@coral-xyz/anchor"
+import { IDL } from "@/lib/idl"
+import { PROGRAM_ID, RPC_URL } from "@/lib/program-config"
 
 export interface TokenData {
   id: string
@@ -25,21 +26,26 @@ export interface TokenData {
   graduated: boolean
 }
 
+// Create a read-only program instance
+function getReadOnlyProgram() {
+  const connection = new Connection(RPC_URL, "confirmed")
+  const provider = new AnchorProvider(connection, {} as any, { commitment: "confirmed" })
+  return new Program(IDL as any, provider)
+}
+
 export function useTokens() {
-  const { program } = useProgram()
-  const { connection } = useConnectionOnly()
   const [tokens, setTokens] = useState<TokenData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const fetchTokens = useCallback(async () => {
-    if (!program) return
-
     try {
       setLoading(true)
+      setError(null)
+      
+      const program = getReadOnlyProgram()
       
       // Fetch all TokenState accounts from the program
-      // This is a placeholder - in production you'd use an indexer or event parsing
       const accounts = await (program as any).account.tokenState.all()
       
       const fetchedTokens: TokenData[] = accounts.map((acc: any, index: number) => {
@@ -71,32 +77,32 @@ export function useTokens() {
           id: pubkey.toString().slice(0, 8),
           name: account.name || "Unknown",
           ticker: account.symbol || "???",
-          emoji: "🚀", // Would come from metadata
+          emoji: "🚀",
           creator: account.creator?.toString().slice(0, 4) + "..." + account.creator?.toString().slice(-4) || "Unknown",
           underlying,
           leverage: account.leverage || 3,
           direction,
           marketCap,
           progress,
-          replies: Math.floor(Math.random() * 1000), // Would come from off-chain data
+          replies: Math.floor(Math.random() * 1000),
           ageMinutes: Math.max(0, ageMinutes),
-          change24h: (Math.random() * 400) - 100, // Would calculate from price history
-          liqDistance: Math.floor(Math.random() * 50) + 5, // Would calculate from oracle
-          description: "", // Would come from metadata
+          change24h: (Math.random() * 400) - 100,
+          liqDistance: Math.floor(Math.random() * 50) + 5,
+          description: "",
           mint: account.tokenMint,
           graduated: account.graduated || false,
         }
       })
 
       setTokens(fetchedTokens)
-      setError(null)
     } catch (err: any) {
       console.error("Error fetching tokens:", err)
       setError(err.message)
+      setTokens([])
     } finally {
       setLoading(false)
     }
-  }, [program])
+  }, [])
 
   useEffect(() => {
     fetchTokens()
