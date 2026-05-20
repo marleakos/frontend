@@ -83,14 +83,11 @@ export default function CreatePage() {
         [Buffer.from("user_referral"), publicKey.toBuffer()],
         PROGRAM_ID
       )
-      const [curveTokenAccountPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("curve_token_account"), mintKeypair.publicKey.toBuffer()],
-        PROGRAM_ID
-      )
-      const [lpTokenAccountPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("lp_token_account"), mintKeypair.publicKey.toBuffer()],
-        PROGRAM_ID
-      )
+      
+      // Curve and LP token accounts need to be signers according to IDL
+      // So we generate them as keypairs instead of PDAs
+      const curveTokenKeypair = Keypair.generate()
+      const lpTokenKeypair = Keypair.generate()
 
       // Build instruction data
       const data = Buffer.alloc(1000)
@@ -159,8 +156,8 @@ export default function CreatePage() {
           { pubkey: tokenStatePDA, isSigner: false, isWritable: true },
           { pubkey: feeVaultPDA, isSigner: false, isWritable: true },
           { pubkey: userReferralPDA, isSigner: false, isWritable: true },
-          { pubkey: curveTokenAccountPDA, isSigner: true, isWritable: true },
-          { pubkey: lpTokenAccountPDA, isSigner: true, isWritable: true },
+          { pubkey: curveTokenKeypair.publicKey, isSigner: true, isWritable: true },
+          { pubkey: lpTokenKeypair.publicKey, isSigner: true, isWritable: true },
           { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
           { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
           { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
@@ -174,7 +171,9 @@ export default function CreatePage() {
       const transaction = new Transaction().add(instruction)
       transaction.feePayer = publicKey
       transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash
-      transaction.sign(mintKeypair)
+      
+      // Sign with all required signers
+      transaction.sign(mintKeypair, curveTokenKeypair, lpTokenKeypair)
 
       const signed = await signTransaction(transaction)
       const signature = await connection.sendRawTransaction(signed.serialize())
