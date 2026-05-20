@@ -1,5 +1,5 @@
 export const IDL = {
-  "address": "BYkMeRVSt8mvV2sxhd6eQhH5qp3JszfKimunZ7jDqpZA",
+  "address": "9siEsegivtASLpuRHzMC9UEBcCuzeKe8iREadFEZqCAP",
   "metadata": {
     "name": "leveraged_meme",
     "version": "0.1.0",
@@ -79,16 +79,6 @@ export const IDL = {
         { "name": "clock", "isMut": false, "isSigner": false }
       ],
       "args": [{ "name": "currentOraclePrice", "type": "u64" }]
-    },
-    {
-      "name": "setPause",
-      "accounts": [
-        { "name": "authority", "isMut": true, "isSigner": true },
-        { "name": "tokenState", "isMut": true, "isSigner": false },
-        { "name": "creator", "isMut": false, "isSigner": false },
-        { "name": "tokenMint", "isMut": true, "isSigner": false }
-      ],
-      "args": [{ "name": "paused", "type": "bool" }]
     },
     {
       "name": "claimFees",

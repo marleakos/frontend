@@ -1,75 +1,254 @@
 "use client"
 
-import { use, useState } from "react"
+"use client"
+
+import { use, useState, useEffect } from "react"
 import Link from "next/link"
 import { useWallet } from "@solana/wallet-adapter-react"
 import { Header } from "@/components/header"
 import { TradesTicker } from "@/components/trades-ticker"
-import { tokens } from "@/lib/mock-data"
-import { ArrowLeft, Copy, ExternalLink, Gift, Share2, Wallet, AlertCircle, Lock } from "lucide-react"
+import { ArrowLeft, Copy, ExternalLink, Gift, Share2, AlertCircle } from "lucide-react"
+import { toast } from "sonner"
+import { Connection, PublicKey, SystemProgram } from "@solana/web3.js"
+import { Program, AnchorProvider } from "@coral-xyz/anchor"
+import { RPC_URL, PROGRAM_ID } from "@/lib/program-config"
+import { IDL } from "@/lib/idl"
+import type { TokenData } from "@/hooks/use-tokens"
 
-const colors = [
-  "hsl(var(--primary))",
-  "hsl(var(--accent))",
-  "#ff66c4",
-  "#ffd400",
-  "#62d4ff",
-]
-
-function avatarColor(user: string) {
-  let h = 0
-  for (let i = 0; i < user.length; i++) h = (h * 31 + user.charCodeAt(i)) >>> 0
-  return colors[h % colors.length]
+// Get emoji based on symbol/name
+function getEmoji(name: string, symbol: string): string {
+  const lower = (name + symbol).toLowerCase()
+  if (lower.includes("doge") || lower.includes("dog")) return "🐕"
+  if (lower.includes("pepe") || lower.includes("frog")) return "🐸"
+  if (lower.includes("cat") || lower.includes("kitty")) return "🐱"
+  if (lower.includes("moon")) return "🌙"
+  if (lower.includes("rocket")) return "🚀"
+  if (lower.includes("btc") || lower.includes("bitcoin")) return "₿"
+  if (lower.includes("eth") || lower.includes("ethereum")) return "Ξ"
+  if (lower.includes("sol")) return "◎"
+  return "🪙"
 }
 
-// Mock user data generator
-function getUserData(userId: string) {
-  const hash = userId.split("").reduce((a, c) => a + c.charCodeAt(0), 0)
-  
-  const tokensCreated = tokens.filter((_, i) => (hash + i) % 7 === 0).slice(0, 2)
-  const tokensHeld = tokens.filter((_, i) => (hash + i) % 4 === 0).slice(0, 3)
-  
-  const totalPnl = (hash % 20000) - 15000 // Negative for demo
-  const tradesCount = 50 + (hash % 200)
-  const winRate = 45 + (hash % 10)
-  const joinedDaysAgo = 10 + (hash % 90)
-  
-  const claimableRewards = 37.82
-  const referralEarnings = 37.82
-  const unclaimedFees = 17.82
-  
-  return {
-    id: userId,
-    fullAddr: `${userId}C8q2tWm6F9YccMdu55vaNm7y1P5xUFFZx1V8yt`,
-    totalPnl,
-    tradesCount,
-    winRate,
-    joinedDaysAgo,
-    tokensCreated,
-    tokensHeld,
-    claimableRewards,
-    referralEarnings,
-    unclaimedFees,
-  }
+// Map on-chain underlying enum to display format
+function formatUnderlying(underlying: any): "SOL-PERP" | "BTC-PERP" | "ETH-PERP" | "DOGE-PERP" {
+  if (underlying?.solPerp !== undefined) return "SOL-PERP"
+  if (underlying?.btcPerp !== undefined) return "BTC-PERP"
+  if (underlying?.ethPerp !== undefined) return "ETH-PERP"
+  if (underlying?.dogePerp !== undefined) return "DOGE-PERP"
+  return "SOL-PERP"
+}
+
+// Map on-chain direction enum to display format
+function formatDirection(direction: any): "LONG" | "SHORT" {
+  return direction?.long !== undefined ? "LONG" : "SHORT"
+}
+
+interface ReferralToken {
+  token: TokenData
+  claimableAmount: number
+}
+
+interface UserProfileData {
+  address: string
+  tokensCreated: TokenData[]
+  referralTokens: ReferralToken[]
+  referralEarnings: number
+  totalReferralClaimed: number
+  referredBy: string | null
 }
 
 export default function UserPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const { connected, publicKey } = useWallet()
-  const user = getUserData(id)
+  const [userData, setUserData] = useState<UserProfileData | null>(null)
+  const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
   const [showError, setShowError] = useState(false)
+  const [claiming, setClaiming] = useState(false)
   
   // Check if this is the current user's own profile
   const isOwnProfile = connected && publicKey?.toString().slice(0, 6) === id
+  const userPubkey = isOwnProfile && publicKey ? publicKey.toString() : `${id}...`
   
+  useEffect(() => {
+    async function fetchUserData() {
+      try {
+        const connection = new Connection(RPC_URL, "confirmed")
+        const provider = new AnchorProvider(connection, {} as any, { commitment: "confirmed" })
+        const program = new Program(IDL as any, provider)
+
+        // Fetch all token states to find ones created by this user
+        const allTokens = await (program as any).account.tokenState.all()
+        
+        let userAddress: string
+        if (isOwnProfile && publicKey) {
+          userAddress = publicKey.toString()
+        } else {
+          // For other users, we can't know their full address from just 6 chars
+          // This is a limitation - we'd need an indexer
+          userAddress = id
+        }
+
+        // Filter tokens created by this user
+        const userTokens: TokenData[] = allTokens
+          .filter((acc: any) => {
+            const creator = acc.account.creator.toString()
+            return isOwnProfile ? creator === userAddress : creator.startsWith(id)
+          })
+          .map((acc: any) => {
+            const account = acc.account
+            const mint = account.tokenMint
+            const createdAt = account.createdAt?.toNumber?.() || 0
+            const ageMinutes = Math.floor((Date.now() / 1000 - createdAt) / 60)
+            
+            const virtualSol = account.curveState?.virtualSolReserve?.toNumber?.() || 0
+            const virtualToken = account.curveState?.virtualTokenReserve?.toNumber?.() || 1
+            const price = virtualSol / virtualToken
+            const supply = account.curveState?.realTokenReserve?.toNumber?.() || 0
+            const marketCap = Math.floor(price * supply)
+            const progress = Math.min(100, Math.floor((marketCap / 69000) * 100))
+
+            return {
+              id: mint.toString(),
+              name: account.name,
+              ticker: account.symbol,
+              emoji: getEmoji(account.name, account.symbol),
+              creator: account.creator.toString(),
+              underlying: formatUnderlying(account.underlying),
+              leverage: account.leverage as 2 | 3 | 5 | 10,
+              direction: formatDirection(account.direction),
+              marketCap,
+              progress,
+              replies: 0,
+              ageMinutes: Math.max(0, ageMinutes),
+              change24h: 0,
+              liqDistance: 100,
+              description: "",
+              mint,
+              graduated: account.graduated,
+            }
+          })
+
+        // Fetch UserReferral account if this is the user's own profile
+        let referralEarnings = 0
+        let totalReferralClaimed = 0
+        let referredBy: string | null = null
+
+        if (isOwnProfile && publicKey) {
+          try {
+            const [userReferralPDA] = PublicKey.findProgramAddressSync(
+              [Buffer.from("user_referral"), publicKey.toBuffer()],
+              PROGRAM_ID
+            )
+            const referralAccount = await (program as any).account.userReferral.fetch(userReferralPDA)
+            
+            if (referralAccount) {
+              referralEarnings = (referralAccount.totalReferralEarnings?.toNumber?.() || 0) / 1e9
+              totalReferralClaimed = (referralAccount.totalRewardsClaimed?.toNumber?.() || 0) / 1e9
+              referredBy = referralAccount.referredBy?.toString?.() || null
+            }
+          } catch (e) {
+            // UserReferral account doesn't exist yet
+            console.log("No referral account found")
+          }
+        }
+
+        setUserData({
+          address: userAddress,
+          tokensCreated: userTokens,
+          referralEarnings,
+          totalReferralClaimed,
+          referredBy,
+        })
+      } catch (err) {
+        console.error("Error fetching user data:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUserData()
+  }, [id, isOwnProfile, publicKey])
+
   const copyReferral = () => {
-    const refUrl = `https://v0-meme-launchpad-analysis-97o8evm3k.vercel.app/?ref=${user.id.slice(0, 6)}`
+    const refUrl = `${window.location.origin}/?ref=${id}`
     navigator.clipboard.writeText(refUrl)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
-  
+
+  const claimReferralRewards = async () => {
+    if (!publicKey || !userData || userData.referralTokens.length === 0) return
+    
+    setClaiming(true)
+    toast.loading("Claiming referral rewards...", { id: "claim-referral" })
+    
+    try {
+      const connection = new Connection(RPC_URL, "confirmed")
+      const provider = new AnchorProvider(connection, { publicKey, signTransaction: async (tx) => tx } as any, { commitment: "confirmed" })
+      const program = new Program(IDL as any, provider)
+      
+      // Claim from the first token that has rewards
+      // In a real app, you might want to claim from all tokens or let user pick
+      const tokenWithRewards = userData.referralTokens.find(t => t.claimableAmount > 0)
+      
+      if (!tokenWithRewards) {
+        toast.error("No claimable rewards found", { id: "claim-referral" })
+        return
+      }
+      
+      const tokenMint = new PublicKey(tokenWithRewards.token.id)
+      
+      // Get PDAs
+      const [tokenStatePDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("token_state"), tokenMint.toBuffer()],
+        PROGRAM_ID
+      )
+      const [feeVaultPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("fee_vault"), tokenMint.toBuffer()],
+        PROGRAM_ID
+      )
+
+      const tx = await (program as any).methods
+        .claimReferralRewards()
+        .accounts({
+          referrer: publicKey,
+          tokenState: tokenStatePDA,
+          tokenMint: tokenMint,
+          feeVault: feeVaultPDA,
+          referrerWallet: publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc()
+
+      toast.success(`Claimed ${tokenWithRewards.claimableAmount.toFixed(4)} SOL!`, { id: "claim-referral" })
+      
+      // Refresh data
+      window.location.reload()
+    } catch (error: any) {
+      console.error("Claim error:", error)
+      toast.error(error.message || "Failed to claim rewards", { id: "claim-referral" })
+    } finally {
+      setClaiming(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-dvh bg-background text-foreground">
+        <Header />
+        <TradesTicker />
+        <div className="mx-auto max-w-[900px] px-4 py-20 text-center">
+          <div className="font-mono text-sm text-muted-foreground">Loading profile...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!userData) return null
+
+  const claimableRewards = userData.referralEarnings - userData.totalReferralClaimed
+
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <Header />
@@ -87,7 +266,7 @@ export default function UserPage({ params }: { params: Promise<{ id: string }> }
         <div className="rounded-lg border border-border bg-card overflow-hidden mb-4">
           <div className="p-5">
             <div className="flex items-center gap-2">
-              <h1 className="font-display text-2xl uppercase">{user.id}...{user.id.slice(-4)}</h1>
+              <h1 className="font-display text-2xl uppercase">{id}...</h1>
               {isOwnProfile && (
                 <span className="px-2 py-0.5 rounded bg-[#39ff14] text-black font-mono text-[10px] font-bold">
                   YOU
@@ -95,43 +274,32 @@ export default function UserPage({ params }: { params: Promise<{ id: string }> }
               )}
             </div>
             <div className="font-mono text-xs text-muted-foreground mt-1">
-              {user.fullAddr}
+              {isOwnProfile && publicKey ? publicKey.toString() : `${id}...`}
             </div>
             <div className="flex items-center gap-2 mt-2 font-mono text-[11px] text-muted-foreground">
               <a
-                href={`https://solscan.io/account/${user.fullAddr}`}
+                href={`https://solscan.io/account/${isOwnProfile && publicKey ? publicKey.toString() : id}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 hover:text-primary"
               >
                 <ExternalLink className="h-3 w-3" /> solscan
               </a>
-              <span>·</span>
-              <span>joined {user.joinedDaysAgo}d ago</span>
+              {userData.referredBy && (
+                <>
+                  <span>·</span>
+                  <span>referred by {userData.referredBy.slice(0, 6)}...{userData.referredBy.slice(-4)}</span>
+                </>
+              )}
             </div>
           </div>
           
-          {/* Stats strip - only show basic stats for others, full for own */}
+          {/* Stats strip */}
           <div className="grid grid-cols-4 border-t border-border">
-            {isOwnProfile ? (
-              <>
-                <StatBox
-                  label="TOTAL PnL"
-                  value={`$${user.totalPnl.toLocaleString()}`}
-                  accent={user.totalPnl >= 0 ? "primary" : "destructive"}
-                />
-                <StatBox label="TRADES" value={user.tradesCount.toString()} />
-                <StatBox label="WIN RATE" value={`${user.winRate}%`} />
-                <StatBox label="COINS CREATED" value={user.tokensCreated.length.toString()} />
-              </>
-            ) : (
-              <>
-                <StatBox label="TRADES" value={user.tradesCount.toString()} />
-                <StatBox label="WIN RATE" value={`${user.winRate}%`} />
-                <StatBox label="COINS CREATED" value={user.tokensCreated.length.toString()} />
-                <StatBox label="FOLLOWERS" value={(user.hash % 500).toString()} />
-              </>
-            )}
+            <StatBox label="COINS CREATED" value={userData.tokensCreated.length.toString()} />
+            <StatBox label="REFERRAL EARNINGS" value={`${userData.referralEarnings.toFixed(2)} SOL`} />
+            <StatBox label="CLAIMED" value={`${userData.totalReferralClaimed.toFixed(2)} SOL`} />
+            <StatBox label="CLAIMABLE" value={`${claimableRewards.toFixed(2)} SOL`} accent={claimableRewards > 0 ? "primary" : undefined} />
           </div>
         </div>
         
@@ -144,23 +312,28 @@ export default function UserPage({ params }: { params: Promise<{ id: string }> }
               <div className="rounded-lg border border-border bg-card overflow-hidden">
                 <div className="px-4 py-2.5 border-b border-border flex items-center gap-2">
                   <Gift className="h-4 w-4 text-primary" />
-                  <span className="font-display text-xs uppercase tracking-wider">REWARDS</span>
+                  <span className="font-display text-xs uppercase tracking-wider">REFERRAL REWARDS</span>
                 </div>
                 <div className="p-4 space-y-3">
                   <div className="flex items-center justify-between font-mono text-sm">
-                    <span className="text-muted-foreground">claimable</span>
-                    <span className="text-primary font-bold">{user.claimableRewards.toFixed(2)} SOL</span>
+                    <span className="text-muted-foreground">total earned</span>
+                    <span className="text-foreground font-bold">{userData.referralEarnings.toFixed(2)} SOL</span>
                   </div>
                   <div className="flex items-center justify-between font-mono text-sm">
-                    <span className="text-muted-foreground">referral earnings</span>
-                    <span className="text-foreground">{user.referralEarnings.toFixed(2)} SOL</span>
+                    <span className="text-muted-foreground">claimed</span>
+                    <span className="text-muted-foreground">{userData.totalReferralClaimed.toFixed(2)} SOL</span>
+                  </div>
+                  <div className="flex items-center justify-between font-mono text-sm">
+                    <span className="text-muted-foreground">claimable</span>
+                    <span className="text-primary font-bold">{claimableRewards.toFixed(2)} SOL</span>
                   </div>
                   <button 
-                    onClick={() => setShowError(true)}
-                    className="w-full py-2.5 rounded border border-primary bg-primary/10 text-primary font-mono text-xs uppercase hover:bg-primary/20 transition-colors flex items-center justify-center gap-2"
+                    onClick={claimReferralRewards}
+                    disabled={claimableRewards <= 0 || claiming}
+                    className="w-full py-2.5 rounded border border-primary bg-primary/10 text-primary font-mono text-xs uppercase hover:bg-primary/20 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     <Gift className="h-3.5 w-3.5" />
-                    claim rewards
+                    {claiming ? "claiming..." : "claim rewards"}
                   </button>
                 </div>
               </div>
@@ -173,7 +346,7 @@ export default function UserPage({ params }: { params: Promise<{ id: string }> }
                 </div>
                 <div className="p-4 space-y-3">
                   <div className="font-mono text-[10px] text-muted-foreground break-all">
-                    https://v0-meme-launchpad-analysis-97o8evm3k.vercel.app/?ref={user.id.slice(0, 6)}
+                    {window.location.origin}/?ref={id}
                   </div>
                   <button 
                     onClick={copyReferral}
@@ -185,102 +358,39 @@ export default function UserPage({ params }: { params: Promise<{ id: string }> }
                 </div>
               </div>
             </div>
-            
-            {/* Creator Fees */}
-            <div className="rounded-lg border border-border bg-card overflow-hidden mb-4">
-              <div className="px-4 py-2.5 border-b border-border flex items-center gap-2">
-                <Wallet className="h-4 w-4 text-pink-500" />
-                <span className="font-display text-xs uppercase tracking-wider">CREATOR FEES</span>
-              </div>
-              <div className="p-4 space-y-3">
-                <div className="flex items-center justify-between font-mono text-sm">
-                  <span className="text-muted-foreground">unclaimed fees</span>
-                  <span className="text-pink-500 font-bold">{user.unclaimedFees.toFixed(2)} SOL</span>
-                </div>
-                <button 
-                  onClick={() => setShowError(true)}
-                  className="w-full py-2.5 rounded border border-pink-500/50 bg-pink-500/10 text-pink-500 font-mono text-xs uppercase hover:bg-pink-500/20 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Wallet className="h-3.5 w-3.5" />
-                  claim creator fees
-                </button>
-              </div>
-            </div>
           </>
         )}
         
         {/* Public sections - visible to all */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Tokens held - show limited info for others */}
+        <div className="grid grid-cols-1 gap-4">
+          {/* Tokens created - visible to all */}
           <div className="rounded-lg border border-border bg-card overflow-hidden">
             <div className="px-4 py-2.5 border-b border-border font-display text-xs uppercase tracking-wider">
-              TOKENS HELD ({user.tokensHeld.length})
+              TOKENS CREATED ({userData.tokensCreated.length})
             </div>
-            {user.tokensHeld.length === 0 ? (
-              <div className="p-6 text-center font-mono text-xs text-muted-foreground">no tokens held</div>
+            {userData.tokensCreated.length === 0 ? (
+              <div className="p-6 text-center font-mono text-xs text-muted-foreground">no tokens created</div>
             ) : (
               <ul>
-                {user.tokensHeld.map((t) => (
+                {userData.tokensCreated.map((t) => (
                   <li key={t.id} className="px-4 py-3 border-t border-border first:border-t-0 hover:bg-secondary/20">
                     <Link href={`/token/${t.id}`} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <span className="text-2xl">{t.emoji}</span>
                         <div>
                           <div className="font-display text-sm uppercase">{t.name}</div>
-                          <div className="font-mono text-[10px] text-muted-foreground">${t.ticker}</div>
+                          <div className="font-mono text-[10px] text-muted-foreground">${t.ticker} · {t.leverage}x {t.direction}</div>
                         </div>
                       </div>
-                      {isOwnProfile ? (
-                        <div className="text-right">
-                          <div className="font-mono text-xs text-foreground">${(Math.random() * 100).toFixed(2)}</div>
-                          <div className={`font-mono text-[10px] ${Math.random() > 0.5 ? "text-destructive" : "text-primary"}`}>
-                            {Math.random() > 0.5 ? "-" : "+"}{(Math.random() * 20).toFixed(1)}%
-                          </div>
+                      <div className="text-right">
+                        <div className="font-mono text-xs text-foreground">${formatK(t.marketCap)}</div>
+                        <div className={`font-mono text-[10px] ${t.graduated ? "text-primary" : ""}`}>
+                          {t.graduated ? "graduated" : `${t.progress}% to grad`}
                         </div>
-                      ) : (
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <Lock className="h-3 w-3" />
-                          <span className="font-mono text-[10px]">private</span>
-                        </div>
-                      )}
+                      </div>
                     </Link>
                   </li>
                 ))}
-              </ul>
-            )}
-          </div>
-          
-          {/* Tokens created - visible to all */}
-          <div className="rounded-lg border border-border bg-card overflow-hidden">
-            <div className="px-4 py-2.5 border-b border-border font-display text-xs uppercase tracking-wider">
-              TOKENS CREATED ({user.tokensCreated.length})
-            </div>
-            {user.tokensCreated.length === 0 ? (
-              <div className="p-6 text-center font-mono text-xs text-muted-foreground">no tokens created</div>
-            ) : (
-              <ul>
-                {user.tokensCreated.map((t) => {
-                  const progress = Math.min(100, (t.marketCap / 69000) * 100)
-                  return (
-                    <li key={t.id} className="px-4 py-3 border-t border-border first:border-t-0 hover:bg-secondary/20">
-                      <Link href={`/token/${t.id}`} className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">{t.emoji}</span>
-                          <div>
-                            <div className="font-display text-sm uppercase">{t.name}</div>
-                            <div className="font-mono text-[10px] text-muted-foreground">${t.ticker}</div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-mono text-xs text-foreground">${formatK(t.marketCap)}</div>
-                          <div className={`font-mono text-[10px] ${progress >= 100 ? "text-primary" : ""}`}>
-                            {progress >= 100 ? "100% to grad" : `${progress.toFixed(0)}% to grad`}
-                          </div>
-                        </div>
-                      </Link>
-                    </li>
-                  )
-                })}
               </ul>
             )}
           </div>

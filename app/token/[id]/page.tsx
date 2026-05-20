@@ -1,5 +1,8 @@
-import { notFound } from "next/navigation"
+"use client"
+
+import { use, useEffect, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Header } from "@/components/header"
 import { TradesTicker } from "@/components/trades-ticker"
 import { TokenChart } from "@/components/token-chart"
@@ -8,13 +11,206 @@ import { ThreadSection } from "@/components/thread-section"
 import { TokenRuggedGate } from "@/components/token-rugged-gate"
 import { TradeHistory } from "@/components/trade-history"
 import { TokenStats } from "@/components/token-stats"
-import { tokens } from "@/lib/mock-data"
-import { ArrowLeft, Copy, Twitter, Globe, Send, Skull, TrendingUp, Users, Activity, BarChart3 } from "lucide-react"
+import { ArrowLeft, Copy, Wallet, Skull } from "lucide-react"
+import { toast } from "sonner"
+import { Connection, PublicKey, SystemProgram } from "@solana/web3.js"
+import { Program, AnchorProvider } from "@coral-xyz/anchor"
+import { RPC_URL, PROGRAM_ID } from "@/lib/program-config"
+import { IDL } from "@/lib/idl"
+import type { TokenData } from "@/hooks/use-tokens"
 
-export default async function TokenPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  const token = tokens.find((t) => t.id === id)
-  if (!token) notFound()
+// Get emoji based on symbol/name
+function getEmoji(name: string, symbol: string): string {
+  const lower = (name + symbol).toLowerCase()
+  if (lower.includes("doge") || lower.includes("dog")) return "🐕"
+  if (lower.includes("pepe") || lower.includes("frog")) return "🐸"
+  if (lower.includes("cat") || lower.includes("kitty")) return "🐱"
+  if (lower.includes("moon")) return "🌙"
+  if (lower.includes("rocket")) return "🚀"
+  if (lower.includes("btc") || lower.includes("bitcoin")) return "₿"
+  if (lower.includes("eth") || lower.includes("ethereum")) return "Ξ"
+  if (lower.includes("sol")) return "◎"
+  return "🪙"
+}
+
+// Map on-chain underlying enum to display format
+function formatUnderlying(underlying: any): "SOL-PERP" | "BTC-PERP" | "ETH-PERP" | "DOGE-PERP" {
+  if (underlying?.solPerp !== undefined) return "SOL-PERP"
+  if (underlying?.btcPerp !== undefined) return "BTC-PERP"
+  if (underlying?.ethPerp !== undefined) return "ETH-PERP"
+  if (underlying?.dogePerp !== undefined) return "DOGE-PERP"
+  return "SOL-PERP"
+}
+
+// Map on-chain direction enum to display format
+function formatDirection(direction: any): "LONG" | "SHORT" {
+  return direction?.long !== undefined ? "LONG" : "SHORT"
+}
+
+export default function TokenPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
+  const router = useRouter()
+  const [token, setToken] = useState<TokenData | null>(null)
+  const [feeVaultData, setFeeVaultData] = useState<{ totalCollected: number; creatorClaimed: number } | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [copied, setCopied] = useState(false)
+  const [claimingFees, setClaimingFees] = useState(false)
+
+  useEffect(() => {
+    async function fetchToken() {
+      try {
+        const connection = new Connection(RPC_URL, "confirmed")
+        const provider = new AnchorProvider(connection, {} as any, { commitment: "confirmed" })
+        const program = new Program(IDL as any, provider)
+
+        // Fetch the token state account
+        const tokenState = await (program as any).account.tokenState.fetch(new PublicKey(id))
+        
+        if (!tokenState) {
+          router.push("/")
+          return
+        }
+
+        const mint = tokenState.tokenMint
+        const createdAt = tokenState.createdAt?.toNumber?.() || 0
+        const ageMinutes = Math.floor((Date.now() / 1000 - createdAt) / 60)
+
+        // Calculate market cap from curve state
+        const virtualSol = tokenState.curveState?.virtualSolReserve?.toNumber?.() || 0
+        const virtualToken = tokenState.curveState?.virtualTokenReserve?.toNumber?.() || 1
+        const price = virtualSol / virtualToken
+        const supply = tokenState.curveState?.realTokenReserve?.toNumber?.() || 0
+        const marketCap = Math.floor(price * supply)
+
+        // Progress to graduation (69k)
+        const progress = Math.min(100, Math.floor((marketCap / 69000) * 100))
+
+        setToken({
+          id: mint.toString(),
+          name: tokenState.name,
+          ticker: tokenState.symbol,
+          emoji: getEmoji(tokenState.name, tokenState.symbol),
+          creator: tokenState.creator.toString(),
+          underlying: formatUnderlying(tokenState.underlying),
+          leverage: tokenState.leverage as 2 | 3 | 5 | 10,
+          direction: formatDirection(tokenState.direction),
+          marketCap,
+          progress,
+          replies: 0,
+          ageMinutes: Math.max(0, ageMinutes),
+          change24h: 0,
+          liqDistance: 100,
+          description: "",
+          mint,
+          graduated: tokenState.graduated,
+        })
+
+        // Fetch FeeVault for creator fee info
+        try {
+          const [feeVaultPDA] = PublicKey.findProgramAddressSync(
+            [Buffer.from("fee_vault"), mint.toBuffer()],
+            PROGRAM_ID
+          )
+          const feeVault = await (program as any).account.feeVault.fetch(feeVaultPDA)
+          
+          if (feeVault) {
+            setFeeVaultData({
+              totalCollected: (feeVault.totalCollected?.toNumber?.() || 0) / 1e9,
+              creatorClaimed: (feeVault.creatorClaimed?.toNumber?.() || 0) / 1e9,
+            })
+          }
+        } catch (e) {
+          // FeeVault might not exist
+          console.log("No fee vault found")
+        }
+      } catch (err) {
+        console.error("Error fetching token:", err)
+        router.push("/")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchToken()
+  }, [id, router])
+
+  const copyMint = () => {
+    if (token) {
+      navigator.clipboard.writeText(token.mint.toString())
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const claimFees = async () => {
+    if (!token) return
+    
+    setClaimingFees(true)
+    toast.loading("Claiming creator fees...", { id: "claim-fees" })
+    
+    try {
+      // Get wallet from window (since we're using a simple provider)
+      const { solana } = window as any
+      if (!solana) {
+        toast.error("Please install Phantom wallet", { id: "claim-fees" })
+        return
+      }
+      
+      await solana.connect()
+      const wallet = solana.publicKey
+      
+      const connection = new Connection(RPC_URL, "confirmed")
+      const provider = new AnchorProvider(connection, { publicKey: wallet, signTransaction: async (tx: any) => {
+        return await solana.signTransaction(tx)
+      }} as any, { commitment: "confirmed" })
+      const program = new Program(IDL as any, provider)
+      
+      const tokenMint = new PublicKey(token.id)
+      
+      // Get PDAs
+      const [tokenStatePDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("token_state"), tokenMint.toBuffer()],
+        PROGRAM_ID
+      )
+      const [feeVaultPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("fee_vault"), tokenMint.toBuffer()],
+        PROGRAM_ID
+      )
+
+      const tx = await (program as any).methods
+        .claimFees()
+        .accounts({
+          claimant: wallet,
+          tokenState: tokenStatePDA,
+          tokenMint: tokenMint,
+          feeVault: feeVaultPDA,
+          protocolFeeAccount: wallet, // Creator claims their share
+          creatorFeeAccount: wallet,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc()
+
+      toast.success("Creator fees claimed!", { id: "claim-fees" })
+      
+      // Refresh data
+      window.location.reload()
+    } catch (error: any) {
+      console.error("Claim fees error:", error)
+      toast.error(error.message || "Failed to claim fees", { id: "claim-fees" })
+    } finally {
+      setClaimingFees(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-dvh bg-background text-foreground flex items-center justify-center">
+        <div className="font-mono text-sm text-muted-foreground">Loading token...</div>
+      </div>
+    )
+  }
+
+  if (!token) return null
 
   const positive = token.change24h >= 0
   const danger = token.liqDistance < 15
@@ -60,31 +256,29 @@ export default async function TokenPage({ params }: { params: Promise<{ id: stri
                     )}
                   </div>
 
-                  <p className="text-xs md:text-sm text-foreground/80 max-w-2xl leading-relaxed line-clamp-2 md:line-clamp-none">{token.description}</p>
-
                   <div className="flex items-center gap-2 font-mono text-[10px] md:text-[11px] text-muted-foreground flex-wrap">
-                    <button className="inline-flex items-center gap-1 rounded border border-border bg-secondary px-2 py-0.5 hover:border-foreground">
-                      <Copy className="h-3 w-3" /> 7Hk29...mP3qr
+                    <button 
+                      onClick={copyMint}
+                      className="inline-flex items-center gap-1 rounded border border-border bg-secondary px-2 py-0.5 hover:border-foreground"
+                    >
+                      <Copy className="h-3 w-3" /> {copied ? "copied!" : `${token.mint.toString().slice(0, 6)}...${token.mint.toString().slice(-4)}`}
                     </button>
                     <a
-                      href="https://solscan.io/token/7Hk29mP3qr"
+                      href={`https://solscan.io/token/${token.mint.toString()}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 rounded border border-border bg-secondary px-2 py-0.5 hover:border-foreground hover:text-primary"
                     >
                       solscan <span className="text-[10px]">↗</span>
                     </a>
-                    <span>by <Link href={`/user/${token.creator.split("...")[0]}`} className="text-foreground hover:text-primary">{token.creator}</Link></span>
-                    <a href="#" className="hover:text-foreground"><Twitter className="h-3 w-3" /></a>
-                    <a href="#" className="hover:text-foreground"><Send className="h-3 w-3" /></a>
-                    <a href="#" className="hover:text-foreground"><Globe className="h-3 w-3" /></a>
+                    <span>by <Link href={`/user/${token.creator.slice(0, 6)}`} className="text-foreground hover:text-primary">{token.creator.slice(0, 6)}...{token.creator.slice(-4)}</Link></span>
                   </div>
                 </div>
               </div>
 
-              {/* stat strip — 2 cols on mobile, 4 on sm+ */}
+              {/* stat strip */}
               <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-border">
-                <Stat label="price" value="$0.0034" />
+                <Stat label="price" value="$--" />
                 <Stat
                   label="24h"
                   value={`${positive ? "+" : ""}${token.change24h.toFixed(1)}%`}
@@ -110,6 +304,31 @@ export default async function TokenPage({ params }: { params: Promise<{ id: stri
                   <div className="absolute left-0 top-0 h-full bg-primary" style={{ width: `${progress}%` }} />
                 </div>
               </div>
+
+              {/* Creator fees section - only show if fee vault data exists */}
+              {feeVaultData && (
+                <div className="px-3 md:px-4 py-2 border-t border-border bg-pink-500/5">
+                  <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-wider mb-1.5">
+                    <span className="text-muted-foreground flex items-center gap-1">
+                      <Wallet className="h-3 w-3" /> creator fees
+                    </span>
+                    <span className="text-pink-500 font-bold">
+                      {(feeVaultData.totalCollected - feeVaultData.creatorClaimed).toFixed(4)} SOL claimable
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between font-mono text-[10px] text-muted-foreground">
+                    <span>total: {feeVaultData.totalCollected.toFixed(4)} SOL</span>
+                    <span>claimed: {feeVaultData.creatorClaimed.toFixed(4)} SOL</span>
+                  </div>
+                  <button
+                    onClick={claimFees}
+                    disabled={claimingFees || (feeVaultData.totalCollected - feeVaultData.creatorClaimed) <= 0}
+                    className="mt-2 w-full py-1.5 rounded border border-pink-500/50 bg-pink-500/10 text-pink-500 font-mono text-[10px] uppercase hover:bg-pink-500/20 transition-colors disabled:opacity-50"
+                  >
+                    {claimingFees ? "claiming..." : "claim creator fees"}
+                  </button>
+                </div>
+              )}
             </div>
 
             <TokenRuggedGate
@@ -118,7 +337,7 @@ export default async function TokenPage({ params }: { params: Promise<{ id: stri
               leverage={token.leverage}
               direction={token.direction}
             >
-              <TokenChart ticker={token.ticker} underlying={token.underlying} />
+              <TokenChart tokenMint={token.id} ticker={token.ticker} underlying={token.underlying} />
               <TokenStats />
               <TradeHistory />
             </TokenRuggedGate>
@@ -126,7 +345,6 @@ export default async function TokenPage({ params }: { params: Promise<{ id: stri
 
           <aside className="space-y-3">
             <TradePanel token={token} />
-            <HoldersList creator={token.creator} />
           </aside>
         </div>
       </main>
@@ -160,58 +378,6 @@ function Stat({
     </div>
   )
 }
-
-function HoldersList({ creator }: { creator: string }) {
-  const holders = [
-    { addr: "9xQe...4Rk", pct: 12.4, isCreator: true, pnl: 4820 },
-    { addr: "Hk2p...9Lm", pct: 6.8, pnl: 1840 },
-    { addr: "Zx81...2Ap", pct: 4.2, pnl: -240 },
-    { addr: "Mn4q...7Vc", pct: 3.1, pnl: 612 },
-    { addr: "Pl9k...3Nb", pct: 2.7, pnl: -88 },
-    { addr: "Ty3w...8Df", pct: 2.0, pnl: 420 },
-    { addr: "Qa8r...1Ws", pct: 1.6, pnl: 144 },
-    { addr: "Vb2x...5Hg", pct: 1.2, pnl: -56 },
-  ]
-  const max = Math.max(...holders.map((h) => h.pct))
-
-  return (
-    <div className="rounded-lg border border-border bg-card">
-      <div className="px-3 py-2 border-b border-border font-display text-xs uppercase tracking-wider flex items-center gap-2">
-        <Users className="h-3.5 w-3.5 text-primary" />
-        top holders
-      </div>
-      <ul>
-        {holders.map((h, i) => (
-          <li
-            key={h.addr}
-            className="relative px-3 py-2 border-t border-border first:border-t-0 font-mono text-xs overflow-hidden"
-          >
-            <div
-              className="absolute inset-y-0 left-0 bg-primary/10 pointer-events-none"
-              style={{ width: `${(h.pct / max) * 100}%` }}
-            />
-            <div className="relative flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <span className="text-muted-foreground w-4">{i + 1}</span>
-                <Link href={`/user/${h.addr.split("...")[0]}`} className="hover:text-primary">
-                  {h.addr}
-                </Link>
-                {h.isCreator && (
-                  <span className="px-1 py-0.5 rounded bg-[#39ff14] text-black text-[9px] font-bold">
-                    DEV
-                  </span>
-                )}
-              </span>
-              <span className="font-bold">{h.pct}%</span>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
-
-
 
 function formatK(n: number) {
   if (n >= 1000000) return `${(n / 1000000).toFixed(2)}M`
