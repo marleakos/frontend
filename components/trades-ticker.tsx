@@ -7,7 +7,7 @@ import { Connection, PublicKey } from "@solana/web3.js"
 import { RPC_URL, PROGRAM_ID } from "@/lib/program-config"
 
 const MAX = 14
-const POLL_INTERVAL = 5000 // Poll every 5 seconds
+const POLL_INTERVAL = 30000 // Poll every 30 seconds
 
 interface LiveTrade {
   id: string
@@ -188,7 +188,7 @@ export function TradesTicker() {
 
   // Refresh token map periodically
   useEffect(() => {
-    const interval = setInterval(fetchTokenInfo, 30000) // Every 30 seconds
+    const interval = setInterval(fetchTokenInfo, 60000) // Every 60 seconds
     return () => clearInterval(interval)
   }, [fetchTokenInfo])
 
