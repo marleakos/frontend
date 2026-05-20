@@ -138,7 +138,10 @@ export default function CreatePage() {
       
       // Oracle price (u64) - 1 SOL = 1 billion lamports
       const oraclePrice = BigInt(1000000000)
-      data.writeBigUInt64LE(oraclePrice, offset)
+      const priceBytes = new Uint8Array(8)
+      const priceView = new DataView(priceBytes.buffer)
+      priceView.setBigUint64(0, oraclePrice, true) // little-endian
+      data.set(priceBytes, offset)
       offset += 8
       
       // Referrer (Option<Pubkey>) - 0 = None
