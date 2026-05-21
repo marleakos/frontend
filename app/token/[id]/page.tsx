@@ -278,7 +278,7 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
                 <Stat label="price" value={price > 0 ? `${price.toFixed(9)} SOL` : "View on Pump.fun"} />
                 <Stat
                   label="24h"
-                  value={`${positive ? "+" : ""}${token.change24h.toFixed(1)}%`}
+                  value={`${positive ? "+" : ""}${(token.change24h || 0).toFixed(1)}%`}
                   accent={positive ? "primary" : "destructive"}
                 />
                 <Stat label="mcap" value={token.marketCap > 0 ? `$${formatK(token.marketCap)}` : "--"} />
@@ -294,7 +294,7 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
                 <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-wider mb-1.5">
                   <span className="text-muted-foreground">graduation</span>
                   <span className="text-primary font-bold">
-                    {progress.toFixed(0)}% · ${formatK(token.marketCap)} / $69k
+                    {(progress || 0).toFixed(0)}% · ${formatK(token.marketCap || 0)} / $69k
                   </span>
                 </div>
                 <div className="relative h-1.5 w-full rounded-full bg-secondary overflow-hidden">
@@ -310,12 +310,12 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
                       <Wallet className="h-3 w-3" /> creator fees
                     </span>
                     <span className="text-pink-500 font-bold">
-                      {(feeVaultData.totalCollected - feeVaultData.creatorClaimed).toFixed(4)} SOL claimable
+                      {((feeVaultData.totalCollected || 0) - (feeVaultData.creatorClaimed || 0)).toFixed(4)} SOL claimable
                     </span>
                   </div>
                   <div className="flex items-center justify-between font-mono text-[10px] text-muted-foreground">
-                    <span>total: {feeVaultData.totalCollected.toFixed(4)} SOL</span>
-                    <span>claimed: {feeVaultData.creatorClaimed.toFixed(4)} SOL</span>
+                    <span>total: {(feeVaultData.totalCollected || 0).toFixed(4)} SOL</span>
+                    <span>claimed: {(feeVaultData.creatorClaimed || 0).toFixed(4)} SOL</span>
                   </div>
                   <button
                     onClick={claimFees}
