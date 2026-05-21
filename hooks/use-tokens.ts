@@ -53,88 +53,26 @@ function getEmoji(name: string, symbol: string): string {
   return "🪙"
 }
 
-// Fetch token data from pump.fun program directly
-async function fetchPumpFunData(mintAddress: string): Promise<{ marketCap: number; graduated: boolean; price: number } | null> {
-  try {
-    const { Connection, PublicKey } = await import('@solana/web3.js')
-    // Use Helius RPC for better reliability
-    const connection = new Connection(process.env.NEXT_PUBLIC_RPC_URL || 'https://api.mainnet-beta.solana.com', 'confirmed')
-    
-    const mint = new PublicKey(mintAddress)
-    const PUMP_PROGRAM = new PublicKey('6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P')
-    
-    // Derive bonding curve PDA
-    const [bondingCurve] = PublicKey.findProgramAddressSync(
-      [Buffer.from('bonding-curve'), mint.toBuffer()],
-      PUMP_PROGRAM
-    )
-    
-    console.log('Fetching bonding curve:', bondingCurve.toString())
-    
-    // Fetch the account data
-    const accountInfo = await connection.getAccountInfo(bondingCurve)
-    
-    if (!accountInfo) {
-      console.log('No bonding curve found for', mintAddress)
-      return null
-    }
-    
-    console.log('Account data length:', accountInfo.data.length)
-    console.log('Account owner:', accountInfo.owner.toString())
-    
-    // Parse the bonding curve data
-    // Based on pump.fun SDK: https://github.com/pump-fun/pump-sdk/blob/main/src/bondingCurve.ts
-    // Discriminator (8) + virtualSolReserves (8) + virtualTokenReserves (8) + realSolReserves (8) + realTokenReserves (8) + tokenTotalSupply (8) + complete (1)
-    const data = accountInfo.data
-    
-    // Check if data is long enough
-    if (data.length < 41) {
-      console.log('Account data too short:', data.length)
-      return null
-    }
-    
-    let offset = 8 // Skip discriminator
-    
-    const virtualSolReserve = Number(data.readBigUInt64LE(offset))
-    offset += 8
-    const virtualTokenReserve = Number(data.readBigUInt64LE(offset))
-    offset += 8
-    const realSolReserve = Number(data.readBigUInt64LE(offset))
-    offset += 8
-    const realTokenReserve = Number(data.readBigUInt64LE(offset))
-    offset += 8
-    const tokenTotalSupply = Number(data.readBigUInt64LE(offset))
-    offset += 8
-    const complete = data[offset] === 1
-    
-    // Calculate price and market cap
-    // Price = virtualSolReserve / virtualTokenReserve (in lamports per token)
-    const price = virtualTokenReserve > 0 ? virtualSolReserve / virtualTokenReserve : 0
-    
-    // Market cap in USD = (virtualSolReserve * 2) / 1e9 * SOL_PRICE
-    // The *2 is because bonding curve has virtual reserves
-    const solPrice = 150 // Approximate SOL price in USD
-    const marketCap = Math.floor((virtualSolReserve * 2) / 1e9 * solPrice)
-    
-    console.log('Parsed data for', mintAddress, {
-      virtualSolReserve: virtualSolReserve / 1e9,
-      virtualTokenReserve: virtualTokenReserve / 1e6,
-      realSolReserve: realSolReserve / 1e9,
-      realTokenReserve: realTokenReserve / 1e6,
-      tokenTotalSupply: tokenTotalSupply / 1e6,
-      complete,
-      price,
-      marketCap
-    })
-    
-    return {
-      marketCap,
-      graduated: complete,
-      price
-    }
-  } catch (e) {
-    console.error('Error fetching on-chain data:', e)
+// Fetch token data from DexScreener API (free, no key needed)
+import { getTokenData } from '@/lib/dexscreener'
+
+async function fetchTokenMarketData(mintAddress: string): Promise<{ 
+  marketCap: number
+  price: number
+  volume24h: number
+  priceChange24h: number
+} | null> {
+  const data = await getTokenData(mintAddress)
+  
+  if (!data) {
     return null
+  }
+  
+  return {
+    marketCap: data.marketCap || 0,
+    price: parseFloat(data.priceUsd) || 0,
+    volume24h: data.volume?.h24 || 0,
+    priceChange24h: data.priceChange?.h24 || 0
   }
 }
 
@@ -193,14 +131,18 @@ export function useTokens() {
         const createdAt = new Date(token.createdAt).getTime()
         const ageMinutes = Math.floor((Date.now() - createdAt) / 60000)
         
-        // Fetch real data from pump.fun
-        const pumpData = await fetchPumpFunData(token.mintAddress)
-        const marketCap = pumpData?.marketCap || 0
-        const graduated = pumpData?.graduated || false
-        const price = pumpData?.price || 0
+        // Fetch real data from DexScreener
+        const marketData = await fetchTokenMarketData(token.mintAddress)
+        const marketCap = marketData?.marketCap || 0
+        const price = marketData?.price || 0
+        const volume24h = marketData?.volume24h || 0
+        const priceChange24h = marketData?.priceChange24h || 0
         
         // Calculate progress to graduation (69k)
         const progress = Math.min(100, Math.floor((marketCap / 69000) * 100))
+        
+        // Graduated if market cap > 69k
+        const graduated = marketCap >= 69000
         
         return {
           id: token.mintAddress,
@@ -215,7 +157,7 @@ export function useTokens() {
           progress,
           replies: 0,
           ageMinutes: Math.max(0, ageMinutes),
-          change24h: 0,
+          change24h: priceChange24h,
           liqDistance: 100,
           description: "",
           mint: new PublicKey(token.mintAddress),

@@ -72,44 +72,25 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
           storedToken = storedTokens.find((t: any) => t.mintAddress === id)
         }
         
-        // Fetch pump.fun data from blockchain
+        // Fetch real data from DexScreener
         let marketCap = 0
         let graduated = false
         let tokenPrice = 0
+        let priceChange24h = 0
         try {
-          const { Connection, PublicKey } = await import('@solana/web3.js')
-          const connection = new Connection(process.env.NEXT_PUBLIC_RPC_URL || 'https://api.mainnet-beta.solana.com', 'confirmed')
+          const { getTokenData } = await import('@/lib/dexscreener')
+          const data = await getTokenData(id)
           
-          const mint = new PublicKey(id)
-          const PUMP_PROGRAM = new PublicKey('6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P')
-          
-          const [bondingCurve] = PublicKey.findProgramAddressSync(
-            [Buffer.from('bonding-curve'), mint.toBuffer()],
-            PUMP_PROGRAM
-          )
-          
-          const accountInfo = await connection.getAccountInfo(bondingCurve)
-          
-          if (accountInfo && accountInfo.data.length >= 41) {
-            const data = accountInfo.data
-            let offset = 8
+          if (data) {
+            tokenPrice = parseFloat(data.priceUsd) || 0
+            marketCap = data.marketCap || 0
+            priceChange24h = data.priceChange?.h24 || 0
+            graduated = marketCap >= 69000
             
-            const virtualSolReserve = Number(data.readBigUInt64LE(offset))
-            offset += 8
-            const virtualTokenReserve = Number(data.readBigUInt64LE(offset))
-            offset += 8
-            offset += 16 // Skip real reserves
-            offset += 8 // Skip total supply
-            const complete = data[offset] === 1
-            
-            tokenPrice = virtualTokenReserve > 0 ? virtualSolReserve / virtualTokenReserve : 0
-            marketCap = Math.floor((virtualSolReserve * 2) / 1e9 * 150)
-            graduated = complete
-            
-            console.log('Token page - on-chain data:', { marketCap, tokenPrice, graduated })
+            console.log('Token page - DexScreener data:', { marketCap, tokenPrice, priceChange24h, graduated })
           }
         } catch (e) {
-          console.log('Could not fetch on-chain data:', e)
+          console.log('Could not fetch DexScreener data:', e)
         }
         
         setPrice(tokenPrice)
@@ -199,7 +180,7 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
 
   if (!token) return null
 
-  const positive = token.change24h >= 0
+  const positive = (token.change24h || 0) >= 0
   const danger = token.liqDistance < 15
   const GRAD = 69000
   const progress = Math.min(100, (token.marketCap / GRAD) * 100)
