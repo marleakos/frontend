@@ -145,6 +145,8 @@ export default function CreatePage() {
       transaction.feePayer = publicKey
       transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash
       
+      // Sign with mint keypair first, then wallet
+      transaction.partialSign(mint)
       const signed = await signTransaction(transaction)
       const signature = await connection.sendRawTransaction(signed.serialize())
       
