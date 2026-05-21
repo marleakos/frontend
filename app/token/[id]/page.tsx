@@ -14,9 +14,7 @@ import { TokenStats } from "@/components/token-stats"
 import { ArrowLeft, Copy, Wallet, Skull } from "lucide-react"
 import { toast } from "sonner"
 import { Connection, PublicKey, SystemProgram } from "@solana/web3.js"
-import { Program, AnchorProvider } from "@coral-xyz/anchor"
-import { RPC_URL, PROGRAM_ID } from "@/lib/program-config"
-import { IDL } from "@/lib/idl"
+import { RPC_URL } from "@/lib/program-config"
 import type { TokenData } from "@/hooks/use-tokens"
 
 // Get emoji based on symbol/name
@@ -59,70 +57,61 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
   useEffect(() => {
     async function fetchToken() {
       try {
-        const connection = new Connection(RPC_URL, "confirmed")
-        const provider = new AnchorProvider(connection, {} as any, { commitment: "confirmed" })
-        const program = new Program(IDL as any, provider)
-
-        // Fetch the token state account
-        const tokenState = await (program as any).account.tokenState.fetch(new PublicKey(id))
+        // For pump.fun tokens, fetch from localStorage
+        const storedTokens = JSON.parse(localStorage.getItem('leverageTokens') || '[]')
+        const storedToken = storedTokens.find((t: any) => t.mintAddress === id)
         
-        if (!tokenState) {
-          router.push("/")
+        if (!storedToken) {
+          // Token not found in localStorage - could be a pump.fun token not created through our UI
+          // Create a minimal token object with the mint address
+          setToken({
+            id: id,
+            name: "Unknown Token",
+            ticker: "???",
+            emoji: "🪙",
+            creator: "",
+            underlying: "SOL-PERP",
+            leverage: 2,
+            direction: "LONG",
+            marketCap: 0,
+            progress: 0,
+            replies: 0,
+            ageMinutes: 0,
+            change24h: 0,
+            liqDistance: 100,
+            description: "Token data not available. This token may not have been created through this UI.",
+            mint: new PublicKey(id),
+            graduated: false,
+          })
+          setLoading(false)
           return
         }
 
-        const mint = tokenState.tokenMint
-        const createdAt = tokenState.createdAt?.toNumber?.() || 0
-        const ageMinutes = Math.floor((Date.now() / 1000 - createdAt) / 60)
-
-        // Calculate market cap from curve state
-        const virtualSol = tokenState.curveState?.virtualSolReserve?.toNumber?.() || 0
-        const virtualToken = tokenState.curveState?.virtualTokenReserve?.toNumber?.() || 1
-        const price = virtualSol / virtualToken
-        const supply = tokenState.curveState?.realTokenReserve?.toNumber?.() || 0
-        const marketCap = Math.floor(price * supply)
-
-        // Progress to graduation (69k)
-        const progress = Math.min(100, Math.floor((marketCap / 69000) * 100))
+        const createdAt = new Date(storedToken.createdAt).getTime()
+        const ageMinutes = Math.floor((Date.now() - createdAt) / 60000)
 
         setToken({
-          id: mint.toString(),
-          name: tokenState.name,
-          ticker: tokenState.symbol,
-          emoji: getEmoji(tokenState.name, tokenState.symbol),
-          creator: tokenState.creator.toString(),
-          underlying: formatUnderlying(tokenState.underlying),
-          leverage: tokenState.leverage as 2 | 3 | 5 | 10,
-          direction: formatDirection(tokenState.direction),
-          marketCap,
-          progress,
+          id: storedToken.mintAddress,
+          name: storedToken.name,
+          ticker: storedToken.symbol,
+          emoji: getEmoji(storedToken.name, storedToken.symbol),
+          creator: "",
+          underlying: `${storedToken.underlying || 'SOL'}-PERP`,
+          leverage: storedToken.leverage as 2 | 3 | 5 | 10,
+          direction: storedToken.direction as "LONG" | "SHORT",
+          marketCap: 0,
+          progress: 0,
           replies: 0,
           ageMinutes: Math.max(0, ageMinutes),
           change24h: 0,
           liqDistance: 100,
           description: "",
-          mint,
-          graduated: tokenState.graduated,
+          mint: new PublicKey(storedToken.mintAddress),
+          graduated: false,
         })
 
-        // Fetch FeeVault for creator fee info
-        try {
-          const [feeVaultPDA] = PublicKey.findProgramAddressSync(
-            [Buffer.from("fee_vault"), mint.toBuffer()],
-            PROGRAM_ID
-          )
-          const feeVault = await (program as any).account.feeVault.fetch(feeVaultPDA)
-          
-          if (feeVault) {
-            setFeeVaultData({
-              totalCollected: (feeVault.totalCollected?.toNumber?.() || 0) / 1e9,
-              creatorClaimed: (feeVault.creatorClaimed?.toNumber?.() || 0) / 1e9,
-            })
-          }
-        } catch (e) {
-          // FeeVault might not exist
-          console.log("No fee vault found")
-        }
+        // Fee vault not applicable for pump.fun tokens
+        setFeeVaultData(null)
       } catch (err) {
         console.error("Error fetching token:", err)
         router.push("/")
@@ -143,63 +132,8 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
   }
 
   const claimFees = async () => {
-    if (!token) return
-    
-    setClaimingFees(true)
-    toast.loading("Claiming creator fees...", { id: "claim-fees" })
-    
-    try {
-      // Get wallet from window (since we're using a simple provider)
-      const { solana } = window as any
-      if (!solana) {
-        toast.error("Please install Phantom wallet", { id: "claim-fees" })
-        return
-      }
-      
-      await solana.connect()
-      const wallet = solana.publicKey
-      
-      const connection = new Connection(RPC_URL, "confirmed")
-      const provider = new AnchorProvider(connection, { publicKey: wallet, signTransaction: async (tx: any) => {
-        return await solana.signTransaction(tx)
-      }} as any, { commitment: "confirmed" })
-      const program = new Program(IDL as any, provider)
-      
-      const tokenMint = new PublicKey(token.id)
-      
-      // Get PDAs
-      const [tokenStatePDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("token_state"), tokenMint.toBuffer()],
-        PROGRAM_ID
-      )
-      const [feeVaultPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("fee_vault"), tokenMint.toBuffer()],
-        PROGRAM_ID
-      )
-
-      const tx = await (program as any).methods
-        .claimFees()
-        .accounts({
-          claimant: wallet,
-          tokenState: tokenStatePDA,
-          tokenMint: tokenMint,
-          feeVault: feeVaultPDA,
-          protocolFeeAccount: wallet, // Creator claims their share
-          creatorFeeAccount: wallet,
-          systemProgram: SystemProgram.programId,
-        })
-        .rpc()
-
-      toast.success("Creator fees claimed!", { id: "claim-fees" })
-      
-      // Refresh data
-      window.location.reload()
-    } catch (error: any) {
-      console.error("Claim fees error:", error)
-      toast.error(error.message || "Failed to claim fees", { id: "claim-fees" })
-    } finally {
-      setClaimingFees(false)
-    }
+    // Fee claiming not available for pump.fun tokens
+    toast.error("Fee claiming not available for pump.fun tokens", { id: "claim-fees" })
   }
 
   if (loading) {
