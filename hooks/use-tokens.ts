@@ -62,14 +62,31 @@ export function useTokens() {
       setLoading(true)
       setError(null)
 
-      // For pump.fun integration, fetch tokens from localStorage
-      // These are tokens created through our UI
-      const storedTokensRaw = localStorage.getItem('leverageTokens')
-      console.log("Raw localStorage:", storedTokensRaw)
-      const storedTokens = JSON.parse(storedTokensRaw || '[]')
-      console.log("Parsed tokens:", storedTokens.length)
+      // Fetch tokens from API (shared across all users)
+      let apiTokens: any[] = []
+      try {
+        const response = await fetch('/api/tokens')
+        const data = await response.json()
+        apiTokens = data.tokens || []
+      } catch (e) {
+        console.log('Could not fetch from API, using localStorage')
+      }
       
-      const tokenData: TokenData[] = storedTokens.map((token: any) => {
+      // Also get localStorage tokens (for immediate display of user's own tokens)
+      const storedTokensRaw = localStorage.getItem('leverageTokens')
+      const storedTokens = JSON.parse(storedTokensRaw || '[]')
+      
+      // Merge both lists (avoid duplicates)
+      const allTokens = [...apiTokens]
+      storedTokens.forEach((token: any) => {
+        if (!allTokens.find((t: any) => t.mintAddress === token.mintAddress)) {
+          allTokens.push(token)
+        }
+      })
+      
+      console.log("Total tokens:", allTokens.length)
+      
+      const tokenData: TokenData[] = allTokens.map((token: any) => {
         const createdAt = new Date(token.createdAt).getTime()
         const ageMinutes = Math.floor((Date.now() - createdAt) / 60000)
         
@@ -78,12 +95,12 @@ export function useTokens() {
           name: token.name,
           ticker: token.symbol,
           emoji: getEmoji(token.name, token.symbol),
-          creator: "", // Not stored for pump.fun tokens
+          creator: token.creator || "",
           underlying: `${token.underlying || 'SOL'}-PERP`,
           leverage: token.leverage as 2 | 3 | 5 | 10,
           direction: token.direction as "LONG" | "SHORT",
-          marketCap: 0, // Would need to fetch from pump.fun
-          progress: 0,  // Would need to fetch from pump.fun
+          marketCap: 0,
+          progress: 0,
           replies: 0,
           ageMinutes: Math.max(0, ageMinutes),
           change24h: 0,

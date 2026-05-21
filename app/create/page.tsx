@@ -179,17 +179,32 @@ export default function CreatePage() {
       await connection.confirmTransaction(signature, "confirmed")
 
       // Store leverage metadata
-      const tokens = JSON.parse(localStorage.getItem('leverageTokens') || '[]')
-      tokens.push({
+      const tokenData = {
         mintAddress: mint.publicKey.toString(),
         name: name.trim(),
         symbol: ticker.trim().toUpperCase(),
         leverage,
         direction,
         underlying: referenceAsset,
-        createdAt: new Date().toISOString()
-      })
+        createdAt: new Date().toISOString(),
+        creator: publicKey.toString()
+      }
+      
+      // Save to localStorage for immediate display
+      const tokens = JSON.parse(localStorage.getItem('leverageTokens') || '[]')
+      tokens.push(tokenData)
       localStorage.setItem('leverageTokens', JSON.stringify(tokens))
+      
+      // Save to shared API
+      try {
+        await fetch('/api/tokens', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(tokenData)
+        })
+      } catch (e) {
+        console.log('Could not save to shared API:', e)
+      }
 
       setTxSignature(signature)
       toast.success(`Token created on Pump.fun!`, { id: "deploy" })
