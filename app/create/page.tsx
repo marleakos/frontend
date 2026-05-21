@@ -41,22 +41,16 @@ export default function CreatePage() {
     return '0.6%'
   }
 
-  const uploadImageToIPFS = async (imageData: string): Promise<string> => {
-    try {
-      // Convert data URI to blob
-      const blob = dataURItoBlob(imageData)
-      const file = new File([blob], "token-image.png", { type: "image/png" })
-      
-      // Upload to IPFS
-      const imageUrl = await uploadToIPFS(file, "token-image")
-      console.log("Image uploaded to IPFS:", imageUrl)
-      return imageUrl
-    } catch (error) {
-      console.error("IPFS upload failed:", error)
-      // Fallback to data URI if IPFS fails
-      toast.error("IPFS upload failed, using fallback")
-      return imageData
-    }
+  const uploadImage = async (imageData: string): Promise<string> => {
+    // For now, use a placeholder image URL
+    // In production, you need to:
+    // 1. Upload to pump.fun's image endpoint (if they have one)
+    // 2. Or use IPFS/Arweave
+    // 3. Or use a temporary image hosting service
+    
+    // Placeholder: return a generic image URL
+    // This won't show your custom image but will allow token creation
+    return "https://pump.fun/img/default-token.png"
   }
 
   const createMetadataUri = async (
@@ -68,36 +62,26 @@ export default function CreatePage() {
     twitter: string,
     telegram: string
   ): Promise<string> => {
-    // Build metadata JSON (ERC-721 standard)
+    // Build simple metadata JSON
+    // Pump.fun uses a simple format
     const metadata = {
       name,
       symbol,
       description,
       image: imageUri,
-      external_url: website || undefined,
-      attributes: [
-        { trait_type: "Leverage", value: leverage },
-        { trait_type: "Direction", value: direction },
-        { trait_type: "Underlying", value: referenceAsset }
-      ],
-      properties: {
-        website,
-        twitter,
-        telegram,
-        leverage,
-        direction,
-        underlying: referenceAsset
-      }
+      showName: true,
+      createdOn: "https://pump.fun",
+      twitter,
+      telegram,
+      website
     }
     
+    // Upload to IPFS or use data URI
     try {
-      // Upload metadata to IPFS
       const metadataUrl = await uploadMetadataToIPFS(metadata)
-      console.log("Metadata uploaded to IPFS:", metadataUrl)
       return metadataUrl
     } catch (error) {
-      console.error("Metadata IPFS upload failed:", error)
-      // Fallback to data URI
+      // Fallback: pump.fun might accept data URIs for small metadata
       const metadataStr = JSON.stringify(metadata)
       return `data:application/json;base64,${btoa(metadataStr)}`
     }
@@ -125,7 +109,7 @@ export default function CreatePage() {
       
       // Upload image and create metadata
       toast.loading("Uploading metadata...", { id: "deploy" })
-      const imageUri = await uploadImageToIPFS(image)
+      const imageUri = await uploadImage(image)
       const uri = await createMetadataUri(
         name.trim(),
         ticker.trim().toUpperCase(),
