@@ -10,32 +10,34 @@ interface TokenChartProps {
 }
 
 export function TokenChart({ tokenMint, ticker, price }: TokenChartProps) {
-  // If no price data, show message
-  if (price === 0) {
-    return (
-      <div className="rounded-lg border border-border bg-card p-4 h-[300px] flex flex-col items-center justify-center">
-        <LineIcon className="h-8 w-8 text-muted-foreground mb-2" />
-        <div className="font-mono text-xs text-muted-foreground">No price data available</div>
-        <div className="font-mono text-[10px] text-muted-foreground mt-2">
-          View on <a href={`https://pump.fun/coin/${tokenMint}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">pump.fun</a>
-        </div>
-      </div>
-    )
-  }
+  // If no price data from DexScreener, show placeholder chart
+  // New tokens take time to be indexed
+  const displayPrice = price || 0.000001
+  const hasRealData = price > 0
 
-  // Generate simple price history based on current price
+  // Generate price history
+  // If real data: show flat line at current price
+  // If no real data: show placeholder
   const priceHistory: { time: number; price: number }[] = []
   const now = Date.now()
   const points = 20
   
   for (let i = points; i >= 0; i--) {
     const time = now - i * 300000 // 5 minute intervals
-    const variance = (Math.random() - 0.5) * 0.05
-    const historicalPrice = price * (1 + variance * (i / points))
-    priceHistory.push({
-      time,
-      price: Math.max(0.000001, historicalPrice)
-    })
+    if (hasRealData) {
+      // Real data: flat line with small variance
+      const variance = (Math.random() - 0.5) * 0.02
+      priceHistory.push({
+        time,
+        price: price * (1 + variance)
+      })
+    } else {
+      // No real data: show placeholder flat line
+      priceHistory.push({
+        time,
+        price: displayPrice
+      })
+    }
   }
 
   const minPrice = Math.min(...priceHistory.map(p => p.price))
@@ -61,8 +63,13 @@ export function TokenChart({ tokenMint, ticker, price }: TokenChartProps) {
         <div>
           <div className="font-mono text-[10px] text-muted-foreground uppercase">Price</div>
           <div className={`font-display text-2xl ${isPositive ? 'text-primary' : 'text-destructive'}`}>
-            {(price || 0).toFixed(9)} SOL
+            {hasRealData ? `${price.toFixed(9)} SOL` : 'Pending...'}
           </div>
+          {!hasRealData && (
+            <div className="font-mono text-[10px] text-muted-foreground">
+              New token - data pending
+            </div>
+          )}
         </div>
         <div className="font-mono text-xs text-muted-foreground">
           ${ticker}
@@ -101,7 +108,7 @@ export function TokenChart({ tokenMint, ticker, price }: TokenChartProps) {
         {/* Current price dot */}
         <circle
           cx={width - padding}
-          cy={height - padding - ((price - minPrice) / priceRange) * (height - 2 * padding)}
+          cy={height - padding - ((displayPrice - minPrice) / priceRange) * (height - 2 * padding)}
           r="4"
           fill={isPositive ? 'hsl(var(--primary))' : 'hsl(var(--destructive))'}
         />
