@@ -73,7 +73,8 @@ export default function Page() {
   // Sort by market cap for KOTH
   const sortedTokens = [...tokens].sort((a, b) => b.marketCap - a.marketCap)
   const koth = sortedTokens[0]
-  const rest = sortedTokens.slice(1)
+  // Show all tokens in the grid (including KOTH, it will just be first)
+  const rest = sortedTokens
 
   return (
     <main className="min-h-screen text-foreground">
