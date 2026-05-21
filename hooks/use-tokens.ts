@@ -52,50 +52,60 @@ function getEmoji(name: string, symbol: string): string {
   return "🪙"
 }
 
-// Fetch token data from pump.fun API
-async function fetchPumpFunData(mintAddress: string): Promise<{ marketCap: number; graduated: boolean } | null> {
+// Fetch token data from pump.fun program directly
+async function fetchPumpFunData(mintAddress: string): Promise<{ marketCap: number; graduated: boolean; price: number } | null> {
   try {
-    // Try multiple pump.fun API endpoints
-    const endpoints = [
-      `https://pump.fun/api/coins/${mintAddress}`,
-      `https://frontend-api.pump.fun/coins/${mintAddress}`,
-    ]
+    const { Connection, PublicKey } = await import('@solana/web3.js')
+    const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed')
     
-    for (const endpoint of endpoints) {
-      try {
-        const response = await fetch(endpoint, {
-          headers: { 'Accept': 'application/json' },
-          cache: 'no-cache'
-        })
-        
-        if (response.ok) {
-          const data = await response.json()
-          console.log('Pump.fun data for', mintAddress, data)
-          
-          // Try multiple ways to get market cap
-          let marketCap = 0
-          if (data.market_cap_usd) {
-            marketCap = Math.floor(data.market_cap_usd)
-          } else if (data.sol_reserve || data.solReserve) {
-            const solReserve = data.sol_reserve || data.solReserve
-            marketCap = Math.floor(solReserve * 2 * 150)
-          } else if (data.market_cap_sol) {
-            marketCap = Math.floor(data.market_cap_sol * 150)
-          }
-          
-          return {
-            marketCap,
-            graduated: data.complete || data.graduated || data.bonding_curve_complete || false
-          }
-        }
-      } catch (e) {
-        console.log(`Failed to fetch from ${endpoint}`)
-      }
+    const mint = new PublicKey(mintAddress)
+    const PUMP_PROGRAM = new PublicKey('6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P')
+    
+    // Derive bonding curve PDA
+    const [bondingCurve] = PublicKey.findProgramAddressSync(
+      [Buffer.from('bonding-curve'), mint.toBuffer()],
+      PUMP_PROGRAM
+    )
+    
+    // Fetch the account data
+    const accountInfo = await connection.getAccountInfo(bondingCurve)
+    
+    if (!accountInfo) {
+      console.log('No bonding curve found for', mintAddress)
+      return null
     }
     
-    return null
+    // Parse the bonding curve data
+    // BondingCurve layout: discriminator(8) + virtualSolReserve(8) + virtualTokenReserve(8) + realSolReserve(8) + realTokenReserve(8) + tokenTotalSupply(8)
+    const data = accountInfo.data
+    let offset = 8 // Skip discriminator
+    
+    const virtualSolReserve = Number(data.readBigUInt64LE(offset))
+    offset += 8
+    const virtualTokenReserve = Number(data.readBigUInt64LE(offset))
+    offset += 8
+    const realSolReserve = Number(data.readBigUInt64LE(offset))
+    offset += 8
+    const realTokenReserve = Number(data.readBigUInt64LE(offset))
+    
+    // Calculate price and market cap
+    const price = virtualTokenReserve > 0 ? virtualSolReserve / virtualTokenReserve : 0
+    const marketCap = Math.floor((virtualSolReserve * 2) / 1e9 * 150) // Convert lamports to SOL, *2 for bonding curve, *150 for USD
+    
+    console.log('On-chain data for', mintAddress, {
+      virtualSolReserve,
+      virtualTokenReserve,
+      price,
+      marketCap
+    })
+    
+    return {
+      marketCap,
+      graduated: false, // Would need to check if AMM pool exists
+      price
+    }
   } catch (e) {
-    console.log('Could not fetch pump.fun data for', mintAddress)
+    console.log('Error fetching on-chain data:', e)
     return null
   }
 }
@@ -159,6 +169,7 @@ export function useTokens() {
         const pumpData = await fetchPumpFunData(token.mintAddress)
         const marketCap = pumpData?.marketCap || 0
         const graduated = pumpData?.graduated || false
+        const price = pumpData?.price || 0
         
         // Calculate progress to graduation (69k)
         const progress = Math.min(100, Math.floor((marketCap / 69000) * 100))
@@ -181,6 +192,7 @@ export function useTokens() {
           description: "",
           mint: new PublicKey(token.mintAddress),
           graduated,
+          price,
         }
       })
       
