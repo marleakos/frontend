@@ -56,7 +56,8 @@ function getEmoji(name: string, symbol: string): string {
 async function fetchPumpFunData(mintAddress: string): Promise<{ marketCap: number; graduated: boolean; price: number } | null> {
   try {
     const { Connection, PublicKey } = await import('@solana/web3.js')
-    const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed')
+    // Use Helius RPC for better reliability
+    const connection = new Connection(process.env.NEXT_PUBLIC_RPC_URL || 'https://api.mainnet-beta.solana.com', 'confirmed')
     
     const mint = new PublicKey(mintAddress)
     const PUMP_PROGRAM = new PublicKey('6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P')
@@ -67,6 +68,8 @@ async function fetchPumpFunData(mintAddress: string): Promise<{ marketCap: numbe
       PUMP_PROGRAM
     )
     
+    console.log('Fetching bonding curve:', bondingCurve.toString())
+    
     // Fetch the account data
     const accountInfo = await connection.getAccountInfo(bondingCurve)
     
@@ -75,9 +78,20 @@ async function fetchPumpFunData(mintAddress: string): Promise<{ marketCap: numbe
       return null
     }
     
+    console.log('Account data length:', accountInfo.data.length)
+    console.log('Account owner:', accountInfo.owner.toString())
+    
     // Parse the bonding curve data
-    // BondingCurve layout: discriminator(8) + virtualSolReserve(8) + virtualTokenReserve(8) + realSolReserve(8) + realTokenReserve(8) + tokenTotalSupply(8)
+    // Based on pump.fun SDK: https://github.com/pump-fun/pump-sdk/blob/main/src/bondingCurve.ts
+    // Discriminator (8) + virtualSolReserves (8) + virtualTokenReserves (8) + realSolReserves (8) + realTokenReserves (8) + tokenTotalSupply (8) + complete (1)
     const data = accountInfo.data
+    
+    // Check if data is long enough
+    if (data.length < 41) {
+      console.log('Account data too short:', data.length)
+      return null
+    }
+    
     let offset = 8 // Skip discriminator
     
     const virtualSolReserve = Number(data.readBigUInt64LE(offset))
@@ -87,25 +101,38 @@ async function fetchPumpFunData(mintAddress: string): Promise<{ marketCap: numbe
     const realSolReserve = Number(data.readBigUInt64LE(offset))
     offset += 8
     const realTokenReserve = Number(data.readBigUInt64LE(offset))
+    offset += 8
+    const tokenTotalSupply = Number(data.readBigUInt64LE(offset))
+    offset += 8
+    const complete = data[offset] === 1
     
     // Calculate price and market cap
+    // Price = virtualSolReserve / virtualTokenReserve (in lamports per token)
     const price = virtualTokenReserve > 0 ? virtualSolReserve / virtualTokenReserve : 0
-    const marketCap = Math.floor((virtualSolReserve * 2) / 1e9 * 150) // Convert lamports to SOL, *2 for bonding curve, *150 for USD
     
-    console.log('On-chain data for', mintAddress, {
-      virtualSolReserve,
-      virtualTokenReserve,
+    // Market cap in USD = (virtualSolReserve * 2) / 1e9 * SOL_PRICE
+    // The *2 is because bonding curve has virtual reserves
+    const solPrice = 150 // Approximate SOL price in USD
+    const marketCap = Math.floor((virtualSolReserve * 2) / 1e9 * solPrice)
+    
+    console.log('Parsed data for', mintAddress, {
+      virtualSolReserve: virtualSolReserve / 1e9,
+      virtualTokenReserve: virtualTokenReserve / 1e6,
+      realSolReserve: realSolReserve / 1e9,
+      realTokenReserve: realTokenReserve / 1e6,
+      tokenTotalSupply: tokenTotalSupply / 1e6,
+      complete,
       price,
       marketCap
     })
     
     return {
       marketCap,
-      graduated: false, // Would need to check if AMM pool exists
+      graduated: complete,
       price
     }
   } catch (e) {
-    console.log('Error fetching on-chain data:', e)
+    console.error('Error fetching on-chain data:', e)
     return null
   }
 }
