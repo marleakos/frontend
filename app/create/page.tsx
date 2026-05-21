@@ -5,21 +5,11 @@ import { Header } from "@/components/header"
 import { TradesTicker } from "@/components/trades-ticker"
 import { ImagePlus, Info, X, Loader2 } from "lucide-react"
 import { useWallet } from "@solana/wallet-adapter-react"
-import { Connection, PublicKey, Keypair, Transaction, TransactionInstruction } from "@solana/web3.js"
+import { Connection, PublicKey, Keypair, Transaction } from "@solana/web3.js"
 import { toast } from "sonner"
 import { RPC_URL } from "@/lib/program-config"
-
-// Pump.fun constants
-const PUMP_FUN_PROGRAM = new PublicKey("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P")
-const GLOBAL_ACCOUNT = new PublicKey("4wTV1YmiEkRvAtNtsSGPtUrqRYQMe5SKy2uB4Jjaxnjf")
-const MINT_AUTHORITY = new PublicKey("TSLvdd1pWpHVjahSpsvCXUbgwsL3JAgvEaMB9HtFBmu")
-const MAYHEM_PROGRAM = new PublicKey("MAyhSmzXzV1pTf7LsNkrNwkWKTo4ougAJ1PPg47MD4e")
-const TOKEN_2022_PROGRAM = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb")
-const ASSOCIATED_TOKEN_PROGRAM = new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL")
-const SYSTEM_PROGRAM = new PublicKey("11111111111111111111111111111111")
-
-// Discriminator for create instruction
-const CREATE_DISCRIMINATOR = new Uint8Array([24, 30, 200, 40, 5, 28, 7, 119])
+import { PumpSdk } from "@pump-fun/pump-sdk"
+import BN from "bn.js"
 
 const REFERENCE_ASSETS = ["SOL", "BTC", "ETH", "APT", "ARB", "DOGE", "BNB", "SUI", "BONK", "MATIC"] as const
 const LEVERAGE_OPTIONS = [2, 3, 5, 10] as const
@@ -66,78 +56,32 @@ export default function CreatePage() {
     
     try {
       const connection = new Connection(RPC_URL, "confirmed")
+      const sdk = new PumpSdk(connection)
+      
       const mint = Keypair.generate()
       
-      // Derive PDAs
-      const [bondingCurve] = PublicKey.findProgramAddressSync(
-        [Buffer.from("bonding-curve"), mint.publicKey.toBuffer()],
-        PUMP_FUN_PROGRAM
-      )
-      
-      const [associatedBondingCurve] = PublicKey.findProgramAddressSync(
-        [bondingCurve.toBuffer(), TOKEN_2022_PROGRAM.toBuffer(), mint.publicKey.toBuffer()],
-        ASSOCIATED_TOKEN_PROGRAM
-      )
-      
-      // Build metadata URI - pump.fun requires small URIs
-      // In production, upload image to IPFS/Arweave first
-      // For now, use a simple placeholder
+      // Use a simple URI for now (in production, upload to IPFS/Arweave)
       const uri = `https://pump.fun/token/${ticker.trim().toLowerCase()}`
       
-      // Build instruction data
-      const nameBytes = Buffer.from(name.trim())
-      const symbolBytes = Buffer.from(ticker.trim().toUpperCase())
-      const uriBytes = Buffer.from(uri)
-      
-      const data = Buffer.alloc(8 + 4 + nameBytes.length + 4 + symbolBytes.length + 4 + uriBytes.length)
-      let offset = 0
-      
-      data.set(CREATE_DISCRIMINATOR, offset)
-      offset += 8
-      
-      data.writeUInt32LE(nameBytes.length, offset)
-      offset += 4
-      nameBytes.copy(data, offset)
-      offset += nameBytes.length
-      
-      data.writeUInt32LE(symbolBytes.length, offset)
-      offset += 4
-      symbolBytes.copy(data, offset)
-      offset += symbolBytes.length
-      
-      data.writeUInt32LE(uriBytes.length, offset)
-      offset += 4
-      uriBytes.copy(data, offset)
-      
-      const instructionData = data.slice(0, offset)
-      
-      // Build accounts
-      const keys = [
-        { pubkey: mint.publicKey, isSigner: true, isWritable: true },
-        { pubkey: MINT_AUTHORITY, isSigner: false, isWritable: false },
-        { pubkey: bondingCurve, isSigner: false, isWritable: true },
-        { pubkey: associatedBondingCurve, isSigner: false, isWritable: true },
-        { pubkey: GLOBAL_ACCOUNT, isSigner: false, isWritable: true },
-        { pubkey: publicKey, isSigner: true, isWritable: true },
-        { pubkey: SYSTEM_PROGRAM, isSigner: false, isWritable: false },
-        { pubkey: TOKEN_2022_PROGRAM, isSigner: false, isWritable: false },
-        { pubkey: ASSOCIATED_TOKEN_PROGRAM, isSigner: false, isWritable: false },
-        { pubkey: MAYHEM_PROGRAM, isSigner: false, isWritable: false },
-      ]
-      
-      const createInstruction = new TransactionInstruction({
-        keys,
-        programId: PUMP_FUN_PROGRAM,
-        data: instructionData,
+      // Create instruction using SDK
+      const instruction = await sdk.createInstruction({
+        mint: mint.publicKey,
+        name: name.trim(),
+        symbol: ticker.trim().toUpperCase(),
+        uri: uri,
+        creator: publicKey,
+        user: publicKey,
       })
       
       const transaction = new Transaction()
-      transaction.add(createInstruction)
+      transaction.add(instruction)
       transaction.feePayer = publicKey
       transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash
       
-      // Sign with mint keypair first, then wallet
+      // Sign with mint keypair first
       transaction.partialSign(mint)
+      
+      // Then sign with wallet
       const signed = await signTransaction(transaction)
       const signature = await connection.sendRawTransaction(signed.serialize())
       
