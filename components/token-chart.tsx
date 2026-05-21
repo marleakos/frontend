@@ -14,25 +14,7 @@ interface PricePoint {
   price: number
 }
 
-// Generate demo price data
-function generateDemoData(): PricePoint[] {
-  const history: PricePoint[] = []
-  const now = Date.now()
-  const points = 20
-  const basePrice = 0.00042
-  
-  for (let i = points; i >= 0; i--) {
-    const time = now - i * 300000 // 5 minute intervals
-    const variance = (Math.random() - 0.5) * 0.1
-    const price = basePrice * (1 + variance * (i / points))
-    history.push({
-      time,
-      price: Math.max(0.000001, price)
-    })
-  }
-  
-  return history
-}
+
 
 export function TokenChart({ tokenMint, ticker }: TokenChartProps) {
   const [priceHistory, setPriceHistory] = useState<PricePoint[]>([])
@@ -111,12 +93,10 @@ export function TokenChart({ tokenMint, ticker }: TokenChartProps) {
     )
   }
 
-  // If no real data, show demo chart
-  const displayHistory = priceHistory.length > 0 ? priceHistory : generateDemoData()
-  const displayPrice = currentPrice > 0 ? currentPrice : 0.00042
 
-  const minPrice = Math.min(...displayHistory.map(p => p.price))
-  const maxPrice = Math.max(...displayHistory.map(p => p.price))
+
+  const minPrice = Math.min(...priceHistory.map(p => p.price))
+  const maxPrice = Math.max(...priceHistory.map(p => p.price))
   const priceRange = maxPrice - minPrice || 1
 
   // Create SVG path
@@ -124,13 +104,13 @@ export function TokenChart({ tokenMint, ticker }: TokenChartProps) {
   const height = 250
   const padding = 20
 
-  const points = displayHistory.map((point, index) => {
-    const x = padding + (index / (displayHistory.length - 1)) * (width - 2 * padding)
+  const points = priceHistory.map((point, index) => {
+    const x = padding + (index / (priceHistory.length - 1)) * (width - 2 * padding)
     const y = height - padding - ((point.price - minPrice) / priceRange) * (height - 2 * padding)
     return `${x},${y}`
   }).join(' ')
 
-  const isPositive = displayPrice > displayHistory[0]?.price
+  const isPositive = currentPrice > priceHistory[0]?.price
 
   return (
     <div className="rounded-lg border border-border bg-card p-4">
@@ -138,7 +118,7 @@ export function TokenChart({ tokenMint, ticker }: TokenChartProps) {
         <div>
           <div className="font-mono text-[10px] text-muted-foreground uppercase">Price</div>
           <div className={`font-display text-2xl ${isPositive ? 'text-primary' : 'text-destructive'}`}>
-            {priceHistory.length > 0 ? `${displayPrice.toFixed(9)} SOL` : 'Demo Data'}
+            {currentPrice.toFixed(9)} SOL
           </div>
         </div>
         <div className="font-mono text-xs text-muted-foreground">
@@ -176,12 +156,14 @@ export function TokenChart({ tokenMint, ticker }: TokenChartProps) {
         />
 
         {/* Current price dot */}
-        <circle
-          cx={width - padding}
-          cy={height - padding - ((displayPrice - minPrice) / priceRange) * (height - 2 * padding)}
-          r="4"
-          fill={isPositive ? 'hsl(var(--primary))' : 'hsl(var(--destructive))'}
-        />
+        {priceHistory.length > 0 && (
+          <circle
+            cx={width - padding}
+            cy={height - padding - ((currentPrice - minPrice) / priceRange) * (height - 2 * padding)}
+            r="4"
+            fill={isPositive ? 'hsl(var(--primary))' : 'hsl(var(--destructive))'}
+          />
+        )}
       </svg>
 
       <div className="flex items-center justify-between mt-2 font-mono text-[10px] text-muted-foreground">
