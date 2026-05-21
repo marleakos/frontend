@@ -7,7 +7,7 @@ import { ImagePlus, Info, X, Loader2 } from "lucide-react"
 import { useWallet } from "@solana/wallet-adapter-react"
 import { Connection, PublicKey, Keypair, Transaction } from "@solana/web3.js"
 import { toast } from "sonner"
-import { RPC_URL } from "@/lib/program-config"
+import { RPC_URL, NETWORK } from "@/lib/program-config"
 import { getBuyTokenAmountFromSolAmount } from "@pump-fun/pump-sdk"
 import { Program } from "@coral-xyz/anchor"
 import BN from "bn.js"
@@ -101,6 +101,8 @@ export default function CreatePage() {
     console.log("Name:", name)
     console.log("Ticker:", ticker)
     console.log("Image:", !!image)
+    console.log("RPC_URL:", RPC_URL)
+    console.log("Network:", NETWORK)
     
     if (!connected || !publicKey || !signTransaction) {
       console.error("Wallet not connected")
