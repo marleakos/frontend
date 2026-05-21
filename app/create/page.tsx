@@ -142,117 +142,24 @@ export default function CreatePage() {
         telegram
       )
       
-      // For now, just create token without dev buy (simpler approach)
-      // Dev buy can be added later
+      // Use SDK to create instruction
       toast.loading("Creating token...", { id: "deploy" })
-      console.log("Building create instruction...")
+      console.log("Using Pump SDK to create instruction...")
       
-      // Manual instruction building since SDK has issues
-      const PUMP_FUN_PROGRAM = new PublicKey("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P")
-      const TOKEN_2022_PROGRAM = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb")
-      const ASSOCIATED_TOKEN_PROGRAM = new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL")
-      const MINT_AUTHORITY = new PublicKey("TSLvdd1pWpHVjahSpsvCXUbgwsL3JAgvEaMB9HtFBmu")
-      const MPL_TOKEN_METADATA = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s")
-      const { TransactionInstruction, SystemProgram, SYSVAR_RENT_PUBKEY } = await import("@solana/web3.js")
+      const { PumpSdk } = await import("@pump-fun/pump-sdk")
+      const sdk = new PumpSdk(connection)
       
-      // Derive PDAs
-      console.log("Deriving PDAs...")
-      
-      const [bondingCurve] = PublicKey.findProgramAddressSync(
-        [Buffer.from("bonding-curve"), mint.publicKey.toBuffer()],
-        PUMP_FUN_PROGRAM
-      )
-      console.log("Bonding curve:", bondingCurve.toString())
-      
-      const [associatedBondingCurve] = PublicKey.findProgramAddressSync(
-        [bondingCurve.toBuffer(), TOKEN_2022_PROGRAM.toBuffer(), mint.publicKey.toBuffer()],
-        ASSOCIATED_TOKEN_PROGRAM
-      )
-      console.log("Associated bonding curve:", associatedBondingCurve.toString())
-      
-      // Derive GLOBAL PDA
-      const [globalPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("global")],
-        PUMP_FUN_PROGRAM
-      )
-      console.log("Global PDA:", globalPda.toString())
-      
-      // Derive metadata PDA
-      const [metadataPda] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("metadata"),
-          MPL_TOKEN_METADATA.toBuffer(),
-          mint.publicKey.toBuffer(),
-        ],
-        MPL_TOKEN_METADATA
-      )
-      console.log("Metadata PDA:", metadataPda.toString())
-      
-      // Derive event authority
-      const [eventAuthority] = PublicKey.findProgramAddressSync(
-        [Buffer.from("__event_authority")],
-        PUMP_FUN_PROGRAM
-      )
-      console.log("Event authority:", eventAuthority.toString())
-      
-      // Build instruction data for create using Borsh serialization
-      // Anchor uses Borsh for instruction data
-      const nameStr = name.trim()
-      const symbolStr = ticker.trim().toUpperCase()
-      
-      // Calculate sizes
-      const nameLen = Buffer.byteLength(nameStr, 'utf8')
-      const symbolLen = Buffer.byteLength(symbolStr, 'utf8')
-      const uriLen = Buffer.byteLength(uri, 'utf8')
-      
-      // Total size: 8 (discriminator) + 4 + nameLen + 4 + symbolLen + 4 + uriLen
-      const data = Buffer.alloc(8 + 4 + nameLen + 4 + symbolLen + 4 + uriLen)
-      let offset = 0
-      
-      // Discriminator for 'create' instruction
-      // sha256("global:create")[0:8]
-      const discriminator = Buffer.from([24, 30, 200, 40, 5, 28, 7, 119])
-      discriminator.copy(data, offset)
-      offset += 8
-      
-      // Name (Borsh string: 4-byte LE length + bytes)
-      data.writeUInt32LE(nameLen, offset)
-      offset += 4
-      Buffer.from(nameStr, 'utf8').copy(data, offset)
-      offset += nameLen
-      
-      // Symbol
-      data.writeUInt32LE(symbolLen, offset)
-      offset += 4
-      Buffer.from(symbolStr, 'utf8').copy(data, offset)
-      offset += symbolLen
-      
-      // URI
-      data.writeUInt32LE(uriLen, offset)
-      offset += 4
-      Buffer.from(uri, 'utf8').copy(data, offset)
-      
-      const createInstruction = new TransactionInstruction({
-        keys: [
-          { pubkey: mint.publicKey, isSigner: true, isWritable: true },
-          { pubkey: MINT_AUTHORITY, isSigner: false, isWritable: false },
-          { pubkey: bondingCurve, isSigner: false, isWritable: true },
-          { pubkey: associatedBondingCurve, isSigner: false, isWritable: true },
-          { pubkey: globalPda, isSigner: false, isWritable: true },
-          { pubkey: MPL_TOKEN_METADATA, isSigner: false, isWritable: false },
-          { pubkey: metadataPda, isSigner: false, isWritable: true },
-          { pubkey: publicKey, isSigner: true, isWritable: true },
-          { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-          { pubkey: TOKEN_2022_PROGRAM, isSigner: false, isWritable: false },
-          { pubkey: ASSOCIATED_TOKEN_PROGRAM, isSigner: false, isWritable: false },
-          { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
-          { pubkey: eventAuthority, isSigner: false, isWritable: true },
-          { pubkey: PUMP_FUN_PROGRAM, isSigner: false, isWritable: false },
-        ],
-        programId: PUMP_FUN_PROGRAM,
-        data: data.slice(0, offset),
+      console.log("SDK created, building instruction...")
+      const createInstruction = await sdk.createInstruction({
+        mint: mint.publicKey,
+        name: name.trim(),
+        symbol: ticker.trim().toUpperCase(),
+        uri: uri,
+        creator: publicKey,
+        user: publicKey,
       })
       
+      console.log("Instruction created successfully")
       const instructions = [createInstruction]
       
       const transaction = new Transaction()
