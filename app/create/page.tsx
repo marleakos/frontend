@@ -152,7 +152,8 @@ export default function CreatePage() {
       const TOKEN_2022_PROGRAM = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb")
       const ASSOCIATED_TOKEN_PROGRAM = new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL")
       const MINT_AUTHORITY = new PublicKey("TSLvdd1pWpHVjahSpsvCXUbgwsL3JAgvEaMB9HtFBmu")
-      const MAYHEM_PROGRAM = new PublicKey("MAyhSmzXzV1pTf7LsNkrNwkWKTo4ougAJ1PPg47MD4e")
+      const MPL_TOKEN_METADATA = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s")
+      const { TransactionInstruction, SystemProgram, SYSVAR_RENT_PUBKEY } = await import("@solana/web3.js")
       
       // Derive PDAs
       console.log("Deriving PDAs...")
@@ -175,6 +176,24 @@ export default function CreatePage() {
         PUMP_FUN_PROGRAM
       )
       console.log("Global PDA:", globalPda.toString())
+      
+      // Derive metadata PDA
+      const [metadataPda] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("metadata"),
+          MPL_TOKEN_METADATA.toBuffer(),
+          mint.publicKey.toBuffer(),
+        ],
+        MPL_TOKEN_METADATA
+      )
+      console.log("Metadata PDA:", metadataPda.toString())
+      
+      // Derive event authority
+      const [eventAuthority] = PublicKey.findProgramAddressSync(
+        [Buffer.from("__event_authority")],
+        PUMP_FUN_PROGRAM
+      )
+      console.log("Event authority:", eventAuthority.toString())
       
       // Build instruction data for create using Borsh serialization
       // Anchor uses Borsh for instruction data
@@ -213,8 +232,6 @@ export default function CreatePage() {
       offset += 4
       Buffer.from(uri, 'utf8').copy(data, offset)
       
-      const { TransactionInstruction, SystemProgram } = await import("@solana/web3.js")
-      
       const createInstruction = new TransactionInstruction({
         keys: [
           { pubkey: mint.publicKey, isSigner: true, isWritable: true },
@@ -222,11 +239,15 @@ export default function CreatePage() {
           { pubkey: bondingCurve, isSigner: false, isWritable: true },
           { pubkey: associatedBondingCurve, isSigner: false, isWritable: true },
           { pubkey: globalPda, isSigner: false, isWritable: true },
+          { pubkey: MPL_TOKEN_METADATA, isSigner: false, isWritable: false },
+          { pubkey: metadataPda, isSigner: false, isWritable: true },
           { pubkey: publicKey, isSigner: true, isWritable: true },
           { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
           { pubkey: TOKEN_2022_PROGRAM, isSigner: false, isWritable: false },
           { pubkey: ASSOCIATED_TOKEN_PROGRAM, isSigner: false, isWritable: false },
-          { pubkey: MAYHEM_PROGRAM, isSigner: false, isWritable: false },
+          { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
+          { pubkey: eventAuthority, isSigner: false, isWritable: true },
+          { pubkey: PUMP_FUN_PROGRAM, isSigner: false, isWritable: false },
         ],
         programId: PUMP_FUN_PROGRAM,
         data: data.slice(0, offset),
