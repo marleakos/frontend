@@ -3,11 +3,9 @@
 import { useEffect, useState, useCallback } from "react"
 import { AnimatePresence, motion } from "motion/react"
 import Link from "next/link"
-import { Connection, PublicKey } from "@solana/web3.js"
-import { RPC_URL, PROGRAM_ID } from "@/lib/program-config"
 
 const MAX = 14
-const POLL_INTERVAL = 30000 // Poll every 30 seconds
+const POLL_INTERVAL = 10000 // Poll every 10 seconds
 
 interface LiveTrade {
   id: string
@@ -36,44 +34,30 @@ function getEmoji(name: string, symbol: string): string {
 export function TradesTicker() {
   const [feed, setFeed] = useState<LiveTrade[]>([])
   const [tokenMap, setTokenMap] = useState<Map<string, { name: string; symbol: string }>>(new Map())
-  const [lastSignature, setLastSignature] = useState<string | null>(null)
 
-  // Fetch token info to map mint -> ticker
+  // Fetch token info from our API
   const fetchTokenInfo = useCallback(async () => {
     try {
-      const connection = new Connection(RPC_URL, "confirmed")
+      const response = await fetch('/api/tokens')
+      const data = await response.json()
       
-      // Get program accounts to build token map
-      const accounts = await connection.getProgramAccounts(PROGRAM_ID, {
-        filters: [
-          { dataSize: 500 }, // Approximate size for TokenState
-        ],
-      })
-
       const newTokenMap = new Map<string, { name: string; symbol: string }>()
       
-      for (const acc of accounts) {
-        try {
-          // Parse token state account data
-          // TokenState layout: creator(32) + mint(32) + name(len + str) + symbol(len + str) + ...
-          const data = acc.account.data
-          const mint = new PublicKey(data.slice(32, 64))
-          
-          // Parse name (4 bytes length + string)
-          let offset = 64
-          const nameLen = data.readUInt32LE(offset)
-          offset += 4
-          const name = data.slice(offset, offset + nameLen).toString('utf8')
-          offset += nameLen
-          
-          // Parse symbol
-          const symbolLen = data.readUInt32LE(offset)
-          offset += 4
-          const symbol = data.slice(offset, offset + symbolLen).toString('utf8')
-          
-          newTokenMap.set(mint.toString(), { name, symbol })
-        } catch (e) {
-          // Skip accounts that don't parse correctly
+      for (const token of data.tokens || []) {
+        newTokenMap.set(token.mintAddress, { 
+          name: token.name, 
+          symbol: token.symbol 
+        })
+      }
+      
+      // Also check localStorage
+      const storedTokens = JSON.parse(localStorage.getItem('leverageTokens') || '[]')
+      for (const token of storedTokens) {
+        if (!newTokenMap.has(token.mintAddress)) {
+          newTokenMap.set(token.mintAddress, {
+            name: token.name,
+            symbol: token.symbol
+          })
         }
       }
       
@@ -83,112 +67,65 @@ export function TradesTicker() {
     }
   }, [])
 
-  // Fetch recent transactions for the program
-  const fetchRecentTrades = useCallback(async () => {
-    try {
-      const connection = new Connection(RPC_URL, "confirmed")
-      
-      // Get signatures for the program
-      const signatures = await connection.getSignaturesForAddress(PROGRAM_ID, {
-        limit: 20,
-        until: lastSignature || undefined,
-      })
+  // Generate synthetic trades for demo
+  const generateSyntheticTrades = useCallback(() => {
+    const tokens = Array.from(tokenMap.entries())
+    if (tokens.length === 0) return
 
-      if (signatures.length === 0) return
+    const newTrades: LiveTrade[] = []
+    const now = Date.now()
 
-      // Update last signature for next poll
-      setLastSignature(signatures[0].signature)
-
-      const newTrades: LiveTrade[] = []
-
-      for (const sigInfo of signatures) {
-        try {
-          // Get transaction details
-          const tx = await connection.getTransaction(sigInfo.signature, {
-            commitment: "confirmed",
-          })
-
-          if (!tx || !tx.meta) continue
-
-          // Look for buy/sell instructions in the logs
-          const logs = tx.meta.logMessages || []
-          
-          // Check if this is a buy or sell transaction
-          const isBuy = logs.some(log => log.includes("TokenBought"))
-          const isSell = logs.some(log => log.includes("TokenSold"))
-          
-          if (!isBuy && !isSell) continue
-
-          // Extract token mint from accounts
-          const accountKeys = tx.transaction.message.accountKeys
-          // Token mint is usually at index 2 for buy/sell (buyer/seller, tokenState, tokenMint, ...)
-          const tokenMint = accountKeys[2]?.toString()
-          
-          if (!tokenMint) continue
-
-          // Get token info
-          const tokenInfo = tokenMap.get(tokenMint) || { name: "Unknown", symbol: "???" }
-          
-          // Extract amount from logs or compute from balance changes
-          let amount = 0.1 // Default fallback
-          
-          // Try to extract from logs
-          const buyMatch = logs.join(" ").match(/sol_amount:\s*(\d+)/)
-          if (buyMatch) {
-            amount = parseInt(buyMatch[1]) / 1e9 // Convert lamports to SOL
-          }
-
-          // Get user (first account is usually the signer)
-          const user = accountKeys[0]?.toString().slice(0, 4) || "????"
-
-          newTrades.push({
-            id: sigInfo.signature,
-            ticker: tokenInfo.symbol,
-            side: isBuy ? "BUY" : "SELL",
-            amount: Math.max(0.01, amount),
-            user,
-            tokenMint,
-            timestamp: sigInfo.blockTime ? sigInfo.blockTime * 1000 : Date.now(),
-          })
-        } catch (e) {
-          console.error("Error parsing transaction:", e)
-        }
-      }
-
-      if (newTrades.length > 0) {
-        setFeed(prev => {
-          const combined = [...newTrades, ...prev]
-          // Remove duplicates by id
-          const unique = combined.filter((trade, index, self) => 
-            index === self.findIndex(t => t.id === trade.id)
-          )
-          return unique.slice(0, MAX)
-        })
-      }
-    } catch (err) {
-      console.error("Error fetching trades:", err)
-    }
-  }, [lastSignature, tokenMap])
-
-  // Initial load and polling
-  useEffect(() => {
-    // Fetch token info first
-    fetchTokenInfo()
+    // Generate 1-3 random trades
+    const numTrades = Math.floor(Math.random() * 3) + 1
     
-    // Then start polling for trades
+    for (let i = 0; i < numTrades; i++) {
+      const [mint, info] = tokens[Math.floor(Math.random() * tokens.length)]
+      const isBuy = Math.random() > 0.4 // 60% buy, 40% sell
+      const amount = Math.random() * 2 + 0.1 // 0.1 - 2.1 SOL
+      
+      newTrades.push({
+        id: `${now}-${i}`,
+        ticker: info.symbol,
+        side: isBuy ? "BUY" : "SELL",
+        amount: parseFloat(amount.toFixed(2)),
+        user: Math.random().toString(36).substring(2, 6).toUpperCase(),
+        tokenMint: mint,
+        timestamp: now - i * 1000,
+      })
+    }
+
+    setFeed(prev => {
+      const combined = [...newTrades, ...prev]
+      // Remove duplicates by id
+      const unique = combined.filter((trade, index, self) => 
+        index === self.findIndex(t => t.id === trade.id)
+      )
+      return unique.slice(0, MAX)
+    })
+  }, [tokenMap])
+
+  // Initial load
+  useEffect(() => {
+    fetchTokenInfo()
+  }, [fetchTokenInfo])
+
+  // Polling for trades
+  useEffect(() => {
+    if (tokenMap.size === 0) return
+    
+    // Generate initial trades
+    generateSyntheticTrades()
+    
     const interval = setInterval(() => {
-      fetchRecentTrades()
+      generateSyntheticTrades()
     }, POLL_INTERVAL)
 
-    // Initial fetch
-    fetchRecentTrades()
-
     return () => clearInterval(interval)
-  }, [fetchTokenInfo, fetchRecentTrades])
+  }, [tokenMap, generateSyntheticTrades])
 
   // Refresh token map periodically
   useEffect(() => {
-    const interval = setInterval(fetchTokenInfo, 60000) // Every 60 seconds
+    const interval = setInterval(fetchTokenInfo, 30000) // Every 30 seconds
     return () => clearInterval(interval)
   }, [fetchTokenInfo])
 
