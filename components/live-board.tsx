@@ -252,7 +252,7 @@ function LiveCard({ token }: { token: TokenData }) {
             {token.change24h !== 0 && (
               <span className={positive ? "text-primary" : "text-destructive"}>
                 [{positive ? "+" : ""}
-                {token.change24h.toFixed(0)}%]
+                {(token.change24h || 0).toFixed(0)}%]
               </span>
             )}
           </div>
@@ -340,7 +340,7 @@ function KOTH({ token }: { token: TokenData }) {
               <div className="mt-3 md:mt-4">
                 <div className="flex items-center justify-between font-mono text-[10px] md:text-[11px] text-muted-foreground mb-1">
                   <span>bonding curve progress</span>
-                  <span>{progress.toFixed(1)}%</span>
+                  <span>{(progress || 0).toFixed(1)}%</span>
                 </div>
                 <div className="h-2.5 w-full rounded-full bg-secondary overflow-hidden border border-border">
                   <motion.div
@@ -370,7 +370,8 @@ function ageLabel(min: number) {
 }
 
 function formatK(n: number) {
-  if (n >= 1000000) return `${(n / 1000000).toFixed(2)}M`
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`
-  return String(n)
+  const num = n || 0
+  if (num >= 1000000) return `${(num / 1000000).toFixed(2)}M`
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
+  return String(num)
 }

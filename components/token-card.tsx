@@ -18,7 +18,7 @@ export function TokenCard({ token }: { token: Token }) {
         <div className="font-mono text-[10px] md:text-[11px] text-primary">
           ${formatK(token.marketCap)}{" "}
           <span className={positive ? "text-primary" : "text-destructive"}>
-            [{positive ? "+" : ""}{token.change24h.toFixed(0)}%]
+            [{positive ? "+" : ""}{(token.change24h || 0).toFixed(0)}%]
           </span>
         </div>
         <div className="font-mono text-[9px] md:text-[10px] text-muted-foreground">
@@ -39,6 +39,7 @@ function ageLabel(min: number) {
 }
 
 function formatK(n: number) {
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`
-  return String(n)
+  const num = n || 0
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
+  return String(num)
 }

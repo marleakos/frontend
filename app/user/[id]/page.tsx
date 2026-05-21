@@ -207,7 +207,7 @@ export default function UserPage({ params }: { params: Promise<{ id: string }> }
             </div>
             <div>
               <div className="font-mono text-[10px] text-muted-foreground uppercase">Referral Earnings</div>
-              <div className="font-display text-xl">{userData.referralEarnings.toFixed(2)} SOL</div>
+              <div className="font-display text-xl">{(userData.referralEarnings || 0).toFixed(2)} SOL</div>
             </div>
             <div>
               <div className="font-mono text-[10px] text-muted-foreground uppercase">Referred By</div>

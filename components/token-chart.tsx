@@ -61,7 +61,7 @@ export function TokenChart({ tokenMint, ticker, price }: TokenChartProps) {
         <div>
           <div className="font-mono text-[10px] text-muted-foreground uppercase">Price</div>
           <div className={`font-display text-2xl ${isPositive ? 'text-primary' : 'text-destructive'}`}>
-            {price.toFixed(9)} SOL
+            {(price || 0).toFixed(9)} SOL
           </div>
         </div>
         <div className="font-mono text-xs text-muted-foreground">
