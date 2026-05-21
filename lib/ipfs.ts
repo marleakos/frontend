@@ -1,8 +1,9 @@
 // IPFS upload utility using Pinata
 // Get your free API key from: https://pinata.cloud
 
-const PINATA_API_KEY = process.env.NEXT_PUBLIC_PINATA_API_KEY || ""
-const PINATA_SECRET_KEY = process.env.NEXT_PUBLIC_PINATA_SECRET_KEY || ""
+// TODO: Move these to environment variables before production!
+const PINATA_API_KEY = process.env.NEXT_PUBLIC_PINATA_API_KEY || "214bacdbb7f17fc13c49"
+const PINATA_SECRET_KEY = process.env.NEXT_PUBLIC_PINATA_SECRET_KEY || "2837791842fb8d506e9ceed282a354aaaef3802ef3a7313e13f88c7b2c895061"
 
 export async function uploadToIPFS(
   file: File | Blob,
