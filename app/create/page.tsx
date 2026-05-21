@@ -8,7 +8,7 @@ import { useWallet } from "@solana/wallet-adapter-react"
 import { Connection, PublicKey, Keypair, Transaction } from "@solana/web3.js"
 import { toast } from "sonner"
 import { RPC_URL } from "@/lib/program-config"
-import { getBuyTokenAmountFromSolAmount, GLOBAL_PDA } from "@pump-fun/pump-sdk"
+import { getBuyTokenAmountFromSolAmount } from "@pump-fun/pump-sdk"
 import { Program } from "@coral-xyz/anchor"
 import BN from "bn.js"
 import { uploadToIPFS, uploadMetadataToIPFS, dataURItoBlob } from "@/lib/ipfs"
@@ -155,15 +155,26 @@ export default function CreatePage() {
       const MAYHEM_PROGRAM = new PublicKey("MAyhSmzXzV1pTf7LsNkrNwkWKTo4ougAJ1PPg47MD4e")
       
       // Derive PDAs
+      console.log("Deriving PDAs...")
+      
       const [bondingCurve] = PublicKey.findProgramAddressSync(
         [Buffer.from("bonding-curve"), mint.publicKey.toBuffer()],
         PUMP_FUN_PROGRAM
       )
+      console.log("Bonding curve:", bondingCurve.toString())
       
       const [associatedBondingCurve] = PublicKey.findProgramAddressSync(
         [bondingCurve.toBuffer(), TOKEN_2022_PROGRAM.toBuffer(), mint.publicKey.toBuffer()],
         ASSOCIATED_TOKEN_PROGRAM
       )
+      console.log("Associated bonding curve:", associatedBondingCurve.toString())
+      
+      // Derive GLOBAL PDA
+      const [globalPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("global")],
+        PUMP_FUN_PROGRAM
+      )
+      console.log("Global PDA:", globalPda.toString())
       
       // Build instruction data for create using Borsh serialization
       // Anchor uses Borsh for instruction data
@@ -210,7 +221,7 @@ export default function CreatePage() {
           { pubkey: MINT_AUTHORITY, isSigner: false, isWritable: false },
           { pubkey: bondingCurve, isSigner: false, isWritable: true },
           { pubkey: associatedBondingCurve, isSigner: false, isWritable: true },
-          { pubkey: GLOBAL_PDA, isSigner: false, isWritable: true },
+          { pubkey: globalPda, isSigner: false, isWritable: true },
           { pubkey: publicKey, isSigner: true, isWritable: true },
           { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
           { pubkey: TOKEN_2022_PROGRAM, isSigner: false, isWritable: false },
