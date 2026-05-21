@@ -79,19 +79,10 @@ export default function CreatePage() {
         ASSOCIATED_TOKEN_PROGRAM
       )
       
-      // Build metadata URI (in production, upload to IPFS/Arweave)
-      const metadata = {
-        name: name.trim(),
-        symbol: ticker.trim().toUpperCase(),
-        description: desc,
-        image: image, // base64 data URI for now
-        attributes: [
-          { trait_type: "Leverage", value: leverage },
-          { trait_type: "Direction", value: direction },
-          { trait_type: "Underlying", value: referenceAsset }
-        ]
-      }
-      const uri = `data:application/json;base64,${btoa(JSON.stringify(metadata))}`
+      // Build metadata URI - pump.fun requires small URIs
+      // In production, upload image to IPFS/Arweave first
+      // For now, use a simple placeholder
+      const uri = `https://pump.fun/token/${ticker.trim().toLowerCase()}`
       
       // Build instruction data
       const nameBytes = Buffer.from(name.trim())
