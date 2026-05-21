@@ -165,40 +165,42 @@ export default function CreatePage() {
         ASSOCIATED_TOKEN_PROGRAM
       )
       
-      // Build instruction data for create
-      const nameBytes = Buffer.from(name.trim())
-      const symbolBytes = Buffer.from(ticker.trim().toUpperCase())
-      const uriBytes = Buffer.from(uri)
+      // Build instruction data for create using Borsh serialization
+      // Anchor uses Borsh for instruction data
+      const nameStr = name.trim()
+      const symbolStr = ticker.trim().toUpperCase()
       
-      const data = Buffer.alloc(8 + 4 + nameBytes.length + 4 + symbolBytes.length + 4 + uriBytes.length)
+      // Calculate sizes
+      const nameLen = Buffer.byteLength(nameStr, 'utf8')
+      const symbolLen = Buffer.byteLength(symbolStr, 'utf8')
+      const uriLen = Buffer.byteLength(uri, 'utf8')
+      
+      // Total size: 8 (discriminator) + 4 + nameLen + 4 + symbolLen + 4 + uriLen
+      const data = Buffer.alloc(8 + 4 + nameLen + 4 + symbolLen + 4 + uriLen)
       let offset = 0
       
-      // Discriminator for create (need to verify this)
-      data.writeUInt8(24, offset++)
-      data.writeUInt8(30, offset++)
-      data.writeUInt8(200, offset++)
-      data.writeUInt8(40, offset++)
-      data.writeUInt8(5, offset++)
-      data.writeUInt8(28, offset++)
-      data.writeUInt8(7, offset++)
-      data.writeUInt8(119, offset++)
+      // Discriminator for 'create' instruction
+      // sha256("global:create")[0:8]
+      const discriminator = Buffer.from([24, 30, 200, 40, 5, 28, 7, 119])
+      discriminator.copy(data, offset)
+      offset += 8
       
-      // Name
-      data.writeUInt32LE(nameBytes.length, offset)
+      // Name (Borsh string: 4-byte LE length + bytes)
+      data.writeUInt32LE(nameLen, offset)
       offset += 4
-      nameBytes.copy(data, offset)
-      offset += nameBytes.length
+      Buffer.from(nameStr, 'utf8').copy(data, offset)
+      offset += nameLen
       
       // Symbol
-      data.writeUInt32LE(symbolBytes.length, offset)
+      data.writeUInt32LE(symbolLen, offset)
       offset += 4
-      symbolBytes.copy(data, offset)
-      offset += symbolBytes.length
+      Buffer.from(symbolStr, 'utf8').copy(data, offset)
+      offset += symbolLen
       
       // URI
-      data.writeUInt32LE(uriBytes.length, offset)
+      data.writeUInt32LE(uriLen, offset)
       offset += 4
-      uriBytes.copy(data, offset)
+      Buffer.from(uri, 'utf8').copy(data, offset)
       
       const { TransactionInstruction, SystemProgram } = await import("@solana/web3.js")
       
