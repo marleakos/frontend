@@ -8,7 +8,7 @@ import { useWallet } from "@solana/wallet-adapter-react"
 import { Connection, PublicKey, Keypair, Transaction } from "@solana/web3.js"
 import { toast } from "sonner"
 import { RPC_URL } from "@/lib/program-config"
-import { PumpSdk } from "@pump-fun/pump-sdk"
+import { PumpSdk, getBuyTokenAmountFromSolAmount } from "@pump-fun/pump-sdk"
 import BN from "bn.js"
 
 const REFERENCE_ASSETS = ["SOL", "BTC", "ETH", "APT", "ARB", "DOGE", "BNB", "SUI", "BONK", "MATIC"] as const
@@ -40,6 +40,51 @@ export default function CreatePage() {
     return '0.6%'
   }
 
+  const uploadImageToIPFS = async (imageData: string): Promise<string> => {
+    // For now, return a placeholder. In production, upload to IPFS/Arweave
+    // You can use services like:
+    // - NFT.Storage
+    // - Pinata
+    // - Arweave
+    // - Or pump.fun's own image hosting
+    
+    // Placeholder: return a data URI (won't work on pump.fun but shows the flow)
+    // In production, replace this with actual IPFS upload
+    return imageData
+  }
+
+  const createMetadataUri = async (
+    name: string,
+    symbol: string,
+    description: string,
+    imageUri: string,
+    website: string,
+    twitter: string,
+    telegram: string
+  ): Promise<string> => {
+    // Build metadata JSON
+    const metadata = {
+      name,
+      symbol,
+      description,
+      image: imageUri,
+      external_url: website || undefined,
+      properties: {
+        website,
+        twitter,
+        telegram,
+        leverage: leverage,
+        direction: direction,
+        underlying: referenceAsset
+      }
+    }
+    
+    // In production, upload this JSON to IPFS/Arweave
+    // For now, use a data URI (limited size, won't work with large images)
+    const metadataStr = JSON.stringify(metadata)
+    return `data:application/json;base64,${btoa(metadataStr)}`
+  }
+
   const handleDeploy = async () => {
     if (!connected || !publicKey || !signTransaction) {
       toast.error("Please connect your wallet first")
@@ -60,21 +105,58 @@ export default function CreatePage() {
       
       const mint = Keypair.generate()
       
-      // Use a simple URI for now (in production, upload to IPFS/Arweave)
-      const uri = `https://pump.fun/token/${ticker.trim().toLowerCase()}`
+      // Upload image and create metadata
+      toast.loading("Uploading metadata...", { id: "deploy" })
+      const imageUri = await uploadImageToIPFS(image)
+      const uri = await createMetadataUri(
+        name.trim(),
+        ticker.trim().toUpperCase(),
+        desc,
+        imageUri,
+        website,
+        twitter,
+        telegram
+      )
       
-      // Create instruction using SDK
-      const instruction = await sdk.createInstruction({
-        mint: mint.publicKey,
-        name: name.trim(),
-        symbol: ticker.trim().toUpperCase(),
-        uri: uri,
-        creator: publicKey,
-        user: publicKey,
-      })
+      // Check if dev buy is requested
+      const devBuyAmount = parseFloat(initialBuy)
+      const hasDevBuy = devBuyAmount > 0
+      
+      let instructions
+      
+      if (hasDevBuy) {
+        // Create and buy in one transaction
+        toast.loading("Creating token with dev buy...", { id: "deploy" })
+        const global = await sdk.fetchGlobal()
+        const solAmount = new BN(devBuyAmount * 10 ** 9) // Convert SOL to lamports
+        
+        instructions = await sdk.createAndBuyInstructions({
+          global,
+          mint: mint.publicKey,
+          name: name.trim(),
+          symbol: ticker.trim().toUpperCase(),
+          uri: uri,
+          creator: publicKey,
+          user: publicKey,
+          solAmount,
+          amount: getBuyTokenAmountFromSolAmount(global, null, solAmount),
+        })
+      } else {
+        // Just create token
+        toast.loading("Creating token...", { id: "deploy" })
+        const createIx = await sdk.createInstruction({
+          mint: mint.publicKey,
+          name: name.trim(),
+          symbol: ticker.trim().toUpperCase(),
+          uri: uri,
+          creator: publicKey,
+          user: publicKey,
+        })
+        instructions = [createIx]
+      }
       
       const transaction = new Transaction()
-      transaction.add(instruction)
+      instructions.forEach(ix => transaction.add(ix))
       transaction.feePayer = publicKey
       transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash
       
