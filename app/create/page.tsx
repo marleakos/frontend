@@ -10,6 +10,7 @@ import { toast } from "sonner"
 import { RPC_URL } from "@/lib/program-config"
 import { PumpSdk, getBuyTokenAmountFromSolAmount } from "@pump-fun/pump-sdk"
 import BN from "bn.js"
+import { uploadToIPFS, uploadMetadataToIPFS, dataURItoBlob } from "@/lib/ipfs"
 
 const REFERENCE_ASSETS = ["SOL", "BTC", "ETH", "APT", "ARB", "DOGE", "BNB", "SUI", "BONK", "MATIC"] as const
 const LEVERAGE_OPTIONS = [2, 3, 5, 10] as const
@@ -41,16 +42,21 @@ export default function CreatePage() {
   }
 
   const uploadImageToIPFS = async (imageData: string): Promise<string> => {
-    // For now, return a placeholder. In production, upload to IPFS/Arweave
-    // You can use services like:
-    // - NFT.Storage
-    // - Pinata
-    // - Arweave
-    // - Or pump.fun's own image hosting
-    
-    // Placeholder: return a data URI (won't work on pump.fun but shows the flow)
-    // In production, replace this with actual IPFS upload
-    return imageData
+    try {
+      // Convert data URI to blob
+      const blob = dataURItoBlob(imageData)
+      const file = new File([blob], "token-image.png", { type: "image/png" })
+      
+      // Upload to IPFS
+      const imageUrl = await uploadToIPFS(file, "token-image")
+      console.log("Image uploaded to IPFS:", imageUrl)
+      return imageUrl
+    } catch (error) {
+      console.error("IPFS upload failed:", error)
+      // Fallback to data URI if IPFS fails
+      toast.error("IPFS upload failed, using fallback")
+      return imageData
+    }
   }
 
   const createMetadataUri = async (
@@ -62,27 +68,39 @@ export default function CreatePage() {
     twitter: string,
     telegram: string
   ): Promise<string> => {
-    // Build metadata JSON
+    // Build metadata JSON (ERC-721 standard)
     const metadata = {
       name,
       symbol,
       description,
       image: imageUri,
       external_url: website || undefined,
+      attributes: [
+        { trait_type: "Leverage", value: leverage },
+        { trait_type: "Direction", value: direction },
+        { trait_type: "Underlying", value: referenceAsset }
+      ],
       properties: {
         website,
         twitter,
         telegram,
-        leverage: leverage,
-        direction: direction,
+        leverage,
+        direction,
         underlying: referenceAsset
       }
     }
     
-    // In production, upload this JSON to IPFS/Arweave
-    // For now, use a data URI (limited size, won't work with large images)
-    const metadataStr = JSON.stringify(metadata)
-    return `data:application/json;base64,${btoa(metadataStr)}`
+    try {
+      // Upload metadata to IPFS
+      const metadataUrl = await uploadMetadataToIPFS(metadata)
+      console.log("Metadata uploaded to IPFS:", metadataUrl)
+      return metadataUrl
+    } catch (error) {
+      console.error("Metadata IPFS upload failed:", error)
+      // Fallback to data URI
+      const metadataStr = JSON.stringify(metadata)
+      return `data:application/json;base64,${btoa(metadataStr)}`
+    }
   }
 
   const handleDeploy = async () => {
