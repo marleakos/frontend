@@ -93,12 +93,22 @@ export default function CreatePage() {
   }
 
   const handleDeploy = async () => {
+    console.log("=== DEPLOY STARTED ===")
+    console.log("Connected:", connected)
+    console.log("PublicKey:", publicKey?.toString())
+    console.log("SignTransaction:", !!signTransaction)
+    console.log("Name:", name)
+    console.log("Ticker:", ticker)
+    console.log("Image:", !!image)
+    
     if (!connected || !publicKey || !signTransaction) {
+      console.error("Wallet not connected")
       toast.error("Please connect your wallet first")
       return
     }
 
     if (!name.trim() || !ticker.trim() || !image) {
+      console.error("Missing fields")
       toast.error("Please fill in all required fields (name, ticker, and image)")
       return
     }
@@ -107,14 +117,24 @@ export default function CreatePage() {
     toast.loading("Creating token on Pump.fun...", { id: "deploy" })
     
     try {
+      console.log("Creating connection...")
       const connection = new Connection(RPC_URL, "confirmed")
+      console.log("Connection created, RPC:", RPC_URL)
+      
+      console.log("Creating PumpSdk...")
       const sdk = new PumpSdk(connection)
+      console.log("PumpSdk created")
       
       const mint = Keypair.generate()
+      console.log("Mint generated:", mint.publicKey.toString())
       
       // Upload image and create metadata
       toast.loading("Uploading metadata...", { id: "deploy" })
+      console.log("Uploading image...")
       const imageUri = await uploadImage(image)
+      console.log("Image uploaded:", imageUri)
+      
+      console.log("Creating metadata URI...")
       const uri = await createMetadataUri(
         name.trim(),
         ticker.trim().toUpperCase(),
@@ -203,9 +223,13 @@ export default function CreatePage() {
       setTelegram("")
       
     } catch (error: any) {
-      console.error("Deployment error:", error)
+      console.error("=== DEPLOYMENT ERROR ===")
+      console.error("Error:", error)
+      console.error("Error message:", error.message)
+      console.error("Error stack:", error.stack)
       toast.error(error.message || "Failed to create token", { id: "deploy" })
     } finally {
+      console.log("=== DEPLOY ENDED ===")
       setIsDeploying(false)
     }
   }
