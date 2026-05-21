@@ -35,3 +35,4 @@ To learn more, take a look at the following resources:
 <a href="https://v0.app/chat/api/kiro/clone/marleakos/frontend" alt="Open in Kiro"><img src="https://pdgvvgmkdvyeydso.public.blob.vercel-storage.com/open%20in%20kiro.svg?sanitize=true" /></a>
 # Deployment trigger
 # Trigger Vercel deploy
+# Deployment with Pinata env vars
