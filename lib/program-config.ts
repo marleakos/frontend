@@ -1,7 +1,7 @@
 import { PublicKey } from "@solana/web3.js"
 
 // Deployed program ID (latest deployment)
-export const PROGRAM_ID = new PublicKey("BiJxM2osDhqeNFPQzSZ3YBnazpsFgy1M4LbEtM5NAbLn")
+export const PROGRAM_ID = new PublicKey("2KxkyfrvqfwRZfst9cJ4jJWdKFB9gtmiUWJGTVMrcgkR")
 
 // Network configuration
 export const NETWORK = "devnet"
