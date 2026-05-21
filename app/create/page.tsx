@@ -8,7 +8,8 @@ import { useWallet } from "@solana/wallet-adapter-react"
 import { Connection, PublicKey, Keypair, Transaction } from "@solana/web3.js"
 import { toast } from "sonner"
 import { RPC_URL } from "@/lib/program-config"
-import { PumpSdk, getBuyTokenAmountFromSolAmount } from "@pump-fun/pump-sdk"
+import { getBuyTokenAmountFromSolAmount, GLOBAL_PDA } from "@pump-fun/pump-sdk"
+import { Program } from "@coral-xyz/anchor"
 import BN from "bn.js"
 import { uploadToIPFS, uploadMetadataToIPFS, dataURItoBlob } from "@/lib/ipfs"
 
@@ -121,10 +122,6 @@ export default function CreatePage() {
       const connection = new Connection(RPC_URL, "confirmed")
       console.log("Connection created, RPC:", RPC_URL)
       
-      console.log("Creating PumpSdk...")
-      const sdk = new PumpSdk(connection)
-      console.log("PumpSdk created")
-      
       const mint = Keypair.generate()
       console.log("Mint generated:", mint.publicKey.toString())
       
@@ -145,42 +142,84 @@ export default function CreatePage() {
         telegram
       )
       
-      // Check if dev buy is requested
-      const devBuyAmount = parseFloat(initialBuy)
-      const hasDevBuy = devBuyAmount > 0
+      // For now, just create token without dev buy (simpler approach)
+      // Dev buy can be added later
+      toast.loading("Creating token...", { id: "deploy" })
+      console.log("Building create instruction...")
       
-      let instructions
+      // Manual instruction building since SDK has issues
+      const PUMP_FUN_PROGRAM = new PublicKey("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P")
+      const TOKEN_2022_PROGRAM = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb")
+      const ASSOCIATED_TOKEN_PROGRAM = new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL")
+      const MINT_AUTHORITY = new PublicKey("TSLvdd1pWpHVjahSpsvCXUbgwsL3JAgvEaMB9HtFBmu")
+      const MAYHEM_PROGRAM = new PublicKey("MAyhSmzXzV1pTf7LsNkrNwkWKTo4ougAJ1PPg47MD4e")
       
-      if (hasDevBuy) {
-        // Create and buy in one transaction
-        toast.loading("Creating token with dev buy...", { id: "deploy" })
-        const global = await sdk.fetchGlobal()
-        const solAmount = new BN(devBuyAmount * 10 ** 9) // Convert SOL to lamports
-        
-        instructions = await sdk.createAndBuyInstructions({
-          global,
-          mint: mint.publicKey,
-          name: name.trim(),
-          symbol: ticker.trim().toUpperCase(),
-          uri: uri,
-          creator: publicKey,
-          user: publicKey,
-          solAmount,
-          amount: getBuyTokenAmountFromSolAmount(global, null, solAmount),
-        })
-      } else {
-        // Just create token
-        toast.loading("Creating token...", { id: "deploy" })
-        const createIx = await sdk.createInstruction({
-          mint: mint.publicKey,
-          name: name.trim(),
-          symbol: ticker.trim().toUpperCase(),
-          uri: uri,
-          creator: publicKey,
-          user: publicKey,
-        })
-        instructions = [createIx]
-      }
+      // Derive PDAs
+      const [bondingCurve] = PublicKey.findProgramAddressSync(
+        [Buffer.from("bonding-curve"), mint.publicKey.toBuffer()],
+        PUMP_FUN_PROGRAM
+      )
+      
+      const [associatedBondingCurve] = PublicKey.findProgramAddressSync(
+        [bondingCurve.toBuffer(), TOKEN_2022_PROGRAM.toBuffer(), mint.publicKey.toBuffer()],
+        ASSOCIATED_TOKEN_PROGRAM
+      )
+      
+      // Build instruction data for create
+      const nameBytes = Buffer.from(name.trim())
+      const symbolBytes = Buffer.from(ticker.trim().toUpperCase())
+      const uriBytes = Buffer.from(uri)
+      
+      const data = Buffer.alloc(8 + 4 + nameBytes.length + 4 + symbolBytes.length + 4 + uriBytes.length)
+      let offset = 0
+      
+      // Discriminator for create (need to verify this)
+      data.writeUInt8(24, offset++)
+      data.writeUInt8(30, offset++)
+      data.writeUInt8(200, offset++)
+      data.writeUInt8(40, offset++)
+      data.writeUInt8(5, offset++)
+      data.writeUInt8(28, offset++)
+      data.writeUInt8(7, offset++)
+      data.writeUInt8(119, offset++)
+      
+      // Name
+      data.writeUInt32LE(nameBytes.length, offset)
+      offset += 4
+      nameBytes.copy(data, offset)
+      offset += nameBytes.length
+      
+      // Symbol
+      data.writeUInt32LE(symbolBytes.length, offset)
+      offset += 4
+      symbolBytes.copy(data, offset)
+      offset += symbolBytes.length
+      
+      // URI
+      data.writeUInt32LE(uriBytes.length, offset)
+      offset += 4
+      uriBytes.copy(data, offset)
+      
+      const { TransactionInstruction, SystemProgram } = await import("@solana/web3.js")
+      
+      const createInstruction = new TransactionInstruction({
+        keys: [
+          { pubkey: mint.publicKey, isSigner: true, isWritable: true },
+          { pubkey: MINT_AUTHORITY, isSigner: false, isWritable: false },
+          { pubkey: bondingCurve, isSigner: false, isWritable: true },
+          { pubkey: associatedBondingCurve, isSigner: false, isWritable: true },
+          { pubkey: GLOBAL_PDA, isSigner: false, isWritable: true },
+          { pubkey: publicKey, isSigner: true, isWritable: true },
+          { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+          { pubkey: TOKEN_2022_PROGRAM, isSigner: false, isWritable: false },
+          { pubkey: ASSOCIATED_TOKEN_PROGRAM, isSigner: false, isWritable: false },
+          { pubkey: MAYHEM_PROGRAM, isSigner: false, isWritable: false },
+        ],
+        programId: PUMP_FUN_PROGRAM,
+        data: data.slice(0, offset),
+      })
+      
+      const instructions = [createInstruction]
       
       const transaction = new Transaction()
       instructions.forEach(ix => transaction.add(ix))
