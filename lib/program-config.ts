@@ -4,8 +4,8 @@ import { PublicKey } from "@solana/web3.js"
 export const PROGRAM_ID = new PublicKey("2KxkyfrvqfwRZfst9cJ4jJWdKFB9gtmiUWJGTVMrcgkR")
 
 // Network configuration
-export const NETWORK = "devnet"
-export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || "https://api.devnet.solana.com"
+export const NETWORK = "mainnet"
+export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || "https://api.mainnet-beta.solana.com"
 
 // Fee configuration (matches program constants)
 export const FEE_CONFIG = {
