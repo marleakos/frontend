@@ -9,7 +9,7 @@ interface TokenChartProps {
   price: number
 }
 
-export function TokenChart({ ticker, price }: TokenChartProps) {
+export function TokenChart({ tokenMint, ticker, price }: TokenChartProps) {
   // If no price data, show message
   if (price === 0) {
     return (
