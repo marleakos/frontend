@@ -2,9 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Connection, PublicKey } from "@solana/web3.js"
-import { Program, AnchorProvider } from "@coral-xyz/anchor"
-import { RPC_URL, PROGRAM_ID } from "@/lib/program-config"
-import { IDL } from "@/lib/idl"
+import { RPC_URL } from "@/lib/program-config"
 
 export interface TokenData {
   id: string
@@ -64,49 +62,32 @@ export function useTokens() {
       setLoading(true)
       setError(null)
 
-      // Create connection and provider
-      const connection = new Connection(RPC_URL, "confirmed")
-      const provider = new AnchorProvider(connection, {} as any, { commitment: "confirmed" })
-      const program = new Program(IDL as any, provider)
-
-      // Fetch all tokenState accounts from the program
-      const accounts = await (program as any).account.tokenState.all()
-
-      // Transform on-chain data to frontend format
-      const tokenData: TokenData[] = accounts.map((acc: any) => {
-        const account = acc.account
-        const mint = account.tokenMint
-        const createdAt = account.createdAt?.toNumber?.() || 0
-        const ageMinutes = Math.floor((Date.now() / 1000 - createdAt) / 60)
-
-        // Calculate market cap from curve state
-        const virtualSol = account.curveState?.virtualSolReserve?.toNumber?.() || 0
-        const virtualToken = account.curveState?.virtualTokenReserve?.toNumber?.() || 1
-        const price = virtualSol / virtualToken
-        const supply = account.curveState?.realTokenReserve?.toNumber?.() || 0
-        const marketCap = Math.floor(price * supply)
-
-        // Progress to graduation (69k)
-        const progress = Math.min(100, Math.floor((marketCap / 69000) * 100))
-
+      // For pump.fun integration, fetch tokens from localStorage
+      // These are tokens created through our UI
+      const storedTokens = JSON.parse(localStorage.getItem('leverageTokens') || '[]')
+      
+      const tokenData: TokenData[] = storedTokens.map((token: any) => {
+        const createdAt = new Date(token.createdAt).getTime()
+        const ageMinutes = Math.floor((Date.now() - createdAt) / 60000)
+        
         return {
-          id: mint.toString(),
-          name: account.name,
-          ticker: account.symbol,
-          emoji: getEmoji(account.name, account.symbol),
-          creator: account.creator.toString(),
-          underlying: formatUnderlying(account.underlying),
-          leverage: account.leverage as 2 | 3 | 5 | 10,
-          direction: formatDirection(account.direction),
-          marketCap,
-          progress,
-          replies: 0, // Not stored on-chain, would need indexer
+          id: token.mintAddress,
+          name: token.name,
+          ticker: token.symbol,
+          emoji: getEmoji(token.name, token.symbol),
+          creator: "", // Not stored for pump.fun tokens
+          underlying: `${token.underlying || 'SOL'}-PERP`,
+          leverage: token.leverage as 2 | 3 | 5 | 10,
+          direction: token.direction as "LONG" | "SHORT",
+          marketCap: 0, // Would need to fetch from pump.fun
+          progress: 0,  // Would need to fetch from pump.fun
+          replies: 0,
           ageMinutes: Math.max(0, ageMinutes),
-          change24h: 0, // Would need historical data
-          liqDistance: 100, // Would need oracle price
-          description: "", // Not stored on-chain
-          mint,
-          graduated: account.graduated,
+          change24h: 0,
+          liqDistance: 100,
+          description: "",
+          mint: new PublicKey(token.mintAddress),
+          graduated: false,
         }
       })
 
