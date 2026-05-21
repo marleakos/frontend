@@ -52,6 +52,38 @@ function getEmoji(name: string, symbol: string): string {
   return "🪙"
 }
 
+// Fetch token data from pump.fun API
+async function fetchPumpFunData(mintAddress: string): Promise<{ marketCap: number; graduated: boolean } | null> {
+  try {
+    // Try to fetch from pump.fun API
+    const response = await fetch(`https://frontend-api.pump.fun/coins/${mintAddress}`, {
+      headers: {
+        'Accept': 'application/json',
+      }
+    })
+    
+    if (!response.ok) {
+      // If API fails, return null - we'll use default values
+      return null
+    }
+    
+    const data = await response.json()
+    
+    // Calculate market cap from bonding curve data
+    // pump.fun uses a bonding curve where market cap = solReserve * 2 (simplified)
+    const solReserve = data.sol_reserve || data.solReserve || 0
+    const marketCap = solReserve * 2 * 150 // Rough estimate: SOL price ~$150
+    
+    return {
+      marketCap: Math.floor(marketCap),
+      graduated: data.complete || data.graduated || false
+    }
+  } catch (e) {
+    console.log('Could not fetch pump.fun data for', mintAddress)
+    return null
+  }
+}
+
 export function useTokens() {
   const [tokens, setTokens] = useState<TokenData[]>([])
   const [loading, setLoading] = useState(true)
@@ -86,9 +118,18 @@ export function useTokens() {
       
       console.log("Total tokens:", allTokens.length)
       
-      const tokenData: TokenData[] = allTokens.map((token: any) => {
+      // Fetch pump.fun data for each token
+      const tokenDataPromises = allTokens.map(async (token: any) => {
         const createdAt = new Date(token.createdAt).getTime()
         const ageMinutes = Math.floor((Date.now() - createdAt) / 60000)
+        
+        // Fetch real data from pump.fun
+        const pumpData = await fetchPumpFunData(token.mintAddress)
+        const marketCap = pumpData?.marketCap || 0
+        const graduated = pumpData?.graduated || false
+        
+        // Calculate progress to graduation (69k)
+        const progress = Math.min(100, Math.floor((marketCap / 69000) * 100))
         
         return {
           id: token.mintAddress,
@@ -99,17 +140,19 @@ export function useTokens() {
           underlying: `${token.underlying || 'SOL'}-PERP`,
           leverage: token.leverage as 2 | 3 | 5 | 10,
           direction: token.direction as "LONG" | "SHORT",
-          marketCap: 0,
-          progress: 0,
+          marketCap,
+          progress,
           replies: 0,
           ageMinutes: Math.max(0, ageMinutes),
           change24h: 0,
           liqDistance: 100,
           description: "",
           mint: new PublicKey(token.mintAddress),
-          graduated: false,
+          graduated,
         }
       })
+      
+      const tokenData = await Promise.all(tokenDataPromises)
 
       setTokens(tokenData)
     } catch (err: any) {

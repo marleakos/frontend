@@ -1,25 +1,17 @@
 "use client"
 
 import { useState } from "react"
-import { motion, AnimatePresence } from "motion/react"
-import type { Token } from "@/lib/mock-data"
-import { AlertTriangle } from "lucide-react"
+import { motion } from "motion/react"
+import type { TokenData } from "@/hooks/use-tokens"
+import { AlertTriangle, ExternalLink } from "lucide-react"
 
-export function TradePanel({ token }: { token: Token }) {
+export function TradePanel({ token }: { token: TokenData }) {
   const [side, setSide] = useState<"buy" | "sell">("buy")
-  const [amount, setAmount] = useState("")
-  const [bursts, setBursts] = useState<{ id: number; side: "buy" | "sell" }[]>([])
-  const [flash, setFlash] = useState<number>(0)
-  const presets = [0.1, 0.5, 1, 5]
   const danger = token.liqDistance < 15
   const isBuy = side === "buy"
 
-  function fire() {
-    setFlash(Date.now())
-    const id = Date.now()
-    setBursts((b) => [...b, { id, side }])
-    window.setTimeout(() => setBursts((b) => b.filter((x) => x.id !== id)), 800)
-  }
+  // Pump.fun trade URL
+  const pumpFunUrl = `https://pump.fun/coin/${token.mint.toString()}`
 
   return (
     <div className="relative rounded-lg border border-border bg-card overflow-hidden">
@@ -47,41 +39,6 @@ export function TradePanel({ token }: { token: Token }) {
       </div>
 
       <div className="p-4 space-y-3">
-        <div>
-          <div className="flex items-center justify-between font-mono text-[11px] text-muted-foreground mb-1.5">
-            <span>amount ({isBuy ? "SOL" : `$${token.ticker}`})</span>
-            <span>balance: 12.4 SOL</span>
-          </div>
-          <div className="relative">
-            <input
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.0"
-              className="w-full h-12 rounded-md border border-border bg-input px-3 font-display text-2xl outline-none focus:border-foreground"
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-xs text-muted-foreground">
-              {isBuy ? "SOL" : token.ticker}
-            </span>
-          </div>
-          <div className="flex gap-1.5 mt-2">
-            {presets.map((p) => (
-              <button
-                key={p}
-                onClick={() => setAmount(String(p))}
-                className="flex-1 py-1.5 rounded border border-border bg-secondary hover:border-foreground font-mono text-xs"
-              >
-                {p}
-              </button>
-            ))}
-            <button
-              onClick={() => setAmount("12.4")}
-              className="flex-1 py-1.5 rounded border border-foreground bg-foreground text-background font-mono text-xs font-bold"
-            >
-              max
-            </button>
-          </div>
-        </div>
-
         <div className="rounded-md border border-border bg-secondary/30 p-3 space-y-1.5 font-mono text-[11px]">
           <Row
             label="leverage"
@@ -89,12 +46,11 @@ export function TradePanel({ token }: { token: Token }) {
             valueClass={token.direction === "LONG" ? "text-primary" : "text-destructive"}
           />
           <Row label="underlying" value={token.underlying} />
-          <Row label="entry price" value="$0.00342" />
-          <Row label="slippage" value="1.0%" />
-          <Row label="trade fee" value="0.5%" />
+          <Row label="market cap" value={`$${token.marketCap.toLocaleString()}`} />
+          <Row label="progress" value={`${token.progress}% to grad`} />
           <Row
-            label="liq @ underlying"
-            value={`$${(158 * (token.direction === "LONG" ? 1 - 0.01 * token.liqDistance : 1 + 0.01 * token.liqDistance)).toFixed(2)}`}
+            label="liq distance"
+            value={`${token.liqDistance}%`}
             valueClass={danger ? "text-destructive font-bold" : "text-foreground"}
           />
         </div>
@@ -109,64 +65,26 @@ export function TradePanel({ token }: { token: Token }) {
           </div>
         )}
 
-        <div className="relative">
-          <motion.button
-            onClick={fire}
+        <div className="rounded-md border border-primary/40 bg-primary/10 p-3">
+          <p className="font-mono text-[11px] text-muted-foreground mb-2">
+            Trading is handled on pump.fun
+          </p>
+          <motion.a
+            href={pumpFunUrl}
+            target="_blank"
+            rel="noopener noreferrer"
             whileTap={{ scale: 0.97 }}
-            animate={
-              flash
-                ? {
-                    backgroundColor: [
-                      "hsl(var(--background))",
-                      isBuy ? "hsl(var(--primary))" : "hsl(var(--destructive))",
-                      isBuy ? "hsl(var(--primary))" : "hsl(var(--destructive))",
-                    ],
-                  }
-                : {}
-            }
-            transition={{ duration: 0.3 }}
-            className={
-              isBuy
-                ? "w-full h-11 rounded-md bg-primary text-primary-foreground font-display uppercase tracking-wide text-base hover:brightness-110"
-                : "w-full h-11 rounded-md bg-destructive text-destructive-foreground font-display uppercase tracking-wide text-base hover:brightness-110"
-            }
+            className="flex items-center justify-center gap-2 w-full h-11 rounded-md bg-primary text-primary-foreground font-display uppercase tracking-wide text-base hover:brightness-110"
           >
-            {isBuy ? `[ ape ${amount || "0"} sol ]` : "[ dump bags ]"}
-          </motion.button>
-
-          {/* burst particles */}
-          <AnimatePresence>
-            {bursts.map((b) => (
-              <Burst key={b.id} side={b.side} />
-            ))}
-          </AnimatePresence>
+            {isBuy ? "[ buy on pump.fun ]" : "[ sell on pump.fun ]"}
+            <ExternalLink className="h-4 w-4" />
+          </motion.a>
         </div>
-      </div>
-    </div>
-  )
-}
 
-function Burst({ side }: { side: "buy" | "sell" }) {
-  const color = side === "buy" ? "hsl(var(--primary))" : "hsl(var(--destructive))"
-  const N = 12
-  return (
-    <div className="pointer-events-none absolute inset-0 grid place-items-center">
-      {Array.from({ length: N }).map((_, i) => {
-        const angle = (i / N) * Math.PI * 2
-        const dx = Math.cos(angle) * (60 + Math.random() * 30)
-        const dy = Math.sin(angle) * (60 + Math.random() * 30)
-        return (
-          <motion.span
-            key={i}
-            initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
-            animate={{ x: dx, y: dy, opacity: 0, scale: 0.4 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
-            className="absolute h-1.5 w-1.5"
-            style={{ background: color }}
-          />
-        )
-      })}
+        <p className="text-center font-mono text-[10px] text-muted-foreground">
+          You&apos;ll be redirected to pump.fun to complete the trade
+        </p>
+      </div>
     </div>
   )
 }

@@ -57,13 +57,41 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
   useEffect(() => {
     async function fetchToken() {
       try {
-        // For pump.fun tokens, fetch from localStorage
-        const storedTokens = JSON.parse(localStorage.getItem('leverageTokens') || '[]')
-        const storedToken = storedTokens.find((t: any) => t.mintAddress === id)
+        // Try to fetch from API first
+        let storedToken: any = null
+        try {
+          const response = await fetch('/api/tokens')
+          const data = await response.json()
+          storedToken = data.tokens?.find((t: any) => t.mintAddress === id)
+        } catch (e) {
+          console.log('Could not fetch from API')
+        }
+        
+        // Fallback to localStorage
+        if (!storedToken) {
+          const storedTokens = JSON.parse(localStorage.getItem('leverageTokens') || '[]')
+          storedToken = storedTokens.find((t: any) => t.mintAddress === id)
+        }
+        
+        // Fetch pump.fun data for real market cap
+        let marketCap = 0
+        let graduated = false
+        try {
+          const response = await fetch(`https://frontend-api.pump.fun/coins/${id}`, {
+            headers: { 'Accept': 'application/json' }
+          })
+          if (response.ok) {
+            const data = await response.json()
+            const solReserve = data.sol_reserve || data.solReserve || 0
+            marketCap = Math.floor(solReserve * 2 * 150)
+            graduated = data.complete || data.graduated || false
+          }
+        } catch (e) {
+          console.log('Could not fetch pump.fun data')
+        }
         
         if (!storedToken) {
-          // Token not found in localStorage - could be a pump.fun token not created through our UI
-          // Create a minimal token object with the mint address
+          // Token not found - show minimal info with pump.fun data
           setToken({
             id: id,
             name: "Unknown Token",
@@ -73,15 +101,15 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
             underlying: "SOL-PERP",
             leverage: 2,
             direction: "LONG",
-            marketCap: 0,
-            progress: 0,
+            marketCap,
+            progress: Math.min(100, Math.floor((marketCap / 69000) * 100)),
             replies: 0,
             ageMinutes: 0,
             change24h: 0,
             liqDistance: 100,
             description: "Token data not available. This token may not have been created through this UI.",
             mint: new PublicKey(id),
-            graduated: false,
+            graduated,
           })
           setLoading(false)
           return
@@ -89,25 +117,26 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
 
         const createdAt = new Date(storedToken.createdAt).getTime()
         const ageMinutes = Math.floor((Date.now() - createdAt) / 60000)
+        const progress = Math.min(100, Math.floor((marketCap / 69000) * 100))
 
         setToken({
           id: storedToken.mintAddress,
           name: storedToken.name,
           ticker: storedToken.symbol,
           emoji: getEmoji(storedToken.name, storedToken.symbol),
-          creator: "",
+          creator: storedToken.creator || "",
           underlying: `${storedToken.underlying || 'SOL'}-PERP`,
           leverage: storedToken.leverage as 2 | 3 | 5 | 10,
           direction: storedToken.direction as "LONG" | "SHORT",
-          marketCap: 0,
-          progress: 0,
+          marketCap,
+          progress,
           replies: 0,
           ageMinutes: Math.max(0, ageMinutes),
           change24h: 0,
           liqDistance: 100,
           description: "",
           mint: new PublicKey(storedToken.mintAddress),
-          graduated: false,
+          graduated,
         })
 
         // Fee vault not applicable for pump.fun tokens
