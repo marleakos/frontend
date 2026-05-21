@@ -22,6 +22,7 @@ export interface TokenData {
   description: string
   mint: PublicKey
   graduated: boolean
+  price: number
 }
 
 // Map on-chain underlying enum to display format
