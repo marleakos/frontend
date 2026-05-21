@@ -8,14 +8,18 @@ import { useWallet } from "@solana/wallet-adapter-react"
 import { Connection, PublicKey, Keypair, SystemProgram, SYSVAR_CLOCK_PUBKEY, SYSVAR_RENT_PUBKEY, Transaction, TransactionInstruction } from "@solana/web3.js"
 import { TOKEN_PROGRAM_ID, createAssociatedTokenAccountInstruction, getAssociatedTokenAddress } from "@solana/spl-token"
 import { toast } from "sonner"
-import { PROGRAM_ID, RPC_URL } from "@/lib/program-config"
+import { RPC_URL } from "@/lib/program-config"
+
+// Pump.fun program ID
+const PUMP_FUN_PROGRAM_ID = new PublicKey("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P")
+const PUMP_FUN_FEE_RECIPIENT = new PublicKey("CebN5WGQ4dEiSrkJScpDaNhvgu46XzVL9KZSdM2q4nE")
 import { BN } from "@coral-xyz/anchor"
 
 const REFERENCE_ASSETS = ["SOL", "BTC", "ETH", "APT", "ARB", "DOGE", "BNB", "SUI", "BONK", "MATIC"] as const
 const LEVERAGE_OPTIONS = [2, 3, 5, 10] as const
 
-// Instruction discriminator for initialize_token (sha256("global:initialize_token")[0:8])
-const INITIALIZE_TOKEN_DISCRIMINATOR = new Uint8Array([38, 209, 150, 50, 190, 117, 16, 54])
+// Pump.fun create instruction discriminator
+const CREATE_DISCRIMINATOR = new Uint8Array([24, 30, 200, 40, 5, 28, 7, 119])
 
 export default function CreatePage() {
   const { connected, publicKey, signTransaction } = useWallet()
