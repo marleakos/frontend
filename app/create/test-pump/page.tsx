@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useWallet } from "@solana/wallet-adapter-react"
 import { Connection } from "@solana/web3.js"
 import { toast } from "sonner"
-import { createPumpFunToken, storeTokenMetadata } from "./pump-deploy"
+import { createPumpFunToken, storeTokenMetadata } from "../pump-deploy"
 import { RPC_URL } from "@/lib/program-config"
 
 export default function TestPumpDeploy() {
