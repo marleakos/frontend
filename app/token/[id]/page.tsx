@@ -275,7 +275,7 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
 
               {/* stat strip */}
               <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-border">
-                <Stat label="price" value={price > 0 ? `${price.toFixed(9)} SOL` : "View on Pump.fun"} />
+                <Stat label="price" value={(price || 0) > 0 ? `${(price || 0).toFixed(9)} SOL` : "View on Pump.fun"} />
                 <Stat
                   label="24h"
                   value={`${positive ? "+" : ""}${(token.change24h || 0).toFixed(1)}%`}
@@ -389,7 +389,8 @@ function Stat({
 }
 
 function formatK(n: number) {
-  if (n >= 1000000) return `${(n / 1000000).toFixed(2)}M`
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`
-  return String(n)
+  const num = n || 0
+  if (num >= 1000000) return `${(num / 1000000).toFixed(2)}M`
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
+  return String(num)
 }
