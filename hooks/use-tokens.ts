@@ -64,7 +64,10 @@ export function useTokens() {
 
       // For pump.fun integration, fetch tokens from localStorage
       // These are tokens created through our UI
-      const storedTokens = JSON.parse(localStorage.getItem('leverageTokens') || '[]')
+      const storedTokensRaw = localStorage.getItem('leverageTokens')
+      console.log("Raw localStorage:", storedTokensRaw)
+      const storedTokens = JSON.parse(storedTokensRaw || '[]')
+      console.log("Parsed tokens:", storedTokens.length)
       
       const tokenData: TokenData[] = storedTokens.map((token: any) => {
         const createdAt = new Date(token.createdAt).getTime()
