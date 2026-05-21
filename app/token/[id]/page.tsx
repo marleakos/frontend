@@ -72,40 +72,44 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
           storedToken = storedTokens.find((t: any) => t.mintAddress === id)
         }
         
-        // Fetch pump.fun data for real market cap and price
+        // Fetch pump.fun data from blockchain
         let marketCap = 0
         let graduated = false
         let tokenPrice = 0
         try {
-          // Try multiple pump.fun API endpoints
-          const endpoints = [
-            `https://pump.fun/api/coins/${id}`,
-            `https://frontend-api.pump.fun/coins/${id}`,
-          ]
+          const { Connection, PublicKey } = await import('@solana/web3.js')
+          const connection = new Connection(process.env.NEXT_PUBLIC_RPC_URL || 'https://api.mainnet-beta.solana.com', 'confirmed')
           
-          for (const endpoint of endpoints) {
-            try {
-              const response = await fetch(endpoint, {
-                headers: { 'Accept': 'application/json' },
-                // Add cache buster to avoid cached errors
-                cache: 'no-cache'
-              })
-              if (response.ok) {
-                const data = await response.json()
-                console.log('Pump.fun data:', data)
-                const solReserve = data.sol_reserve || data.solReserve || data.market_cap_sol || 0
-                const tokenReserve = data.token_reserve || data.tokenReserve || data.total_supply || 1
-                marketCap = Math.floor((solReserve * 2 * 150) || (data.market_cap_usd || 0))
-                graduated = data.complete || data.graduated || data.bonding_curve_complete || false
-                tokenPrice = tokenReserve > 0 ? solReserve / tokenReserve : 0
-                break // Success, stop trying other endpoints
-              }
-            } catch (e) {
-              console.log(`Failed to fetch from ${endpoint}`)
-            }
+          const mint = new PublicKey(id)
+          const PUMP_PROGRAM = new PublicKey('6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P')
+          
+          const [bondingCurve] = PublicKey.findProgramAddressSync(
+            [Buffer.from('bonding-curve'), mint.toBuffer()],
+            PUMP_PROGRAM
+          )
+          
+          const accountInfo = await connection.getAccountInfo(bondingCurve)
+          
+          if (accountInfo && accountInfo.data.length >= 41) {
+            const data = accountInfo.data
+            let offset = 8
+            
+            const virtualSolReserve = Number(data.readBigUInt64LE(offset))
+            offset += 8
+            const virtualTokenReserve = Number(data.readBigUInt64LE(offset))
+            offset += 8
+            offset += 16 // Skip real reserves
+            offset += 8 // Skip total supply
+            const complete = data[offset] === 1
+            
+            tokenPrice = virtualTokenReserve > 0 ? virtualSolReserve / virtualTokenReserve : 0
+            marketCap = Math.floor((virtualSolReserve * 2) / 1e9 * 150)
+            graduated = complete
+            
+            console.log('Token page - on-chain data:', { marketCap, tokenPrice, graduated })
           }
         } catch (e) {
-          console.log('Could not fetch pump.fun data')
+          console.log('Could not fetch on-chain data:', e)
         }
         
         setPrice(tokenPrice)
