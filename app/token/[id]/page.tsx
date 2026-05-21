@@ -254,20 +254,30 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
                     >
                       solscan <span className="text-[10px]">↗</span>
                     </a>
-                    <span>by <Link href={`/user/${token.creator.slice(0, 6)}`} className="text-foreground hover:text-primary">{token.creator.slice(0, 6)}...{token.creator.slice(-4)}</Link></span>
+                    <a
+                      href={`https://pump.fun/coin/${token.mint.toString()}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 rounded border border-primary/50 bg-primary/10 px-2 py-0.5 hover:bg-primary/20 text-primary"
+                    >
+                      pump.fun <span className="text-[10px]">↗</span>
+                    </a>
+                    {token.creator && (
+                      <span>by <Link href={`/user/${token.creator.slice(0, 6)}`} className="text-foreground hover:text-primary">{token.creator.slice(0, 6)}...{token.creator.slice(-4)}</Link></span>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* stat strip */}
               <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-border">
-                <Stat label="price" value={price > 0 ? `${price.toFixed(9)} SOL` : "--"} />
+                <Stat label="price" value={price > 0 ? `${price.toFixed(9)} SOL` : "View on Pump.fun"} />
                 <Stat
                   label="24h"
                   value={`${positive ? "+" : ""}${token.change24h.toFixed(1)}%`}
                   accent={positive ? "primary" : "destructive"}
                 />
-                <Stat label="mcap" value={`$${formatK(token.marketCap)}`} />
+                <Stat label="mcap" value={token.marketCap > 0 ? `$${formatK(token.marketCap)}` : "--"} />
                 <Stat
                   label="liq dist"
                   value={`${token.liqDistance}%`}

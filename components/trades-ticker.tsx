@@ -137,7 +137,7 @@ export function TradesTicker() {
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#39ff14] opacity-75" />
             <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#39ff14]" />
           </span>
-          LIVE TRADES
+          DEMO TRADES
         </span>
 
         <div className="flex-1 overflow-hidden">
