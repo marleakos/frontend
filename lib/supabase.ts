@@ -3,7 +3,10 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-export const supabase = createClient(supabaseUrl, supabaseKey)
+// Only create client if both URL and key are provided
+export const supabase = supabaseUrl && supabaseKey 
+  ? createClient(supabaseUrl, supabaseKey)
+  : null
 
 export interface TokenRecord {
   id?: string
@@ -18,7 +21,7 @@ export interface TokenRecord {
 }
 
 export async function saveToken(token: TokenRecord) {
-  if (!supabaseUrl || !supabaseKey) {
+  if (!supabase) {
     console.log('Supabase not configured, skipping')
     return null
   }
@@ -38,17 +41,17 @@ export async function saveToken(token: TokenRecord) {
 }
 
 export async function getAllTokens() {
-  if (!supabaseUrl || !supabaseKey) {
+  if (!supabase) {
     console.log('Supabase not configured, returning empty')
     return []
   }
-  
+
   try {
     const { data, error } = await supabase
       .from('tokens')
       .select('*')
       .order('created_at', { ascending: false })
-    
+
     if (error) throw error
     return data || []
   } catch (e) {
