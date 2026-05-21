@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Connection, PublicKey } from "@solana/web3.js"
-import { RPC_URL } from "@/lib/program-config"
+import { PublicKey } from "@solana/web3.js"
+import { getAllTokens } from "@/lib/supabase"
 
 export interface TokenData {
   id: string
@@ -94,14 +94,30 @@ export function useTokens() {
       setLoading(true)
       setError(null)
 
-      // Fetch tokens from API (shared across all users)
+      // Fetch tokens from Supabase first
       let apiTokens: any[] = []
       try {
-        const response = await fetch('/api/tokens')
-        const data = await response.json()
-        apiTokens = data.tokens || []
+        const dbTokens = await getAllTokens()
+        apiTokens = dbTokens.map((t: any) => ({
+          mintAddress: t.mint_address,
+          name: t.name,
+          symbol: t.symbol,
+          leverage: t.leverage,
+          direction: t.direction,
+          underlying: t.underlying,
+          creator: t.creator,
+          createdAt: t.created_at
+        }))
       } catch (e) {
-        console.log('Could not fetch from API, using localStorage')
+        console.log('Could not fetch from Supabase, trying API')
+        // Fallback to API
+        try {
+          const response = await fetch('/api/tokens')
+          const data = await response.json()
+          apiTokens = data.tokens || []
+        } catch (e2) {
+          console.log('Could not fetch from API')
+        }
       }
       
       // Also get localStorage tokens (for immediate display of user's own tokens)

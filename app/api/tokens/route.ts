@@ -1,22 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getAllTokens, saveToken } from '@/lib/supabase'
 
-// In-memory storage for tokens (will reset on deploy, use database for production)
-const tokens: any[] = []
+// Fallback in-memory storage (used when Supabase is not configured)
+const memoryTokens: any[] = []
 
 export async function GET() {
-  return NextResponse.json({ tokens })
+  // Try Supabase first
+  const dbTokens = await getAllTokens()
+  
+  // If Supabase has data, use it
+  if (dbTokens.length > 0) {
+    return NextResponse.json({ tokens: dbTokens })
+  }
+  
+  // Fallback to memory
+  return NextResponse.json({ tokens: memoryTokens })
 }
 
 export async function POST(request: NextRequest) {
   try {
     const token = await request.json()
     
-    // Check if token already exists
-    const exists = tokens.find(t => t.mintAddress === token.mintAddress)
+    // Check if token already exists in memory
+    const exists = memoryTokens.find(t => t.mintAddress === token.mintAddress)
     if (!exists) {
-      tokens.push({
+      const tokenData = {
         ...token,
         createdAt: new Date().toISOString()
+      }
+      
+      // Add to memory
+      memoryTokens.push(tokenData)
+      
+      // Try to save to Supabase
+      await saveToken({
+        mint_address: token.mintAddress,
+        name: token.name,
+        symbol: token.symbol,
+        leverage: token.leverage,
+        direction: token.direction,
+        underlying: token.underlying,
+        creator: token.creator
       })
     }
     
