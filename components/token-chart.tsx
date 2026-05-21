@@ -22,35 +22,56 @@ export function TokenChart({ tokenMint, ticker }: TokenChartProps) {
   useEffect(() => {
     async function fetchPriceData() {
       try {
-        // Try to fetch from pump.fun API
-        const response = await fetch(`https://frontend-api.pump.fun/coins/${tokenMint}`, {
-          headers: { 'Accept': 'application/json' }
-        })
+        // Try multiple pump.fun API endpoints
+        const endpoints = [
+          `https://pump.fun/api/coins/${tokenMint}`,
+          `https://frontend-api.pump.fun/coins/${tokenMint}`,
+        ]
         
-        if (response.ok) {
-          const data = await response.json()
-          const solReserve = data.sol_reserve || data.solReserve || 0
-          const tokenReserve = data.token_reserve || data.tokenReserve || 1
-          const price = tokenReserve > 0 ? solReserve / tokenReserve : 0
-          
-          setCurrentPrice(price)
-          
-          // Generate simple price history
-          const history: PricePoint[] = []
-          const now = Date.now()
-          const points = 20
-          
-          for (let i = points; i >= 0; i--) {
-            const time = now - i * 300000 // 5 minute intervals
-            const variance = (Math.random() - 0.5) * 0.05
-            const historicalPrice = price * (1 + variance * (i / points))
-            history.push({
-              time,
-              price: Math.max(0.000001, historicalPrice)
+        let price = 0
+        
+        for (const endpoint of endpoints) {
+          try {
+            const response = await fetch(endpoint, {
+              headers: { 'Accept': 'application/json' },
+              cache: 'no-cache'
             })
+            
+            if (response.ok) {
+              const data = await response.json()
+              console.log('Chart data:', data)
+              
+              const solReserve = data.sol_reserve || data.solReserve || 0
+              const tokenReserve = data.token_reserve || data.tokenReserve || data.total_supply || 1
+              price = tokenReserve > 0 ? solReserve / tokenReserve : 0
+              
+              setCurrentPrice(price)
+              
+              // Generate simple price history based on current price
+              const history: PricePoint[] = []
+              const now = Date.now()
+              const points = 20
+              
+              for (let i = points; i >= 0; i--) {
+                const time = now - i * 300000 // 5 minute intervals
+                const variance = (Math.random() - 0.5) * 0.05
+                const historicalPrice = price * (1 + variance * (i / points))
+                history.push({
+                  time,
+                  price: Math.max(0.000001, historicalPrice)
+                })
+              }
+              
+              setPriceHistory(history)
+              break // Success
+            }
+          } catch (e) {
+            console.log(`Chart: Failed to fetch from ${endpoint}`)
           }
-          
-          setPriceHistory(history)
+        }
+        
+        if (price === 0) {
+          console.log('Could not fetch price data from any endpoint')
         }
       } catch (err) {
         console.error("Error fetching price data:", err)

@@ -55,29 +55,45 @@ function getEmoji(name: string, symbol: string): string {
 // Fetch token data from pump.fun API
 async function fetchPumpFunData(mintAddress: string): Promise<{ marketCap: number; graduated: boolean } | null> {
   try {
-    // Try to fetch from pump.fun API
-    const response = await fetch(`https://frontend-api.pump.fun/coins/${mintAddress}`, {
-      headers: {
-        'Accept': 'application/json',
+    // Try multiple pump.fun API endpoints
+    const endpoints = [
+      `https://pump.fun/api/coins/${mintAddress}`,
+      `https://frontend-api.pump.fun/coins/${mintAddress}`,
+    ]
+    
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint, {
+          headers: { 'Accept': 'application/json' },
+          cache: 'no-cache'
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          console.log('Pump.fun data for', mintAddress, data)
+          
+          // Try multiple ways to get market cap
+          let marketCap = 0
+          if (data.market_cap_usd) {
+            marketCap = Math.floor(data.market_cap_usd)
+          } else if (data.sol_reserve || data.solReserve) {
+            const solReserve = data.sol_reserve || data.solReserve
+            marketCap = Math.floor(solReserve * 2 * 150)
+          } else if (data.market_cap_sol) {
+            marketCap = Math.floor(data.market_cap_sol * 150)
+          }
+          
+          return {
+            marketCap,
+            graduated: data.complete || data.graduated || data.bonding_curve_complete || false
+          }
+        }
+      } catch (e) {
+        console.log(`Failed to fetch from ${endpoint}`)
       }
-    })
-    
-    if (!response.ok) {
-      // If API fails, return null - we'll use default values
-      return null
     }
     
-    const data = await response.json()
-    
-    // Calculate market cap from bonding curve data
-    // pump.fun uses a bonding curve where market cap = solReserve * 2 (simplified)
-    const solReserve = data.sol_reserve || data.solReserve || 0
-    const marketCap = solReserve * 2 * 150 // Rough estimate: SOL price ~$150
-    
-    return {
-      marketCap: Math.floor(marketCap),
-      graduated: data.complete || data.graduated || false
-    }
+    return null
   } catch (e) {
     console.log('Could not fetch pump.fun data for', mintAddress)
     return null

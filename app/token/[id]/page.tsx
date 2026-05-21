@@ -77,16 +77,32 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
         let graduated = false
         let tokenPrice = 0
         try {
-          const response = await fetch(`https://frontend-api.pump.fun/coins/${id}`, {
-            headers: { 'Accept': 'application/json' }
-          })
-          if (response.ok) {
-            const data = await response.json()
-            const solReserve = data.sol_reserve || data.solReserve || 0
-            const tokenReserve = data.token_reserve || data.tokenReserve || 1
-            marketCap = Math.floor(solReserve * 2 * 150)
-            graduated = data.complete || data.graduated || false
-            tokenPrice = tokenReserve > 0 ? solReserve / tokenReserve : 0
+          // Try multiple pump.fun API endpoints
+          const endpoints = [
+            `https://pump.fun/api/coins/${id}`,
+            `https://frontend-api.pump.fun/coins/${id}`,
+          ]
+          
+          for (const endpoint of endpoints) {
+            try {
+              const response = await fetch(endpoint, {
+                headers: { 'Accept': 'application/json' },
+                // Add cache buster to avoid cached errors
+                cache: 'no-cache'
+              })
+              if (response.ok) {
+                const data = await response.json()
+                console.log('Pump.fun data:', data)
+                const solReserve = data.sol_reserve || data.solReserve || data.market_cap_sol || 0
+                const tokenReserve = data.token_reserve || data.tokenReserve || data.total_supply || 1
+                marketCap = Math.floor((solReserve * 2 * 150) || (data.market_cap_usd || 0))
+                graduated = data.complete || data.graduated || data.bonding_curve_complete || false
+                tokenPrice = tokenReserve > 0 ? solReserve / tokenReserve : 0
+                break // Success, stop trying other endpoints
+              }
+            } catch (e) {
+              console.log(`Failed to fetch from ${endpoint}`)
+            }
           }
         } catch (e) {
           console.log('Could not fetch pump.fun data')
