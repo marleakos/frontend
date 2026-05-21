@@ -5,21 +5,24 @@ import { Header } from "@/components/header"
 import { TradesTicker } from "@/components/trades-ticker"
 import { ImagePlus, Info, X, Loader2 } from "lucide-react"
 import { useWallet } from "@solana/wallet-adapter-react"
-import { Connection, PublicKey, Keypair, SystemProgram, SYSVAR_CLOCK_PUBKEY, SYSVAR_RENT_PUBKEY, Transaction, TransactionInstruction } from "@solana/web3.js"
-import { TOKEN_PROGRAM_ID, createAssociatedTokenAccountInstruction, getAssociatedTokenAddress } from "@solana/spl-token"
+import { Connection, PublicKey, Keypair, Transaction, TransactionInstruction } from "@solana/web3.js"
 import { toast } from "sonner"
 import { RPC_URL } from "@/lib/program-config"
 
-// Pump.fun program ID
-const PUMP_FUN_PROGRAM_ID = new PublicKey("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P")
-const PUMP_FUN_FEE_RECIPIENT = new PublicKey("CebN5WGQ4dEiSrkJScpDaNhvgu46XzVL9KZSdM2q4nE")
-import { BN } from "@coral-xyz/anchor"
+// Pump.fun constants
+const PUMP_FUN_PROGRAM = new PublicKey("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P")
+const GLOBAL_ACCOUNT = new PublicKey("4wTV1YmiEkRvAtNtsSGPtUrqRYQMe5SKy2uB4Jjaxnjf")
+const MINT_AUTHORITY = new PublicKey("TSLvdd1pWpHVjahSpsvCXUbgwsL3JAgvEaMB9HtFBmu")
+const MAYHEM_PROGRAM = new PublicKey("MAyhSmzXzV1pTf7LsNkrNwkWKTo4ougAJ1PPg47MD4e")
+const TOKEN_2022_PROGRAM = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb")
+const ASSOCIATED_TOKEN_PROGRAM = new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL")
+const SYSTEM_PROGRAM = new PublicKey("11111111111111111111111111111111")
+
+// Discriminator for create instruction
+const CREATE_DISCRIMINATOR = new Uint8Array([24, 30, 200, 40, 5, 28, 7, 119])
 
 const REFERENCE_ASSETS = ["SOL", "BTC", "ETH", "APT", "ARB", "DOGE", "BNB", "SUI", "BONK", "MATIC"] as const
 const LEVERAGE_OPTIONS = [2, 3, 5, 10] as const
-
-// Pump.fun create instruction discriminator
-const CREATE_DISCRIMINATOR = new Uint8Array([24, 30, 200, 40, 5, 28, 7, 119])
 
 export default function CreatePage() {
   const { connected, publicKey, signTransaction } = useWallet()
@@ -48,11 +51,6 @@ export default function CreatePage() {
   }
 
   const handleDeploy = async () => {
-    console.log("Deploy clicked!")
-    console.log("Connected:", connected)
-    console.log("PublicKey:", publicKey?.toString())
-    console.log("SignTransaction:", !!signTransaction)
-    
     if (!connected || !publicKey || !signTransaction) {
       toast.error("Please connect your wallet first")
       return
@@ -64,128 +62,109 @@ export default function CreatePage() {
     }
 
     setIsDeploying(true)
-    toast.loading("Creating token...", { id: "deploy" })
+    toast.loading("Creating token on Pump.fun...", { id: "deploy" })
     
     try {
-      console.log("Starting deployment...")
-      console.log("RPC_URL:", RPC_URL)
       const connection = new Connection(RPC_URL, "confirmed")
-      console.log("Connection created to:", connection.rpcEndpoint)
-      const mintKeypair = Keypair.generate()
-      console.log("Mint keypair:", mintKeypair.publicKey.toString())
-
-      // Get PDAs
-      const [tokenStatePDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("token_state"), mintKeypair.publicKey.toBuffer()],
-        PROGRAM_ID
-      )
-      const [feeVaultPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("fee_vault"), mintKeypair.publicKey.toBuffer()],
-        PROGRAM_ID
-      )
-      const [userReferralPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("user_referral"), publicKey.toBuffer()],
-        PROGRAM_ID
+      const mint = Keypair.generate()
+      
+      // Derive PDAs
+      const [bondingCurve] = PublicKey.findProgramAddressSync(
+        [Buffer.from("bonding-curve"), mint.publicKey.toBuffer()],
+        PUMP_FUN_PROGRAM
       )
       
-      // Curve and LP token accounts need to be signers according to IDL
-      // So we generate them as keypairs instead of PDAs
-      const curveTokenKeypair = Keypair.generate()
-      const lpTokenKeypair = Keypair.generate()
-
+      const [associatedBondingCurve] = PublicKey.findProgramAddressSync(
+        [bondingCurve.toBuffer(), TOKEN_2022_PROGRAM.toBuffer(), mint.publicKey.toBuffer()],
+        ASSOCIATED_TOKEN_PROGRAM
+      )
+      
+      // Build metadata URI (in production, upload to IPFS/Arweave)
+      const metadata = {
+        name: name.trim(),
+        symbol: ticker.trim().toUpperCase(),
+        description: desc,
+        image: image, // base64 data URI for now
+        attributes: [
+          { trait_type: "Leverage", value: leverage },
+          { trait_type: "Direction", value: direction },
+          { trait_type: "Underlying", value: referenceAsset }
+        ]
+      }
+      const uri = `data:application/json;base64,${btoa(JSON.stringify(metadata))}`
+      
       // Build instruction data
-      const data = Buffer.alloc(1000)
+      const nameBytes = Buffer.from(name.trim())
+      const symbolBytes = Buffer.from(ticker.trim().toUpperCase())
+      const uriBytes = Buffer.from(uri)
+      
+      const data = Buffer.alloc(8 + 4 + nameBytes.length + 4 + symbolBytes.length + 4 + uriBytes.length)
       let offset = 0
       
-      // Discriminator
-      data.set(INITIALIZE_TOKEN_DISCRIMINATOR, offset)
+      data.set(CREATE_DISCRIMINATOR, offset)
       offset += 8
       
-      // Name (string)
-      const nameBytes = Buffer.from(name)
       data.writeUInt32LE(nameBytes.length, offset)
       offset += 4
       nameBytes.copy(data, offset)
       offset += nameBytes.length
       
-      // Symbol (string)
-      const symbolBytes = Buffer.from(ticker)
       data.writeUInt32LE(symbolBytes.length, offset)
       offset += 4
       symbolBytes.copy(data, offset)
       offset += symbolBytes.length
       
-      // URI (string)
-      const uriBytes = Buffer.from("https://example.com/metadata.json")
       data.writeUInt32LE(uriBytes.length, offset)
       offset += 4
       uriBytes.copy(data, offset)
-      offset += uriBytes.length
       
-      // Leverage (u8)
-      data.writeUInt8(leverage, offset)
-      offset += 1
-      
-      // Direction enum (u8: 0 = Long, 1 = Short)
-      data.writeUInt8(direction === "LONG" ? 0 : 1, offset)
-      offset += 1
-      
-      // Underlying enum (u8: 0 = SolPerp, 1 = BtcPerp, 2 = EthPerp, 3 = DogePerp)
-      let underlyingValue = 0
-      if (referenceAsset === "BTC") underlyingValue = 1
-      else if (referenceAsset === "ETH") underlyingValue = 2
-      else if (referenceAsset === "DOGE") underlyingValue = 3
-      data.writeUInt8(underlyingValue, offset)
-      offset += 1
-      
-      // Oracle price (u64) - 1 SOL = 1 billion lamports
-      const oraclePrice = BigInt(1000000000)
-      const priceBytes = new Uint8Array(8)
-      const priceView = new DataView(priceBytes.buffer)
-      priceView.setBigUint64(0, oraclePrice, true) // little-endian
-      data.set(priceBytes, offset)
-      offset += 8
-      
-      // Referrer (Option<Pubkey>) - 0 = None
-      data.writeUInt8(0, offset)
-      offset += 1
-
       const instructionData = data.slice(0, offset)
-
-      // Create instruction
-      const instruction = new TransactionInstruction({
-        keys: [
-          { pubkey: publicKey, isSigner: true, isWritable: true },
-          { pubkey: mintKeypair.publicKey, isSigner: true, isWritable: true },
-          { pubkey: tokenStatePDA, isSigner: false, isWritable: true },
-          { pubkey: feeVaultPDA, isSigner: false, isWritable: true },
-          { pubkey: userReferralPDA, isSigner: false, isWritable: true },
-          { pubkey: curveTokenKeypair.publicKey, isSigner: true, isWritable: true },
-          { pubkey: lpTokenKeypair.publicKey, isSigner: true, isWritable: true },
-          { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-          { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-          { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
-          { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
-        ],
-        programId: PROGRAM_ID,
+      
+      // Build accounts
+      const keys = [
+        { pubkey: mint.publicKey, isSigner: true, isWritable: true },
+        { pubkey: MINT_AUTHORITY, isSigner: false, isWritable: false },
+        { pubkey: bondingCurve, isSigner: false, isWritable: true },
+        { pubkey: associatedBondingCurve, isSigner: false, isWritable: true },
+        { pubkey: GLOBAL_ACCOUNT, isSigner: false, isWritable: true },
+        { pubkey: publicKey, isSigner: true, isWritable: true },
+        { pubkey: SYSTEM_PROGRAM, isSigner: false, isWritable: false },
+        { pubkey: TOKEN_2022_PROGRAM, isSigner: false, isWritable: false },
+        { pubkey: ASSOCIATED_TOKEN_PROGRAM, isSigner: false, isWritable: false },
+        { pubkey: MAYHEM_PROGRAM, isSigner: false, isWritable: false },
+      ]
+      
+      const createInstruction = new TransactionInstruction({
+        keys,
+        programId: PUMP_FUN_PROGRAM,
         data: instructionData,
       })
-
-      // Create and sign transaction
-      const transaction = new Transaction().add(instruction)
+      
+      const transaction = new Transaction()
+      transaction.add(createInstruction)
       transaction.feePayer = publicKey
       transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash
       
-      // Sign with all required signers
-      transaction.sign(mintKeypair, curveTokenKeypair, lpTokenKeypair)
-
       const signed = await signTransaction(transaction)
       const signature = await connection.sendRawTransaction(signed.serialize())
       
       await connection.confirmTransaction(signature, "confirmed")
 
+      // Store leverage metadata
+      const tokens = JSON.parse(localStorage.getItem('leverageTokens') || '[]')
+      tokens.push({
+        mintAddress: mint.publicKey.toString(),
+        name: name.trim(),
+        symbol: ticker.trim().toUpperCase(),
+        leverage,
+        direction,
+        underlying: referenceAsset,
+        createdAt: new Date().toISOString()
+      })
+      localStorage.setItem('leverageTokens', JSON.stringify(tokens))
+
       setTxSignature(signature)
-      toast.success("Token created successfully!", { id: "deploy" })
+      toast.success(`Token created on Pump.fun!`, { id: "deploy" })
       
       // Reset form
       setName("")
@@ -193,10 +172,12 @@ export default function CreatePage() {
       setDesc("")
       setImage(null)
       setImageFile(null)
+      setWebsite("")
+      setTwitter("")
+      setTelegram("")
       
     } catch (error: any) {
       console.error("Deployment error:", error)
-      console.error("Error stack:", error.stack)
       toast.error(error.message || "Failed to create token", { id: "deploy" })
     } finally {
       setIsDeploying(false)
@@ -294,8 +275,8 @@ export default function CreatePage() {
                     <textarea
                       value={desc}
                       onChange={(e) => setDesc(e.target.value)}
-                      rows={3}
                       placeholder="sol to 1000. wagmi or rekt."
+                      rows={3}
                       className="input resize-none"
                     />
                   </Field>
@@ -306,116 +287,219 @@ export default function CreatePage() {
             <Section step="02" title="SOCIAL LINKS">
               <div className="space-y-3">
                 <Field label="WEBSITE (OPTIONAL)">
-                  <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://yourtoken.com" className="input" />
+                  <input
+                    value={website}
+                    onChange={(e) => setWebsite(e.target.value)}
+                    placeholder="https://yourtoken.com"
+                    className="input"
+                  />
                 </Field>
                 <Field label="X / TWITTER (OPTIONAL)">
-                  <input value={twitter} onChange={(e) => setTwitter(e.target.value)} placeholder="https://x.com/yourtoken" className="input" />
+                  <input
+                    value={twitter}
+                    onChange={(e) => setTwitter(e.target.value)}
+                    placeholder="https://x.com/yourtoken"
+                    className="input"
+                  />
                 </Field>
                 <Field label="TELEGRAM (OPTIONAL)">
-                  <input value={telegram} onChange={(e) => setTelegram(e.target.value)} placeholder="https://t.me/yourtoken" className="input" />
+                  <input
+                    value={telegram}
+                    onChange={(e) => setTelegram(e.target.value)}
+                    placeholder="https://t.me/yourtoken"
+                    className="input"
+                  />
                 </Field>
               </div>
             </Section>
 
             <Section step="03" title="LEVERAGE CONFIG">
-              <Field label="REFERENCE ASSET">
-                <div className="grid grid-cols-5 gap-2">
-                  {REFERENCE_ASSETS.map((asset) => (
+              <div className="space-y-4">
+                <div>
+                  <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground block mb-2">REFERENCE ASSET</label>
+                  <div className="flex flex-wrap gap-2">
+                    {REFERENCE_ASSETS.map((asset) => (
+                      <button
+                        key={asset}
+                        type="button"
+                        onClick={() => setReferenceAsset(asset)}
+                        className={`px-4 py-2 rounded-lg font-mono text-xs transition-colors ${
+                          referenceAsset === asset
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                        }`}
+                      >
+                        {asset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground block mb-2">DIRECTION</label>
+                  <div className="flex gap-2">
                     <button
                       type="button"
-                      key={asset}
-                      onClick={() => setReferenceAsset(asset)}
-                      className={asset === referenceAsset ? "py-3 rounded-md border-2 border-primary bg-primary/10 text-primary font-display text-xs uppercase" : "py-3 rounded-md border-2 border-border bg-secondary/40 hover:border-primary/50 font-mono text-xs"}
+                      onClick={() => setDirection("LONG")}
+                      className={`flex-1 py-3 rounded-lg font-mono text-sm transition-colors ${
+                        direction === "LONG"
+                          ? "bg-green-500 text-white"
+                          : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      }`}
                     >
-                      {asset}
+                      LONG ↗
                     </button>
-                  ))}
-                </div>
-              </Field>
-
-              <Field label="DIRECTION">
-                <div className="grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => setDirection("LONG")} className={direction === "LONG" ? "py-4 rounded-md border-2 border-primary bg-primary/10 text-primary font-display uppercase text-base" : "py-4 rounded-md border-2 border-border bg-secondary/40 hover:border-primary/50 font-mono"}>
-                    LONG ↗
-                  </button>
-                  <button type="button" onClick={() => setDirection("SHORT")} className={direction === "SHORT" ? "py-4 rounded-md border-2 border-destructive bg-destructive/10 text-destructive font-display uppercase text-base" : "py-4 rounded-md border-2 border-border bg-secondary/40 hover:border-destructive/50 font-mono"}>
-                    short ↘
-                  </button>
-                </div>
-              </Field>
-
-              <Field label="LEVERAGE">
-                <div className="grid grid-cols-4 gap-2">
-                  {LEVERAGE_OPTIONS.map((lev) => (
-                    <button type="button" key={lev} onClick={() => setLeverage(lev)} className={leverage === lev ? "py-3 rounded-md border-2 border-primary bg-primary/10 text-primary font-display text-sm uppercase" : "py-3 rounded-md border-2 border-border bg-secondary/40 hover:border-primary/50 font-mono text-sm"}>
-                      {lev}x
+                    <button
+                      type="button"
+                      onClick={() => setDirection("SHORT")}
+                      className={`flex-1 py-3 rounded-lg font-mono text-sm transition-colors ${
+                        direction === "SHORT"
+                          ? "bg-red-500 text-white"
+                          : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      }`}
+                    >
+                      SHORT ↘
                     </button>
-                  ))}
+                  </div>
                 </div>
-                <p className="font-mono text-[10px] text-primary mt-2">
-                  Fee: {getFeePercentage()} total
-                </p>
-              </Field>
+
+                <div>
+                  <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground block mb-2">LEVERAGE</label>
+                  <div className="flex gap-2">
+                    {LEVERAGE_OPTIONS.map((lev) => (
+                      <button
+                        key={lev}
+                        type="button"
+                        onClick={() => setLeverage(lev)}
+                        className={`flex-1 py-3 rounded-lg font-mono text-sm transition-colors ${
+                          leverage === lev
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                        }`}
+                      >
+                        {lev}x
+                      </button>
+                    ))}
+                  </div>
+                  <p className="font-mono text-[9px] text-muted-foreground mt-2">
+                    Fee: {getFeePercentage()} total
+                  </p>
+                </div>
+              </div>
             </Section>
 
             <Section step="04" title="DEV BUY (OPTIONAL)">
               <Field label="INITIAL BUY IN SOL">
-                <input value={initialBuy} onChange={(e) => setInitialBuy(e.target.value)} placeholder="0.5" className="input" />
+                <input
+                  type="number"
+                  value={initialBuy}
+                  onChange={(e) => setInitialBuy(e.target.value)}
+                  placeholder="0.5"
+                  step="0.1"
+                  min="0"
+                  className="input"
+                />
               </Field>
             </Section>
+
+            <button
+              type="button"
+              onClick={handleDeploy}
+              disabled={!canDeploy}
+              className="w-full py-4 bg-primary text-primary-foreground font-display text-xl uppercase rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
+            >
+              {isDeploying ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  DEPLOYING...
+                </span>
+              ) : (
+                "LAUNCH TOKEN"
+              )}
+            </button>
+
+            {txSignature && (
+              <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
+                <p className="font-mono text-xs text-green-500">Token created successfully!</p>
+                <a
+                  href={`https://solscan.io/tx/${txSignature}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-xs text-primary hover:underline mt-1 block"
+                >
+                  View on Solscan →
+                </a>
+              </div>
+            )}
           </form>
 
-          <aside className="lg:sticky lg:top-24 self-start space-y-4">
-            <div className="rounded-xl border border-border bg-card overflow-hidden">
-              <div className="px-3 py-2 border-b border-border font-display text-xs uppercase tracking-wider bg-secondary/40">LIVE PREVIEW</div>
-              <div className="p-4 flex gap-3">
-                <div className="grid h-16 w-16 shrink-0 place-items-center rounded-md bg-gradient-to-br from-primary/30 to-accent/30 text-3xl border-2 border-foreground/10 overflow-hidden">
-                  {image ? <img src={image} alt="Token" className="h-full w-full object-cover" /> : <ImagePlus className="h-6 w-6 text-muted-foreground" />}
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-border bg-card p-5">
+              <h3 className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-4">LIVE PREVIEW</h3>
+              <div className="flex items-center gap-4">
+                <div className="h-16 w-16 rounded-xl bg-secondary overflow-hidden">
+                  {image ? (
+                    <img src={image} alt="Token" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="h-full w-full grid place-items-center">
+                      <ImagePlus className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                  )}
                 </div>
-                <div className="min-w-0">
-                  <div className="font-display text-base truncate uppercase">{name || "YOUR TOKEN"}</div>
-                  <div className="font-mono text-[11px] text-muted-foreground">${ticker || "TICKER"}</div>
-                  <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                    <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-primary text-primary-foreground">{leverage}x {direction}</span>
-                    <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">{referenceAsset}</span>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-display text-lg uppercase truncate">
+                    {name || "YOUR TOKEN"}
+                  </h4>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {ticker || "$TICKER"}
+                    </span>
+                    <span className={`font-mono text-[10px] px-2 py-0.5 rounded ${
+                      direction === "LONG" ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500"
+                    }`}>
+                      {leverage}x {direction}
+                    </span>
+                    <span className="font-mono text-[10px] text-muted-foreground">
+                      {referenceAsset}
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <button onClick={() => { console.log("Button clicked!"); handleDeploy(); }} disabled={!canDeploy} className="w-full bg-primary text-primary-foreground py-4 rounded-md font-display uppercase tracking-wide text-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-              {isDeploying ? <><Loader2 className="h-5 w-5 animate-spin" /> DEPLOYING...</> : !connected ? "CONNECT WALLET" : "DEPLOY TOKEN"}
-            </button>
-
-            {txSignature && (
-              <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                <p className="font-mono text-xs text-green-500 mb-1">✓ Token deployed!</p>
-                <a href={`https://explorer.solana.com/tx/${txSignature}?cluster=devnet`} target="_blank" rel="noopener noreferrer" className="font-mono text-[10px] text-primary hover:underline break-all">View on Explorer →</a>
+            {!connected && (
+              <div className="rounded-2xl border border-border bg-card p-5 text-center">
+                <p className="text-muted-foreground mb-4">Connect your wallet to launch a token</p>
+                <div className="wallet-adapter-button-trigger w-full">
+                  {/* Wallet connect button will be rendered here by the wallet adapter */}
+                </div>
               </div>
             )}
-          </aside>
+          </div>
         </div>
       </main>
-
-      <style>{`.input{width:100%;height:44px;border-radius:.5rem;border:2px solid var(--color-border);background:var(--color-input);padding:0 .75rem;font-family:var(--font-mono);font-size:.875rem;outline:none;transition:border-color .15s}.input:focus{border-color:var(--color-primary)}textarea.input{height:auto;padding:.5rem .75rem}`}</style>
     </div>
   )
 }
 
 function Section({ step, title, children }: { step: string; title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border-2 border-border bg-card p-5 relative overflow-hidden">
-      <div className="absolute top-0 right-0 font-display text-7xl text-foreground/[0.04] leading-none pr-3 pt-1 select-none pointer-events-none">{step}</div>
-      <h2 className="font-display uppercase text-base text-primary mb-4 flex items-baseline gap-2"><span className="text-primary">{step}.</span> {title}</h2>
-      <div className="space-y-3 relative">{children}</div>
-    </section>
+    <div className="rounded-2xl border border-border bg-card p-5">
+      <div className="flex items-center gap-3 mb-4">
+        <span className="font-mono text-xs text-primary">{step}.</span>
+        <h2 className="font-mono text-xs uppercase tracking-wider text-foreground">{title}</h2>
+      </div>
+      {children}
+    </div>
   )
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground block mb-1.5">{label}</label>
+      <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground block mb-1.5">
+        {label}
+      </label>
       {children}
     </div>
   )
