@@ -1,66 +1,70 @@
-// IPFS upload utility using NFT.Storage
-// Get your free API key from: https://nft.storage
+// IPFS upload utility using Pinata
+// Get your free API key from: https://pinata.cloud
 
-const NFT_STORAGE_API_KEY = process.env.NEXT_PUBLIC_NFT_STORAGE_API_KEY || ""
+const PINATA_API_KEY = process.env.NEXT_PUBLIC_PINATA_API_KEY || ""
+const PINATA_SECRET_KEY = process.env.NEXT_PUBLIC_PINATA_SECRET_KEY || ""
 
 export async function uploadToIPFS(
   file: File | Blob,
   name: string
 ): Promise<string> {
-  if (!NFT_STORAGE_API_KEY) {
-    throw new Error("NFT_STORAGE_API_KEY not configured")
+  if (!PINATA_API_KEY || !PINATA_SECRET_KEY) {
+    throw new Error("Pinata API keys not configured")
   }
 
   const formData = new FormData()
   formData.append("file", file)
+  formData.append("pinataMetadata", JSON.stringify({ name }))
 
-  const response = await fetch("https://api.nft.storage/upload", {
+  const response = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${NFT_STORAGE_API_KEY}`,
+      pinata_api_key: PINATA_API_KEY,
+      pinata_secret_api_key: PINATA_SECRET_KEY,
     },
     body: formData,
   })
 
   if (!response.ok) {
-    throw new Error(`IPFS upload failed: ${response.statusText}`)
+    const error = await response.text()
+    throw new Error(`IPFS upload failed: ${error}`)
   }
 
   const data = await response.json()
-  return `https://ipfs.io/ipfs/${data.value.cid}`
+  return `https://gateway.pinata.cloud/ipfs/${data.IpfsHash}`
 }
 
 export async function uploadMetadataToIPFS(
-  metadata: object
+  metadata: object,
+  name: string = "metadata.json"
 ): Promise<string> {
-  if (!NFT_STORAGE_API_KEY) {
-    throw new Error("NFT_STORAGE_API_KEY not configured")
+  if (!PINATA_API_KEY || !PINATA_SECRET_KEY) {
+    throw new Error("Pinata API keys not configured")
   }
 
-  const blob = new Blob([JSON.stringify(metadata)], {
-    type: "application/json",
-  })
-
-  const formData = new FormData()
-  formData.append("file", blob, "metadata.json")
-
-  const response = await fetch("https://api.nft.storage/upload", {
+  const response = await fetch("https://api.pinata.cloud/pinning/pinJSONToIPFS", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${NFT_STORAGE_API_KEY}`,
+      "Content-Type": "application/json",
+      pinata_api_key: PINATA_API_KEY,
+      pinata_secret_api_key: PINATA_SECRET_KEY,
     },
-    body: formData,
+    body: JSON.stringify({
+      pinataContent: metadata,
+      pinataMetadata: { name },
+    }),
   })
 
   if (!response.ok) {
-    throw new Error(`IPFS upload failed: ${response.statusText}`)
+    const error = await response.text()
+    throw new Error(`IPFS upload failed: ${error}`)
   }
 
   const data = await response.json()
-  return `https://ipfs.io/ipfs/${data.value.cid}`
+  return `https://gateway.pinata.cloud/ipfs/${data.IpfsHash}`
 }
 
-// Alternative: Use data URI for small images (fallback)
+// Convert data URI to Blob
 export function dataURItoBlob(dataURI: string): Blob {
   const byteString = atob(dataURI.split(",")[1])
   const mimeString = dataURI.split(",")[0].split(":")[1].split(";")[0]
@@ -70,4 +74,34 @@ export function dataURItoBlob(dataURI: string): Blob {
     ia[i] = byteString.charCodeAt(i)
   }
   return new Blob([ab], { type: mimeString })
+}
+
+// Alternative: Use Web3.Storage (new version of NFT.Storage)
+export async function uploadToWeb3Storage(
+  file: File | Blob,
+  name: string
+): Promise<string> {
+  const WEB3_STORAGE_TOKEN = process.env.NEXT_PUBLIC_WEB3_STORAGE_TOKEN || ""
+  
+  if (!WEB3_STORAGE_TOKEN) {
+    throw new Error("Web3.Storage token not configured")
+  }
+
+  const formData = new FormData()
+  formData.append("file", file, name)
+
+  const response = await fetch("https://api.web3.storage/upload", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${WEB3_STORAGE_TOKEN}`,
+    },
+    body: formData,
+  })
+
+  if (!response.ok) {
+    throw new Error(`Web3.Storage upload failed: ${response.statusText}`)
+  }
+
+  const data = await response.json()
+  return `https://${data.cid}.ipfs.w3s.link`
 }

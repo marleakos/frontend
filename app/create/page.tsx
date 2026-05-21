@@ -42,15 +42,20 @@ export default function CreatePage() {
   }
 
   const uploadImage = async (imageData: string): Promise<string> => {
-    // For now, use a placeholder image URL
-    // In production, you need to:
-    // 1. Upload to pump.fun's image endpoint (if they have one)
-    // 2. Or use IPFS/Arweave
-    // 3. Or use a temporary image hosting service
-    
-    // Placeholder: return a generic image URL
-    // This won't show your custom image but will allow token creation
-    return "https://pump.fun/img/default-token.png"
+    try {
+      // Convert data URI to blob
+      const blob = dataURItoBlob(imageData)
+      const file = new File([blob], "token-image.png", { type: "image/png" })
+      
+      // Upload to IPFS via Pinata
+      const imageUrl = await uploadToIPFS(file, "token-image")
+      console.log("Image uploaded to IPFS:", imageUrl)
+      return imageUrl
+    } catch (error) {
+      console.error("IPFS upload failed:", error)
+      toast.error("Image upload failed. Please check Pinata API keys.")
+      throw error
+    }
   }
 
   const createMetadataUri = async (
