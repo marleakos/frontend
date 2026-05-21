@@ -7,13 +7,10 @@ import { Header } from "@/components/header"
 import { TradesTicker } from "@/components/trades-ticker"
 import { TokenChart } from "@/components/token-chart"
 import { TradePanel } from "@/components/trade-panel"
-import { ThreadSection } from "@/components/thread-section"
 import { TokenRuggedGate } from "@/components/token-rugged-gate"
-import { TradeHistory } from "@/components/trade-history"
-import { TokenStats } from "@/components/token-stats"
 import { ArrowLeft, Copy, Wallet, Skull } from "lucide-react"
 import { toast } from "sonner"
-import { Connection, PublicKey, SystemProgram } from "@solana/web3.js"
+import { PublicKey } from "@solana/web3.js"
 import { RPC_URL } from "@/lib/program-config"
 import type { TokenData } from "@/hooks/use-tokens"
 
@@ -54,6 +51,8 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
   const [copied, setCopied] = useState(false)
   const [claimingFees, setClaimingFees] = useState(false)
 
+  const [price, setPrice] = useState<number>(0)
+
   useEffect(() => {
     async function fetchToken() {
       try {
@@ -73,9 +72,10 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
           storedToken = storedTokens.find((t: any) => t.mintAddress === id)
         }
         
-        // Fetch pump.fun data for real market cap
+        // Fetch pump.fun data for real market cap and price
         let marketCap = 0
         let graduated = false
+        let tokenPrice = 0
         try {
           const response = await fetch(`https://frontend-api.pump.fun/coins/${id}`, {
             headers: { 'Accept': 'application/json' }
@@ -83,12 +83,16 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
           if (response.ok) {
             const data = await response.json()
             const solReserve = data.sol_reserve || data.solReserve || 0
+            const tokenReserve = data.token_reserve || data.tokenReserve || 1
             marketCap = Math.floor(solReserve * 2 * 150)
             graduated = data.complete || data.graduated || false
+            tokenPrice = tokenReserve > 0 ? solReserve / tokenReserve : 0
           }
         } catch (e) {
           console.log('Could not fetch pump.fun data')
         }
+        
+        setPrice(tokenPrice)
         
         if (!storedToken) {
           // Token not found - show minimal info with pump.fun data
@@ -241,7 +245,7 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
 
               {/* stat strip */}
               <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-border">
-                <Stat label="price" value="$--" />
+                <Stat label="price" value={price > 0 ? `${price.toFixed(9)} SOL` : "--"} />
                 <Stat
                   label="24h"
                   value={`${positive ? "+" : ""}${token.change24h.toFixed(1)}%`}
@@ -301,8 +305,20 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
               direction={token.direction}
             >
               <TokenChart tokenMint={token.id} ticker={token.ticker} underlying={token.underlying} />
-              <TokenStats />
-              <TradeHistory />
+              {/* TokenStats and TradeHistory removed - using mock data */}
+              <div className="rounded-lg border border-border bg-card p-4 text-center">
+                <p className="font-mono text-xs text-muted-foreground">
+                  Trade history and stats available on{" "}
+                  <a 
+                    href={`https://pump.fun/coin/${token.mint.toString()}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    pump.fun ↗
+                  </a>
+                </p>
+              </div>
             </TokenRuggedGate>
           </div>
 
