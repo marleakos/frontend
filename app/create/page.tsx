@@ -12,7 +12,7 @@ import { getBuyTokenAmountFromSolAmount } from "@pump-fun/pump-sdk"
 import { Program } from "@coral-xyz/anchor"
 import BN from "bn.js"
 import { uploadToIPFS, uploadMetadataToIPFS, dataURItoBlob } from "@/lib/ipfs"
-import { generateVanityAddress, generateRegularAddress, getExpectedPrefix } from "@/lib/vanity-address"
+import { Keypair } from "@solana/web3.js"
 
 const REFERENCE_ASSETS = ["SOL", "BTC", "ETH", "APT", "ARB", "DOGE", "BNB", "SUI", "BONK", "MATIC"] as const
 const LEVERAGE_OPTIONS = [2, 3, 5, 10] as const
@@ -125,28 +125,9 @@ export default function CreatePage() {
       const connection = new Connection(RPC_URL, "confirmed")
       console.log("Connection created, RPC:", RPC_URL)
       
-      // Generate vanity address with longer timeout
-      let mint: Keypair
-      try {
-        const expectedPrefix = getExpectedPrefix(direction, leverage, referenceAsset)
-        toast.loading(`Generating ${expectedPrefix}... address`, { id: "deploy" })
-        
-        // Generate vanity with 10 second timeout
-        mint = await Promise.race([
-          generateVanityAddress(direction, leverage, referenceAsset, 10000),
-          new Promise<Keypair>((_, reject) => 
-            setTimeout(() => reject(new Error('Timeout')), 10000)
-          )
-        ])
-        console.log("Vanity mint generated:", mint.publicKey.toString())
-        toast.success(`Found ${expectedPrefix} address!`, { id: "deploy" })
-      } catch (e) {
-        // Fallback to regular address
-        console.log("Vanity generation failed, using regular address:", e)
-        mint = generateRegularAddress()
-        console.log("Regular mint generated:", mint.publicKey.toString())
-        toast.info("Using regular address (vanity not found)", { id: "deploy" })
-      }
+      // Generate regular token mint address
+      const mint = Keypair.generate()
+      console.log("Token mint generated:", mint.publicKey.toString())
       
       // Upload image and create metadata
       toast.loading("Uploading metadata...", { id: "deploy" })
