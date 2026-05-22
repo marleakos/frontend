@@ -73,41 +73,29 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
           storedToken = storedTokens.find((t: any) => t.mintAddress === id)
         }
         
-        // Fetch real data from pump.fun bonding curve (works for ALL tokens)
+        // Fetch market data from DexScreener
         let marketCap = 0
         let graduated = false
         let tokenPrice = 0
         let priceChange24h = 0
         
         try {
-          const { getBondingCurveData } = await import('@/lib/pumpfun')
-          const bondingData = await getBondingCurveData(id, process.env.NEXT_PUBLIC_RPC_URL)
+          const { getTokenMarketData } = await import('@/lib/pumpfun')
+          const marketData = await getTokenMarketData(id)
           
-          if (bondingData) {
-            tokenPrice = bondingData.price
-            marketCap = bondingData.marketCap
-            graduated = bondingData.complete
-            setDataSource('pump.fun bonding curve')
+          if (marketData) {
+            tokenPrice = marketData.price
+            marketCap = marketData.marketCap
+            priceChange24h = marketData.priceChange24h
+            graduated = marketData.complete
+            setDataSource('DexScreener API')
             
-            console.log('Token page - Bonding curve data:', { marketCap, tokenPrice, graduated })
+            console.log('Token page - Market data:', { marketCap, tokenPrice, priceChange24h, graduated })
           } else {
-            console.log('Token page - No bonding curve data found')
+            console.log('Token page - No market data found')
           }
         } catch (e) {
-          console.log('Could not fetch bonding curve data:', e)
-        }
-        
-        // Fallback to DexScreener for price change data
-        if (tokenPrice > 0) {
-          try {
-            const { getTokenData } = await import('@/lib/dexscreener')
-            const dexData = await getTokenData(id)
-            if (dexData) {
-              priceChange24h = dexData.priceChange?.h24 || 0
-            }
-          } catch (e) {
-            console.log('Could not fetch DexScreener data:', e)
-          }
+          console.log('Could not fetch market data:', e)
         }
         
         setPrice(tokenPrice)
