@@ -5,7 +5,7 @@ import { Header } from "@/components/header"
 import { TradesTicker } from "@/components/trades-ticker"
 import { ImagePlus, Info, X, Loader2 } from "lucide-react"
 import { useWallet } from "@solana/wallet-adapter-react"
-import { Connection, PublicKey, Keypair, Transaction } from "@solana/web3.js"
+import { Connection, PublicKey, Keypair, Transaction, TransactionInstruction } from "@solana/web3.js"
 import { toast } from "sonner"
 import { RPC_URL, NETWORK } from "@/lib/program-config"
 import { getBuyTokenAmountFromSolAmount } from "@pump-fun/pump-sdk"
@@ -151,37 +151,65 @@ export default function CreatePage() {
       const { PumpSdk } = await import("@pump-fun/pump-sdk")
       const sdk = new PumpSdk(connection)
       
-      console.log("SDK created, building instruction...")
-      const createInstruction = await sdk.createInstruction({
-        mint: mint.publicKey,
-        name: name.trim(),
-        symbol: ticker.trim().toUpperCase(),
-        uri: uri,
-        creator: publicKey,
-        user: publicKey,
-      })
+      console.log("SDK created, building instructions...")
       
-      console.log("Instruction created successfully")
-      const instructions = [createInstruction]
-      
-      // Add buy instruction if initial buy amount > 0
       const initialBuyAmount = parseFloat(initialBuy)
+      let instructions: TransactionInstruction[] = []
+      
       if (initialBuyAmount > 0) {
-        console.log(`Adding initial buy of ${initialBuyAmount} SOL...`)
-        toast.loading(`Adding initial buy of ${initialBuyAmount} SOL...`, { id: "deploy" })
+        // Use createV2AndBuyInstructions to create token and buy in one transaction
+        console.log(`Creating token with initial buy of ${initialBuyAmount} SOL...`)
+        toast.loading(`Creating token with ${initialBuyAmount} SOL buy...`, { id: "deploy" })
         
         try {
-          const buyInstruction = await sdk.buyInstruction({
+          const global = await sdk.getGlobalAccount()
+          
+          // Calculate token amount from SOL amount using SDK helper
+          const { getBuyTokenAmountFromSolAmount } = await import("@pump-fun/pump-sdk")
+          const tokenAmount = getBuyTokenAmountFromSolAmount(
+            new BN(initialBuyAmount * 1e9),
+            global.virtualSolReserves,
+            global.virtualTokenReserves
+          )
+          
+          instructions = await sdk.createV2AndBuyInstructions({
+            global,
             mint: mint.publicKey,
+            name: name.trim(),
+            symbol: ticker.trim().toUpperCase(),
+            uri: uri,
+            creator: publicKey,
             user: publicKey,
-            solAmount: initialBuyAmount,
+            amount: tokenAmount,
+            solAmount: new BN(initialBuyAmount * 1e9),
           })
-          instructions.push(buyInstruction)
-          console.log("Buy instruction added")
+          console.log("Create + Buy instructions created:", instructions.length)
         } catch (e) {
-          console.error("Could not add buy instruction:", e)
-          toast.error("Could not add initial buy, creating token without it", { id: "deploy" })
+          console.error("Could not create buy instructions:", e)
+          toast.error("Could not add initial buy, creating token only", { id: "deploy" })
+          
+          // Fallback to just create
+          const createInstruction = await sdk.createInstruction({
+            mint: mint.publicKey,
+            name: name.trim(),
+            symbol: ticker.trim().toUpperCase(),
+            uri: uri,
+            creator: publicKey,
+            user: publicKey,
+          })
+          instructions = [createInstruction]
         }
+      } else {
+        // Just create token without buy
+        const createInstruction = await sdk.createInstruction({
+          mint: mint.publicKey,
+          name: name.trim(),
+          symbol: ticker.trim().toUpperCase(),
+          uri: uri,
+          creator: publicKey,
+          user: publicKey,
+        })
+        instructions = [createInstruction]
       }
       
       const transaction = new Transaction()
