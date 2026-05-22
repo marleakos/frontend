@@ -112,26 +112,31 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
           }
         }
         
-        if (!storedToken && !pumpFunToken) {
-          // Token not found anywhere
+        // Check if we have valid token data from anywhere
+        const hasValidPumpData = pumpFunToken && pumpFunToken.name && pumpFunToken.symbol
+        
+        if (!storedToken && !hasValidPumpData) {
+          // Token not found anywhere - but we might have market data
+          // Show the token with mint address as name
           setToken({
             id: id,
-            name: "Token Not Found",
-            ticker: "???",
+            name: `Token ${id.slice(0, 8)}...`,
+            ticker: "UNKNOWN",
             emoji: "🪙",
             creator: "",
             underlying: "SOL-PERP",
             leverage: 2,
             direction: "LONG",
-            marketCap: 0,
-            progress: 0,
+            marketCap,
+            progress: Math.min(100, Math.floor((marketCap / 69000) * 100)),
             replies: 0,
             ageMinutes: 0,
-            change24h: 0,
+            change24h: priceChange24h,
             liqDistance: 100,
-            description: "This token was not found on pump.fun or in our database.",
+            description: "Token metadata not available. View on pump.fun for more info.",
             mint: new PublicKey(id),
-            graduated: false,
+            graduated,
+            price: tokenPrice,
           })
           setLoading(false)
           return
@@ -141,12 +146,14 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
         const tokenData = storedToken || {
           name: pumpFunToken.name,
           symbol: pumpFunToken.symbol,
-          mintAddress: pumpFunToken.mint,
-          creator: pumpFunToken.creator,
+          mintAddress: pumpFunToken.mint || id,
+          creator: pumpFunToken.creator || "",
           leverage: 2,
           direction: 'LONG',
           underlying: 'SOL',
-          createdAt: new Date(pumpFunToken.created_timestamp).toISOString()
+          createdAt: pumpFunToken.created_timestamp 
+            ? new Date(pumpFunToken.created_timestamp).toISOString()
+            : new Date().toISOString()
         }
 
         const createdAt = new Date(tokenData.createdAt).getTime()
