@@ -179,43 +179,47 @@ export default function CreatePage() {
           
           console.log(`Buying ${tokenAmount.toString()} tokens with ${initialBuyAmount} SOL`)
           
-          // Try createV2AndBuyInstructions first (newer method)
-          try {
-            instructions = await sdk.createV2AndBuyInstructions({
-              global,
-              mint: mint.publicKey,
-              name: name.trim(),
-              symbol: ticker.trim().toUpperCase(),
-              uri: uri,
-              creator: publicKey,
-              user: publicKey,
-              amount: tokenAmount,
-              solAmount: solAmountLamports,
-              mayhemMode: false,
-            })
-            console.log("CreateV2 + Buy instructions created:", instructions.length)
-          } catch (v2Error: any) {
-            console.log("V2 method failed, trying deprecated method:", v2Error.message)
-            // Fallback to deprecated method
-            instructions = await sdk.createAndBuyInstructions({
-              global,
-              mint: mint.publicKey,
-              name: name.trim(),
-              symbol: ticker.trim().toUpperCase(),
-              uri: uri,
-              creator: publicKey,
-              user: publicKey,
-              amount: tokenAmount,
-              solAmount: solAmountLamports,
-            })
-            console.log("CreateAndBuy instructions created:", instructions.length)
-          }
+          // Create token first
+          const createInstruction = await sdk.createInstruction({
+            mint: mint.publicKey,
+            name: name.trim(),
+            symbol: ticker.trim().toUpperCase(),
+            uri: uri,
+            creator: publicKey,
+            user: publicKey,
+          })
+          instructions.push(createInstruction)
+          
+          // Get bonding curve for buy instruction
+          const bondingCurve = await sdk.fetchBondingCurve(mint.publicKey)
+          const bondingCurveAccountInfo = await connection.getAccountInfo(
+            PublicKey.findProgramAddressSync(
+              [Buffer.from('bonding-curve'), mint.publicKey.toBuffer(), global.tokenProgram.toBuffer()],
+              sdk['pumpAmmProgram'].programId
+            )[0]
+          )
+          
+          // Add buy instruction
+          const buyIxs = await sdk.buyInstructions({
+            global,
+            bondingCurve,
+            bondingCurveAccountInfo: bondingCurveAccountInfo!,
+            associatedUserAccountInfo: null,
+            mint: mint.publicKey,
+            user: publicKey,
+            amount: tokenAmount,
+            solAmount: solAmountLamports,
+            slippage: 0.1, // 10% slippage
+            tokenProgram: global.tokenProgram,
+          })
+          instructions.push(...buyIxs)
+          
           console.log("Create + Buy instructions created:", instructions.length)
         } catch (e: any) {
           console.error("Could not create buy instructions:", e)
           console.error("Error message:", e.message)
           console.error("Error stack:", e.stack)
-          toast.error(`Could not add initial buy: ${e.message || 'Unknown error'}`, { id: "deploy" })
+          toast.error(`Could not add initial buy: ${e.message || 'Unknown error'}. Creating token only.`, { id: "deploy" })
           
           // Fallback to just create
           const createInstruction = await sdk.createInstruction({
