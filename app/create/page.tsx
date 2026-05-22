@@ -164,6 +164,26 @@ export default function CreatePage() {
       console.log("Instruction created successfully")
       const instructions = [createInstruction]
       
+      // Add buy instruction if initial buy amount > 0
+      const initialBuyAmount = parseFloat(initialBuy)
+      if (initialBuyAmount > 0) {
+        console.log(`Adding initial buy of ${initialBuyAmount} SOL...`)
+        toast.loading(`Adding initial buy of ${initialBuyAmount} SOL...`, { id: "deploy" })
+        
+        try {
+          const buyInstruction = await sdk.buyInstruction({
+            mint: mint.publicKey,
+            user: publicKey,
+            solAmount: initialBuyAmount,
+          })
+          instructions.push(buyInstruction)
+          console.log("Buy instruction added")
+        } catch (e) {
+          console.error("Could not add buy instruction:", e)
+          toast.error("Could not add initial buy, creating token without it", { id: "deploy" })
+        }
+      }
+      
       const transaction = new Transaction()
       instructions.forEach(ix => transaction.add(ix))
       transaction.feePayer = publicKey
