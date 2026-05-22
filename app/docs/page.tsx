@@ -513,4 +513,150 @@ export default function DocsPage() {
     .div(initialOraclePrice);
   
   // Apply leverage multiplier
-  const leverageDelta = oracleDelta
+  const leverageDelta = oracleDelta.mul(new BN(leverage)).div(PRECISION);
+  
+  // Calculate new price
+  const newPrice = basePrice.mul(PRECISION.add(leverageDelta)).div(PRECISION);
+  
+  return newPrice;
+}`}
+                </pre>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 11. API Reference */}
+        <section id="api" className="mb-16">
+          <h2 className="font-display uppercase text-2xl mb-6 flex items-center gap-2">
+            <Terminal className="h-6 w-6 text-primary" /> 11. api reference
+          </h2>
+          
+          <div className="space-y-6 font-mono text-xs text-foreground/80">
+            <p className="leading-relaxed">
+              The leverage.fun protocol exposes a comprehensive API for developers building integrations, 
+              trading bots, analytics dashboards, and other applications.
+            </p>
+
+            <div className="rounded-lg border border-border bg-secondary/20 p-4">
+              <h3 className="font-display text-sm uppercase mb-3 text-primary">11.1 REST Endpoints</h3>
+              <div className="space-y-3 text-[10px]">
+                <div className="p-3 bg-background rounded border-l-2 border-green-500">
+                  <code className="text-green-500 font-bold">GET /api/tokens</code>
+                  <p className="text-muted-foreground mt-1">Retrieve all tokens with leverage metadata, prices, and graduation status</p>
+                </div>
+                <div className="p-3 bg-background rounded border-l-2 border-blue-500">
+                  <code className="text-blue-500 font-bold">GET /api/tokens/[id]</code>
+                  <p className="text-muted-foreground mt-1">Get detailed information for a specific token including bonding curve data</p>
+                </div>
+                <div className="p-3 bg-background rounded border-l-2 border-purple-500">
+                  <code className="text-purple-500 font-bold">GET /api/price/[asset]</code>
+                  <p className="text-muted-foreground mt-1">Get current oracle price for reference asset (SOL, BTC, ETH, etc.)</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-secondary/20 p-4">
+              <h3 className="font-display text-sm uppercase mb-3 text-primary">11.2 Response Format</h3>
+              <div className="p-3 bg-background rounded font-mono text-[10px] overflow-x-auto">
+                <pre className="text-primary">
+{`{
+  "token": {
+    "mint": "7x8y9z...",
+    "name": "Long SOL 3x",
+    "symbol": "SOL3X",
+    "leverage": 3,
+    "direction": "LONG",
+    "referenceAsset": "SOL",
+    "price": 0.000042,
+    "marketCap": 45000,
+    "virtualSol": 45.5,
+    "graduated": false,
+    "progress": 53.5,
+    "createdAt": "2026-05-22T19:30:00Z"
+  }
+}`}
+                </pre>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 12. FAQ */}
+        <section id="faq" className="mb-16">
+          <h2 className="font-display uppercase text-2xl mb-6 flex items-center gap-2">
+            <Box className="h-6 w-6 text-primary" /> 12. frequently asked questions
+          </h2>
+          
+          <div className="space-y-4 font-mono text-xs">
+            <div className="rounded-lg border border-border bg-card p-4">
+              <h3 className="font-bold text-primary mb-2">Q: How does synthetic leverage work?</h3>
+              <p className="text-[10px] text-muted-foreground">
+                Synthetic leverage uses bonding curve repricing to simulate leveraged returns. When the reference 
+                asset moves, the token price adjusts by the leverage multiplier, creating leveraged exposure 
+                without margin requirements or liquidation risks.
+              </p>
+            </div>
+            
+            <div className="rounded-lg border border-border bg-card p-4">
+              <h3 className="font-bold text-primary mb-2">Q: Can I get liquidated?</h3>
+              <p className="text-[10px] text-muted-foreground">
+                No. Unlike traditional perps, synthetic leverage tokens cannot be liquidated. You hold actual 
+                SPL tokens that can always be sold back to the bonding curve, even at a loss. There are no 
+                margin calls or forced position closures.
+              </p>
+            </div>
+            
+            <div className="rounded-lg border border-border bg-card p-4">
+              <h3 className="font-bold text-primary mb-2">Q: What happens at graduation?</h3>
+              <p className="text-[10px] text-muted-foreground">
+                At 85 SOL in the bonding curve, the token graduates. The virtual curve completes and the token 
+                transitions to trading on external AMMs like Raydium. The leverage characteristics continue 
+                through market forces and arbitrage.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-border bg-card p-4">
+              <h3 className="font-bold text-primary mb-2">Q: How is the price calculated?</h3>
+              <p className="text-[10px] text-muted-foreground">
+                Price follows the formula: P(t) = P₀ × (1 + L × ΔO), where P₀ is the initial price, L is the 
+                leverage multiplier (2x-10x), and ΔO is the percentage change in the oracle price. This creates 
+                amplified price movements proportional to leverage.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-border bg-card p-4">
+              <h3 className="font-bold text-primary mb-2">Q: What are the fees?</h3>
+              <p className="text-[10px] text-muted-foreground">
+                Token creation costs ~0.02 SOL (network fee). Trading has a 1% fee that goes 100% to the token 
+                creator. There are no protocol fees, no funding rates, and no hidden costs.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Powered by + CTA */}
+        <section className="rounded-xl border-2 border-border bg-card p-8 text-center relative overflow-hidden">
+          <div className="absolute inset-0 halftone opacity-20 pointer-events-none" />
+          <div className="relative">
+            <div className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">powered by</div>
+            <div className="mt-3 flex items-center justify-center gap-6 font-display uppercase text-base flex-wrap">
+              <span className="text-foreground">solana</span>
+              <span className="text-muted-foreground">·</span>
+              <span className="text-foreground">pyth</span>
+              <span className="text-muted-foreground">·</span>
+              <span className="text-foreground">pump.fun</span>
+            </div>
+            <Link
+              href="/create"
+              className="brick inline-flex items-center gap-2 mt-8 px-6 py-3 rounded-md bg-primary text-primary-foreground font-display uppercase text-base hover:-translate-y-0.5 transition-transform"
+            >
+              <Zap className="h-5 w-5" strokeWidth={3} />
+              launch a coin
+            </Link>
+          </div>
+        </section>
+      </main>
+    </div>
+  )
+}
