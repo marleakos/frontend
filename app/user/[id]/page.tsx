@@ -244,8 +244,19 @@ export default function UserPage({ params }: { params: Promise<{ id: string }> }
                   href={`/token/${token.id}`}
                   className="flex gap-3 rounded-lg border border-border bg-card p-3 hover:border-primary transition-colors"
                 >
-                  <div className="grid h-16 w-16 shrink-0 place-items-center rounded-md bg-secondary text-3xl">
-                    {token.emoji}
+                  <div className="grid h-16 w-16 shrink-0 place-items-center rounded-md bg-secondary text-3xl overflow-hidden">
+                    {token.image ? (
+                      <img 
+                        src={token.image} 
+                        alt={token.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none'
+                        }}
+                      />
+                    ) : (
+                      <span>{token.emoji}</span>
+                    )}
                   </div>
                   <div className="min-w-0">
                     <div className="font-display text-lg leading-none">{token.name}</div>

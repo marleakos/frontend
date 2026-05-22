@@ -236,8 +236,19 @@ function LiveCard({ token }: { token: TokenData }) {
         href={`/token/${token.id}`}
         className="group flex gap-3 rounded-lg border border-border bg-card p-3 hover:border-primary transition-colors"
       >
-        <div className="grid h-20 w-20 shrink-0 place-items-center rounded-md bg-secondary text-4xl">
-          {token.emoji}
+        <div className="grid h-20 w-20 shrink-0 place-items-center rounded-md bg-secondary text-4xl overflow-hidden">
+          {token.image ? (
+            <img 
+              src={token.image} 
+              alt={token.name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none'
+              }}
+            />
+          ) : (
+            <span>{token.emoji}</span>
+          )}
         </div>
         <div className="min-w-0 flex flex-col gap-1">
           <div className="font-mono text-[10px] text-muted-foreground">
@@ -306,10 +317,21 @@ function KOTH({ token }: { token: TokenData }) {
 
           <div className="grid grid-cols-[100px_1fr] gap-0 md:grid-cols-[140px_1fr]">
             {/* big lime emoji panel */}
-            <div className="relative grid place-items-center bg-primary border-r-2 border-foreground">
-              <div className="text-[56px] md:text-[78px] leading-none drop-shadow-[2px_2px_0_rgba(0,0,0,0.25)]">
-                {token.emoji}
-              </div>
+            <div className="relative grid place-items-center bg-primary border-r-2 border-foreground overflow-hidden">
+              {token.image ? (
+                <img 
+                  src={token.image} 
+                  alt={token.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none'
+                  }}
+                />
+              ) : (
+                <div className="text-[56px] md:text-[78px] leading-none drop-shadow-[2px_2px_0_rgba(0,0,0,0.25)]">
+                  {token.emoji}
+                </div>
+              )}
               <div className="absolute bottom-1 left-1 md:bottom-1.5 md:left-1.5 font-mono text-[7px] md:text-[9px] font-bold uppercase tracking-wider text-primary-foreground/80">
                 {token.underlying}
               </div>

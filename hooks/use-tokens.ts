@@ -9,6 +9,7 @@ export interface TokenData {
   name: string
   ticker: string
   emoji: string
+  image?: string
   creator: string
   underlying: "SOL-PERP" | "BTC-PERP" | "ETH-PERP" | "DOGE-PERP"
   leverage: 2 | 3 | 5 | 10
@@ -156,6 +157,18 @@ export function useTokens() {
         const volume24h = marketData?.volume24h || 0
         const priceChange24h = marketData?.priceChange24h || 0
         
+        // Fetch image from DexScreener
+        let imageUrl: string | undefined = undefined
+        try {
+          const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${token.mintAddress}`)
+          const dexData = await response.json()
+          if (dexData.pairs && dexData.pairs.length > 0) {
+            imageUrl = dexData.pairs[0].baseToken?.icon || dexData.pairs[0].info?.imageUrl || undefined
+          }
+        } catch (e) {
+          console.log('Could not fetch image for', token.mintAddress)
+        }
+        
         // Calculate progress to graduation (69k)
         const progress = Math.min(100, Math.floor((marketCap / 69000) * 100))
         
@@ -167,6 +180,7 @@ export function useTokens() {
           name: token.name,
           ticker: token.symbol,
           emoji: getEmoji(token.name, token.symbol),
+          image: imageUrl,
           creator: token.creator || "",
           underlying: `${token.underlying || 'SOL'}-PERP`,
           leverage: token.leverage as 2 | 3 | 5 | 10,
