@@ -1,117 +1,104 @@
 // Vanity address generator for pump.fun tokens
-// Creates addresses with full words: Longx3...SOL, Shortx10...BTC, etc.
+// Simplified version - uses short prefixes for faster generation
 
 import { Keypair } from "@solana/web3.js"
 
-export const ASSET_SUFFIX: Record<string, string> = {
-  SOL: "SOL",
-  BTC: "BTC",
-  ETH: "ETH",
-  APT: "APT",
-  ARB: "ARB",
-  DOGE: "DOGE",
-  BNB: "BNB",
-  SUI: "SUI",
-  BONK: "BONK",
-  MATIC: "MATIC",
+// Short 1-2 character prefixes that are much easier to find
+const DIRECTION_PREFIX: Record<string, string> = {
+  LONG: "L",
+  SHORT: "S",
+}
+
+const LEVERAGE_PREFIX: Record<number, string> = {
+  2: "2",
+  3: "3", 
+  5: "5",
+  10: "X",
+}
+
+const ASSET_PREFIX: Record<string, string> = {
+  SOL: "S",
+  BTC: "B",
+  ETH: "E",
+  APT: "A",
+  ARB: "R",
+  DOGE: "D",
+  BNB: "N",
+  SUI: "U",
+  BONK: "K",
+  MATIC: "M",
 }
 
 /**
- * Generate a vanity address with pattern:
- * {Direction}x{Leverage}...{Asset}
+ * Generate a vanity address with a short 2-3 character prefix
+ * Much faster than long word patterns
  * 
  * Examples:
- * - LONG 5x SOL -> "Longx5...SOL"
- * - SHORT 10x BTC -> "Shortx10...BTC"
+ * - LONG 5x SOL -> "L5S..."
+ * - SHORT 10x BTC -> "SXB..."
  */
 export async function generateVanityAddress(
   direction: "LONG" | "SHORT",
   leverage: number,
   asset: string,
-  maxAttempts: number = 200000
+  maxAttempts: number = 5000
 ): Promise<Keypair> {
-  // Build the pattern: Longx5...SOL or Shortx10...BTC
-  const dirPrefix = direction === "LONG" ? "Long" : "Short"
-  const levStr = leverage === 10 ? "10" : leverage.toString()
-  const startPattern = `${dirPrefix}x${levStr}`.toLowerCase()
-  const endPattern = (ASSET_SUFFIX[asset] || asset).toLowerCase()
+  // Build short prefix: L5S, SXB, etc.
+  const prefix = `${DIRECTION_PREFIX[direction]}${LEVERAGE_PREFIX[leverage]}${ASSET_PREFIX[asset] || asset[0]}`.toLowerCase()
   
-  console.log(`Generating vanity address with pattern: ${startPattern}...${endPattern}`)
+  console.log(`Generating vanity address with prefix: ${prefix}...`)
   
-  let attempts = 0
-  const startTime = Date.now()
-  
-  while (attempts < maxAttempts) {
-    const keypair = Keypair.generate()
-    const address = keypair.publicKey.toBase58()
-    const addrLower = address.toLowerCase()
+  // Use setTimeout to yield control and prevent UI blocking
+  return new Promise((resolve, reject) => {
+    let attempts = 0
+    const startTime = Date.now()
     
-    // Check if address starts with pattern and ends with asset
-    if (addrLower.startsWith(startPattern) && addrLower.endsWith(endPattern)) {
-      const elapsed = (Date.now() - startTime) / 1000
-      console.log(`Found vanity address after ${attempts} attempts (${elapsed.toFixed(2)}s): ${address}`)
-      return keypair
+    const tryGenerate = () => {
+      // Process in batches of 100 to prevent blocking
+      for (let i = 0; i < 100; i++) {
+        if (attempts >= maxAttempts) {
+          reject(new Error(`Could not find vanity address with prefix ${prefix} after ${maxAttempts} attempts`))
+          return
+        }
+        
+        const keypair = Keypair.generate()
+        const address = keypair.publicKey.toBase58()
+        
+        if (address.toLowerCase().startsWith(prefix)) {
+          const elapsed = (Date.now() - startTime) / 1000
+          console.log(`Found vanity address after ${attempts} attempts (${elapsed.toFixed(2)}s): ${address}`)
+          resolve(keypair)
+          return
+        }
+        
+        attempts++
+      }
+      
+      // Schedule next batch
+      setTimeout(tryGenerate, 0)
     }
     
-    attempts++
-    
-    // Log progress every 20000 attempts
-    if (attempts % 20000 === 0) {
-      console.log(`Attempts: ${attempts}...`)
-    }
-  }
-  
-  console.log(`Could not find vanity address with pattern ${startPattern}...${endPattern} after ${maxAttempts} attempts`)
-  throw new Error(`Could not generate vanity address. The pattern ${startPattern}...${endPattern} is very rare. Try again or use a simpler pattern.`)
+    tryGenerate()
+  })
 }
 
 /**
- * Generate a vanity address with just the start pattern (faster)
+ * Generate a regular address (no vanity) - instant
  */
-export async function generateVanityAddressStartOnly(
-  direction: "LONG" | "SHORT",
-  leverage: number,
-  maxAttempts: number = 100000
-): Promise<Keypair> {
-  const dirPrefix = direction === "LONG" ? "Long" : "Short"
-  const levStr = leverage === 10 ? "10" : leverage.toString()
-  const pattern = `${dirPrefix}x${levStr}`.toLowerCase()
-  
-  console.log(`Generating vanity address starting with: ${pattern}...`)
-  
-  let attempts = 0
-  const startTime = Date.now()
-  
-  while (attempts < maxAttempts) {
-    const keypair = Keypair.generate()
-    const address = keypair.publicKey.toBase58()
-    
-    if (address.toLowerCase().startsWith(pattern)) {
-      const elapsed = (Date.now() - startTime) / 1000
-      console.log(`Found vanity address after ${attempts} attempts (${elapsed.toFixed(2)}s): ${address}`)
-      return keypair
-    }
-    
-    attempts++
-    
-    if (attempts % 10000 === 0) {
-      console.log(`Attempts: ${attempts}...`)
-    }
-  }
-  
-  throw new Error(`Could not generate vanity address starting with ${pattern} after ${maxAttempts} attempts`)
+export function generateRegularAddress(): Keypair {
+  return Keypair.generate()
 }
 
 /**
- * Get the expected address pattern for display
+ * Get the expected address prefix for display
  */
-export function getExpectedPattern(
+export function getExpectedPrefix(
   direction: "LONG" | "SHORT",
   leverage: number,
   asset: string
 ): string {
-  const dirPrefix = direction === "LONG" ? "Long" : "Short"
-  const levStr = leverage === 10 ? "10" : leverage.toString()
-  const assetSuffix = ASSET_SUFFIX[asset] || asset
-  return `${dirPrefix}x${levStr}...${assetSuffix}`
+  return `${DIRECTION_PREFIX[direction]}${LEVERAGE_PREFIX[leverage]}${ASSET_PREFIX[asset] || asset[0]}`
 }
+
+// Export for use in create page
+export { DIRECTION_PREFIX, LEVERAGE_PREFIX, ASSET_PREFIX }
