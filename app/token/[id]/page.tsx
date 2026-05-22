@@ -57,21 +57,28 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
   useEffect(() => {
     async function fetchToken() {
       try {
-        // Try to fetch from API first
-        let storedToken: any = null
+        // Fetch all tokens from all sources (same as board page)
+        let allTokens: any[] = []
+        
+        // Try API first
         try {
           const response = await fetch('/api/tokens')
           const data = await response.json()
-          storedToken = data.tokens?.find((t: any) => t.mintAddress === id)
+          allTokens = data.tokens || []
         } catch (e) {
           console.log('Could not fetch from API')
         }
         
-        // Fallback to localStorage
-        if (!storedToken) {
-          const storedTokens = JSON.parse(localStorage.getItem('leverageTokens') || '[]')
-          storedToken = storedTokens.find((t: any) => t.mintAddress === id)
-        }
+        // Add localStorage tokens
+        const storedTokens = JSON.parse(localStorage.getItem('leverageTokens') || '[]')
+        storedTokens.forEach((token: any) => {
+          if (!allTokens.find((t: any) => t.mintAddress === token.mintAddress)) {
+            allTokens.push(token)
+          }
+        })
+        
+        // Find the token we're looking for
+        let storedToken = allTokens.find((t: any) => t.mintAddress === id)
         
         // Fetch market data from DexScreener
         let marketCap = 0
