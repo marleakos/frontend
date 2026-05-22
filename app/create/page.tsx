@@ -447,19 +447,6 @@ export default function CreatePage() {
 
             <Section step="03" title="LEVERAGE CONFIG">
               <div className="space-y-4">
-                {/* Vanity Address Preview */}
-                <div className="p-3 bg-secondary/30 rounded-lg border border-border">
-                  <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground block mb-1">
-                    TOKEN ADDRESS PREVIEW
-                  </label>
-                  <div className="font-mono text-sm text-primary">
-                    {getExpectedPattern(direction, leverage, referenceAsset)}
-                  </div>
-                  <p className="font-mono text-[9px] text-muted-foreground mt-1">
-                    Your token will have a custom address like {direction === "LONG" ? "Long" : "Short"}x{leverage}...{referenceAsset}
-                  </p>
-                </div>
-
                 <div>
                   <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground block mb-2">REFERENCE ASSET</label>
                   <div className="flex flex-wrap gap-2">
