@@ -13,7 +13,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self' https://api.mainnet-beta.solana.com https://*.helius-rpc.com https://api.dexscreener.com;"
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self' https://api.mainnet-beta.solana.com https://*.helius-rpc.com https://api.dexscreener.com https://*.supabase.co;"
           }
         ]
       }
