@@ -6,8 +6,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  turbopack: {
-    enabled: false
+  webpack: (config) => {
+    return config
   }
 }
 
