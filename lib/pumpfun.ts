@@ -1,12 +1,37 @@
-// Fetch pump.fun bonding curve data directly from Solana
-// This works for ALL tokens, even brand new ones
+// Fetch pump.fun token data from their API
+// This is more reliable than parsing on-chain data
 
-import { Connection, PublicKey } from '@solana/web3.js'
-
-const PUMP_PROGRAM = new PublicKey('6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P')
-
-// Bonding curve account layout (from pump.fun SDK)
-// Discriminator (8) + virtualSolReserves (8) + virtualTokenReserves (8) + realSolReserves (8) + realTokenReserves (8) + tokenTotalSupply (8) + complete (1)
+export interface PumpFunToken {
+  mint: string
+  name: string
+  symbol: string
+  description: string
+  image_uri: string
+  video_uri: string | null
+  metadata_uri: string
+  twitter: string | null
+  telegram: string | null
+  bonding_curve: string
+  associated_bonding_curve: string
+  creator: string
+  created_timestamp: number
+  raydium_pool: string | null
+  complete: boolean
+  virtual_sol_reserves: number
+  virtual_token_reserves: number
+  total_supply: number
+  website: string | null
+  show_name: boolean
+  king_of_the_hill_timestamp: number | null
+  market_cap: number
+  reply_count: number
+  last_reply: number
+  nsfw: boolean
+  market_id: string | null
+  inverted: boolean | null
+  is_banned: boolean
+  is_pump_swap: boolean
+}
 
 export interface BondingCurveData {
   virtualSolReserves: number
@@ -15,91 +40,76 @@ export interface BondingCurveData {
   realTokenReserves: number
   tokenTotalSupply: number
   complete: boolean
-  // Calculated fields
-  price: number // Price in SOL per token
-  marketCap: number // Market cap in USD
-  progress: number // Progress to graduation (0-100)
+  price: number
+  marketCap: number
+  progress: number
 }
 
+// Fetch token data from pump.fun API
+export async function getPumpFunToken(mintAddress: string): Promise<PumpFunToken | null> {
+  try {
+    const response = await fetch(`https://frontend-api.pump.fun/coins/${mintAddress}`, {
+      headers: {
+        'Accept': 'application/json',
+      }
+    })
+    
+    if (!response.ok) {
+      console.log('Token not found on pump.fun:', mintAddress)
+      return null
+    }
+    
+    const data = await response.json()
+    console.log('Pump.fun API data:', data)
+    return data
+  } catch (e) {
+    console.error('Error fetching from pump.fun API:', e)
+    return null
+  }
+}
+
+// Get bonding curve data from pump.fun API
 export async function getBondingCurveData(
   mintAddress: string,
-  rpcUrl?: string
+  _rpcUrl?: string
 ): Promise<BondingCurveData | null> {
   try {
-    // Use provided RPC, env variable, or fallback to public RPC
-    const finalRpcUrl = rpcUrl || process.env.NEXT_PUBLIC_RPC_URL || 'https://api.mainnet-beta.solana.com'
-    console.log('Using RPC:', finalRpcUrl)
-    const connection = new Connection(finalRpcUrl, 'confirmed')
-    const mint = new PublicKey(mintAddress)
+    const token = await getPumpFunToken(mintAddress)
     
-    // Derive bonding curve PDA
-    const [bondingCurve] = PublicKey.findProgramAddressSync(
-      [Buffer.from('bonding-curve'), mint.toBuffer()],
-      PUMP_PROGRAM
-    )
-    
-    console.log('Fetching bonding curve:', bondingCurve.toString())
-    
-    const accountInfo = await connection.getAccountInfo(bondingCurve)
-    
-    if (!accountInfo) {
-      console.log('No bonding curve found for', mintAddress)
+    if (!token) {
       return null
     }
     
-    console.log('Account data length:', accountInfo.data.length)
+    // Use pump.fun's market cap directly
+    const marketCap = token.market_cap || 0
+    const complete = token.complete || false
     
-    // Parse the account data
-    const data = accountInfo.data
+    // Calculate price from reserves
+    const virtualSolReserves = token.virtual_sol_reserves || 0
+    const virtualTokenReserves = token.virtual_token_reserves || 0
+    const totalSupply = token.total_supply || 0
     
-    // Check minimum size (8 discriminator + 41 bytes of data)
-    if (data.length < 49) {
-      console.log('Account data too short:', data.length)
-      return null
-    }
-    
-    let offset = 8 // Skip discriminator
-    
-    const virtualSolReserves = Number(data.readBigUInt64LE(offset))
-    offset += 8
-    const virtualTokenReserves = Number(data.readBigUInt64LE(offset))
-    offset += 8
-    const realSolReserves = Number(data.readBigUInt64LE(offset))
-    offset += 8
-    const realTokenReserves = Number(data.readBigUInt64LE(offset))
-    offset += 8
-    const tokenTotalSupply = Number(data.readBigUInt64LE(offset))
-    offset += 8
-    const complete = data[offset] === 1
-    
-    // Calculate price: virtualSolReserves / virtualTokenReserves (in lamports per base token)
-    // Pump.fun uses 6 decimals for tokens, 9 for SOL
+    // Price in SOL per token
     const price = virtualTokenReserves > 0 
       ? (virtualSolReserves / 1e9) / (virtualTokenReserves / 1e6)
       : 0
     
-    // Calculate market cap
-    // Total supply * price in SOL * SOL price in USD (~$150)
-    const solPrice = 150
-    const marketCap = (tokenTotalSupply / 1e6) * price * solPrice
-    
-    // Progress to graduation (69k USD)
+    // Progress to graduation (69k USD market cap)
     const progress = Math.min(100, Math.floor((marketCap / 69000) * 100))
     
-    console.log('Bonding curve data:', {
-      virtualSolReserves: virtualSolReserves / 1e9,
-      virtualTokenReserves: virtualTokenReserves / 1e6,
+    console.log('Bonding curve data from API:', {
       price,
       marketCap,
-      complete
+      complete,
+      progress
     })
     
     return {
       virtualSolReserves,
       virtualTokenReserves,
-      realSolReserves,
-      realTokenReserves,
-      tokenTotalSupply,
+      realSolReserves: 0,
+      realTokenReserves: 0,
+      tokenTotalSupply: totalSupply,
       complete,
       price,
       marketCap,
