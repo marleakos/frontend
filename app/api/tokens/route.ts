@@ -8,9 +8,19 @@ export async function GET() {
   // Try Supabase first
   const dbTokens = await getAllTokens()
   
-  // If Supabase has data, use it
+  // If Supabase has data, normalize it to camelCase
   if (dbTokens.length > 0) {
-    return NextResponse.json({ tokens: dbTokens })
+    const normalizedTokens = dbTokens.map((t: any) => ({
+      mintAddress: t.mint_address,
+      name: t.name,
+      symbol: t.symbol,
+      leverage: t.leverage,
+      direction: t.direction,
+      underlying: t.underlying,
+      creator: t.creator,
+      createdAt: t.created_at
+    }))
+    return NextResponse.json({ tokens: normalizedTokens })
   }
   
   // Fallback to memory
