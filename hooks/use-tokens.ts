@@ -105,7 +105,9 @@ export function useTokens() {
       // Fetch tokens from Supabase first
       let apiTokens: any[] = []
       try {
+        console.log('Fetching tokens from Supabase...')
         const dbTokens = await getAllTokens()
+        console.log('Supabase returned:', dbTokens.length, 'tokens')
         apiTokens = dbTokens.map((t: any) => ({
           mintAddress: t.mint_address,
           name: t.name,
@@ -117,7 +119,7 @@ export function useTokens() {
           createdAt: t.created_at
         }))
       } catch (e) {
-        console.log('Could not fetch from Supabase, trying API')
+        console.log('Could not fetch from Supabase, trying API:', e)
         // Fallback to API
         try {
           const response = await fetch('/api/tokens')
