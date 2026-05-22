@@ -34,6 +34,7 @@ function getEmoji(name: string, symbol: string): string {
 export function TradesTicker() {
   const [feed, setFeed] = useState<LiveTrade[]>([])
   const [tokenMap, setTokenMap] = useState<Map<string, { name: string; symbol: string }>>(new Map())
+  const [showDemoLabel, setShowDemoLabel] = useState(true)
 
   // Fetch token info from our API
   const fetchTokenInfo = useCallback(async () => {

@@ -1,16 +1,14 @@
 "use client"
 
-import { tokens } from "@/lib/mock-data"
-import Link from "next/link"
 import { Trophy, Zap, Skull, Flame } from "lucide-react"
 
 export function StatsBar() {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4 font-mono text-xs">
-      <Stat icon={<Zap className="h-3.5 w-3.5" />}    label="launches today" value="1,284" tone="primary" />
-      <Stat icon={<Flame className="h-3.5 w-3.5" />}  label="vol 24h"        value="$8.4M"  tone="accent" />
-      <Stat icon={<Trophy className="h-3.5 w-3.5" />} label="graduated"      value="42"     tone="info" />
-      <Stat icon={<Skull className="h-3.5 w-3.5" />}  label="rekt 24h"       value="312"    tone="destructive" />
+      <Stat icon={<Zap className="h-3.5 w-3.5" />}    label="launches today" value="--" tone="primary" />
+      <Stat icon={<Flame className="h-3.5 w-3.5" />}  label="vol 24h"        value="--" tone="accent" />
+      <Stat icon={<Trophy className="h-3.5 w-3.5" />} label="graduated"      value="--" tone="info" />
+      <Stat icon={<Skull className="h-3.5 w-3.5" />}  label="rekt 24h"       value="--" tone="destructive" />
     </div>
   )
 }
@@ -44,7 +42,6 @@ function Stat({
 }
 
 export function NowMintingRail() {
-  const recent = tokens.slice(0, 6)
   return (
     <div className="mb-6 rounded-xl border-2 border-border bg-card overflow-hidden">
       <div className="flex items-center justify-between px-3 py-2 border-b-2 border-border bg-secondary/40">
@@ -55,24 +52,11 @@ export function NowMintingRail() {
           </span>
           <span className="font-display text-[11px] uppercase tracking-widest">just launched</span>
         </div>
-        <span className="font-mono text-[10px] text-muted-foreground">scrolling live · {recent.length * 4} per min</span>
       </div>
-      <div className="overflow-hidden">
-        <div className="flex animate-marquee whitespace-nowrap gap-3 py-3 px-3">
-          {[...recent, ...recent, ...recent].map((t, i) => (
-            <Link
-              key={`${t.id}-${i}`}
-              href={`/token/${t.id}`}
-              className="shrink-0 inline-flex items-center gap-2 rounded-lg border-2 border-border bg-background hover:border-primary px-3 py-2 transition-colors"
-            >
-              <span className="grid h-7 w-7 place-items-center rounded-md bg-secondary text-base">{t.emoji}</span>
-              <div className="flex flex-col leading-tight">
-                <span className="font-mono text-[11px] font-bold">${t.ticker}</span>
-                <span className="font-mono text-[9px] text-muted-foreground">{t.leverage}x {t.direction.toLowerCase()} · {t.underlying}</span>
-              </div>
-            </Link>
-          ))}
-        </div>
+      <div className="p-4 text-center">
+        <span className="font-mono text-xs text-muted-foreground">
+          New launches appear here
+        </span>
       </div>
     </div>
   )
