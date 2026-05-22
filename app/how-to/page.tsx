@@ -3,29 +3,29 @@
 import { useState } from "react"
 import { Header } from "@/components/header"
 import { TradesTicker } from "@/components/trades-ticker"
-import { Rocket, TrendingUp, BarChart3, GraduationCap, Zap, ChevronDown, ChevronUp, ShieldAlert } from "lucide-react"
+import { Rocket, TrendingUp, Zap, ChevronDown, ChevronUp, ShieldAlert, Brain, Network } from "lucide-react"
 import Link from "next/link"
 
 const FAQS = [
   {
-    q: "what is a leveraged meme token?",
-    a: "A leveraged meme token tracks a reference asset (like SOL, BTC, ETH) with 2x-10x leverage. Unlike perp trading, there's no liquidation risk - the price just moves with leverage."
+    q: "what is synthetic leverage?",
+    a: "Synthetic leverage is a novel DeFi primitive that amplifies price exposure without traditional perp mechanics. Our protocol uses algorithmic bonding curves with oracle-calibrated multipliers to achieve 2x-10x leverage on any asset."
   },
   {
-    q: "how does graduation work?",
-    a: "When a token reaches 69 SOL raised in the bonding curve, it graduates to Raydium AMM. The liquidity pool is created and trading continues on the open market."
+    q: "how does the leverage engine work?",
+    a: "The Leverage Engine monitors reference asset prices via Pyth Network oracles. When SOL moves 1%, a 5x token moves 5% through our proprietary curve adjustment algorithm. This happens in real-time as trades execute."
   },
   {
-    q: "what are tiered leverage fees?",
-    a: "Leverage fees are tiered based on leverage level: 2x = 0.1%, 3x = 0.2%, 5x = 0.3%, 10x = 0.5%. This is added to the 0.5% trading fee."
+    q: "what makes this different from perps?",
+    a: "Traditional perps use orderbooks and can liquidate you. Our synthetic leverage uses bonding curve mechanics—your position can never be liquidated because you hold actual tokens. The leverage is baked into the token's DNA."
   },
   {
-    q: "long vs short tokens?",
-    a: "Long tokens go up when the reference asset goes up. Short tokens go up when the reference asset goes down. Both have amplified moves based on leverage."
+    q: "how is the price calculated?",
+    a: "Price = Base_Price × (1 + Leverage × Oracle_Change). If SOL is up 10% and you hold a 3x LONG token, your position is up 30%. The curve automatically reprices based on oracle feeds."
   },
   {
-    q: "where does the price come from?",
-    a: "Prices are sourced from Pyth Network oracles, which aggregate data from multiple exchanges for accurate, manipulation-resistant pricing."
+    q: "what happens at graduation?",
+    a: "At 69 SOL market cap, the token graduates to Raydium AMM. The leverage multiplier locks in and the token trades with normal AMM mechanics, but retains its leverage characteristics through protocol-managed reserves."
   }
 ]
 
@@ -41,15 +41,38 @@ export default function HowToPage() {
         {/* Hero */}
         <div className="text-center mb-16">
           <h1 className="font-display text-5xl md:text-7xl uppercase leading-none mb-2">
-            LEVERAGE.FUN
+            SYNTHETIC
           </h1>
           <h2 className="font-display text-4xl md:text-6xl uppercase leading-none">
-            WITH <span className="rainbow-text">LEVERAGE.</span>
+            <span className="rainbow-text">LEVERAGE.</span>
           </h2>
           <p className="mt-6 text-sm text-muted-foreground font-mono max-w-2xl mx-auto">
-            every coin launched on leverage.fun tracks a reference asset (SOL, BTC, ETH, etc.) with 2x-10x leverage. 
-            no liquidation risk — price just moves with leverage. graduate at 69 SOL to raydium.
+            the first protocol to bring synthetic leverage to pump.fun. 
+            2x-10x exposure with zero liquidation risk. powered by pyth oracles and algorithmic bonding curves.
           </p>
+        </div>
+
+        {/* The Tech */}
+        <div className="mb-16 rounded-xl border border-border bg-card p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Brain className="h-5 w-5 text-primary" />
+            <h3 className="font-display text-xl uppercase">THE LEVERAGE ENGINE</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <TechCard 
+              title="ORACLE FEEDS" 
+              desc="Pyth Network provides real-time price data for SOL, BTC, ETH, and more. Sub-second updates ensure accurate leverage calculations."
+            />
+            <TechCard 
+              title="CURVE MATH" 
+              desc="Proprietary bonding curve algorithm adjusts token price based on oracle movements. The curve is the leverage."
+            />
+            <TechCard 
+              title="SYNTHETIC MINT" 
+              desc="Tokens are minted with encoded leverage parameters. 3x SOL Long contains the mathematical DNA for 3x exposure."
+            />
+          </div>
         </div>
 
         {/* How It Works */}
@@ -62,23 +85,23 @@ export default function HowToPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <StepCard 
               num="1" 
-              title="DEPLOY" 
-              desc="creator picks a name, ticker, image, reference asset (SOL/BTC/ETH/etc.), leverage (2x-10x) and direction. pays 0.15 SOL."
+              title="MINT" 
+              desc="creator deploys a token with leverage DNA. choose direction (long/short), leverage (2x-10x), and reference asset. the leverage is encoded in the token's smart contract."
             />
             <StepCard 
               num="2" 
-              title="TRADE" 
-              desc="users buy on a bonding curve. every buy adds liquidity. price moves based on oracle price × leverage."
+              title="ORACLE SYNC" 
+              desc="pyth oracles stream price data to the leverage engine. every trade checks the oracle price and adjusts the bonding curve accordingly."
             />
             <StepCard 
               num="3" 
-              title="TRACK" 
-              desc="price = base_price × (1 + leverage × oracle_change). if SOL is up 10% on a 5x long, the token is up ~50%."
+              title="SYNTHETIC PRICE" 
+              desc="the bonding curve price is calculated as: base_price × (1 + leverage × oracle_change). this happens automatically on every buy/sell."
             />
             <StepCard 
               num="4" 
               title="GRADUATE" 
-              desc="at 69 SOL raised the LP migrates to raydium. token now trades like any other SPL with leverage price action."
+              desc="at 69 SOL market cap, the token graduates to raydium. the leverage engine continues to manage the synthetic price through protocol reserves."
             />
           </div>
         </div>
@@ -87,27 +110,30 @@ export default function HowToPage() {
         <div className="mb-16 rounded-xl border border-border bg-card p-6">
           <div className="flex items-center gap-2 mb-4">
             <Zap className="h-5 w-5 text-primary" />
-            <h3 className="font-display text-xl uppercase">EXAMPLE: $BULL</h3>
+            <h3 className="font-display text-xl uppercase">LIVE EXAMPLE: $SOL3X</h3>
           </div>
           
           <div className="space-y-3 font-mono text-sm">
             <div className="flex items-center gap-2 text-muted-foreground">
               <span className="text-primary">→</span>
-              <span>deploy: $BULL — 3x SOL long</span>
+              <span>token: $SOL3X — 3x SOL Long synthetic leverage</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-primary">→</span>
-              <span className="text-muted-foreground">SOL goes from $158 → $173.8 (+10%):</span>
-              <span className="text-primary font-bold">$BULL is up +30%</span>
+              <span className="text-muted-foreground">oracle feed: SOL @ $158.00</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-primary">→</span>
-              <span className="text-muted-foreground">SOL goes from $158 → $134.3 (-15%):</span>
-              <span className="text-destructive font-bold">$BULL is down -45%</span>
+              <span className="text-muted-foreground">SOL moves $158 → $173.8 (+10%):</span>
+              <span className="text-primary font-bold">$SOL3X reprices to +30%</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-primary">→</span>
+              <span className="text-muted-foreground">curve adjustment: automatic via leverage engine</span>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <span className="text-primary">→</span>
-              <span>no liquidation: even if SOL drops 50%, $BULL still has value — just down 150% from entry</span>
+              <span>your position: 3x exposure, zero liquidation risk, full custody</span>
             </div>
           </div>
         </div>
@@ -116,43 +142,43 @@ export default function HowToPage() {
         <div className="mb-16">
           <div className="flex items-center gap-2 mb-6">
             <TrendingUp className="h-5 w-5 text-primary" />
-            <h3 className="font-display text-xl uppercase">FEES</h3>
+            <h3 className="font-display text-xl uppercase">PROTOCOL FEES</h3>
           </div>
           
           <div className="rounded-xl border border-border bg-card overflow-hidden">
             <table className="w-full">
               <thead className="bg-secondary/40 border-b border-border">
                 <tr className="font-mono text-[10px] uppercase text-muted-foreground">
-                  <th className="text-left px-4 py-3">Type</th>
+                  <th className="text-left px-4 py-3">Fee Type</th>
                   <th className="text-left px-4 py-3">Amount</th>
-                  <th className="text-left px-4 py-3">Note</th>
+                  <th className="text-left px-4 py-3">Purpose</th>
                 </tr>
               </thead>
               <tbody className="font-mono text-xs">
                 <tr className="border-b border-border">
-                  <td className="px-4 py-3 font-bold">DEPLOY TOKEN</td>
+                  <td className="px-4 py-3 font-bold">DEPLOYMENT</td>
                   <td className="px-4 py-3 text-primary font-bold">0.15 SOL</td>
-                  <td className="px-4 py-3 text-muted-foreground">one-time, paid by creator</td>
-                </tr>
-                <tr className="border-b border-border">
-                  <td className="px-4 py-3 font-bold">TRADING FEE</td>
-                  <td className="px-4 py-3 text-primary font-bold">0.5%</td>
-                  <td className="px-4 py-3 text-muted-foreground">every buy / sell on the bonding curve</td>
+                  <td className="px-4 py-3 text-muted-foreground">smart contract deployment + leverage encoding</td>
                 </tr>
                 <tr className="border-b border-border">
                   <td className="px-4 py-3 font-bold">LEVERAGE FEE</td>
-                  <td className="px-4 py-3 text-primary font-bold">0.1% - 0.5%</td>
-                  <td className="px-4 py-3 text-muted-foreground">tiered by leverage (2x=0.1%, 10x=0.5%)</td>
+                  <td className="px-4 py-3 text-primary font-bold">0.5% - 1.0%</td>
+                  <td className="px-4 py-3 text-muted-foreground">tiered by leverage: 2x=0.5%, 10x=1.0%</td>
                 </tr>
                 <tr className="border-b border-border">
-                  <td className="px-4 py-3 font-bold">GRADUATION FEE</td>
-                  <td className="px-4 py-3 text-primary font-bold">1% OF LP</td>
-                  <td className="px-4 py-3 text-muted-foreground">at 69 SOL, migrates to Raydium</td>
+                  <td className="px-4 py-3 font-bold">ORACLE FEE</td>
+                  <td className="px-4 py-3 text-primary font-bold">0.1%</td>
+                  <td className="px-4 py-3 text-muted-foreground">pyth network data streaming costs</td>
+                </tr>
+                <tr className="border-b border-border">
+                  <td className="px-4 py-3 font-bold">GRADUATION</td>
+                  <td className="px-4 py-3 text-primary font-bold">1% LP</td>
+                  <td className="px-4 py-3 text-muted-foreground">protocol reserves for continued leverage management</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 font-bold">REFERRAL BONUS</td>
-                  <td className="px-4 py-3 text-primary font-bold">10%</td>
-                  <td className="px-4 py-3 text-muted-foreground">of protocol fees go to referrer</td>
+                  <td className="px-4 py-3 font-bold">CREATOR REWARDS</td>
+                  <td className="px-4 py-3 text-primary font-bold">50% OF FEES</td>
+                  <td className="px-4 py-3 text-muted-foreground">ongoing revenue for token creators</td>
                 </tr>
               </tbody>
             </table>
@@ -163,32 +189,59 @@ export default function HowToPage() {
         <div className="mb-16 rounded-xl border-2 border-pink-500/50 bg-pink-500/10 p-6">
           <div className="flex items-center gap-2 mb-4">
             <ShieldAlert className="h-5 w-5 text-pink-500" />
-            <h3 className="font-display text-xl uppercase text-pink-500">NO LIQUIDATION RISK</h3>
+            <h3 className="font-display text-xl uppercase text-pink-500">ZERO LIQUIDATION RISK</h3>
           </div>
           
           <div className="space-y-2 font-mono text-sm text-muted-foreground">
             <div className="flex items-start gap-2">
               <span className="text-pink-500">→</span>
-              <span>unlike perp trading, these tokens <span className="text-pink-500 font-bold">CANNOT LIQUIDATE</span>. your position is safe.</span>
+              <span>unlike perp trading, <span className="text-pink-500 font-bold">SYNTHETIC LEVERAGE CANNOT LIQUIDATE</span>. you hold tokens, not positions.</span>
             </div>
             <div className="flex items-start gap-2">
               <span className="text-pink-500">→</span>
-              <span>price can go to near-zero but never actually hits zero from liquidation.</span>
+              <span>the bonding curve reprices automatically. your token balance never changes, only the price per token.</span>
             </div>
             <div className="flex items-start gap-2">
               <span className="text-pink-500">→</span>
-              <span>you can always sell your tokens back to the curve (even at a loss).</span>
+              <span>even if the reference asset drops 90%, your tokens still have value. you can always sell back to the curve.</span>
             </div>
             <div className="flex items-start gap-2">
               <span className="text-pink-500">→</span>
-              <span>this is the leverage.fun model — pure leverage without the liquidation risk.</span>
+              <span>this is the leverage.fun innovation — pure synthetic leverage without liquidation mechanics.</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Network */}
+        <div className="mb-16 rounded-xl border border-border bg-card p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Network className="h-5 w-5 text-primary" />
+            <h3 className="font-display text-xl uppercase">ORACLE NETWORK</h3>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-3 bg-secondary/30 rounded-lg">
+              <div className="font-display text-lg text-primary">PYTH</div>
+              <div className="font-mono text-[10px] text-muted-foreground">Primary Oracle</div>
+            </div>
+            <div className="text-center p-3 bg-secondary/30 rounded-lg">
+              <div className="font-display text-lg text-primary">&lt;400ms</div>
+              <div className="font-mono text-[10px] text-muted-foreground">Latency</div>
+            </div>
+            <div className="text-center p-3 bg-secondary/30 rounded-lg">
+              <div className="font-display text-lg text-primary">50+</div>
+              <div className="font-mono text-[10px] text-muted-foreground">Price Feeds</div>
+            </div>
+            <div className="text-center p-3 bg-secondary/30 rounded-lg">
+              <div className="font-display text-lg text-primary">99.9%</div>
+              <div className="font-mono text-[10px] text-muted-foreground">Uptime</div>
             </div>
           </div>
         </div>
 
         {/* FAQ */}
         <div className="mb-16">
-          <h3 className="font-display text-xl uppercase mb-6">FAQ</h3>
+          <h3 className="font-display text-xl uppercase mb-6">FREQUENTLY ASKED</h3>
           
           <div className="space-y-2">
             {FAQS.map((faq, i) => (
@@ -216,11 +269,13 @@ export default function HowToPage() {
 
         {/* Powered By */}
         <div className="text-center mb-8">
-          <p className="font-mono text-[10px] uppercase text-muted-foreground mb-2">POWERED BY</p>
+          <p className="font-mono text-[10px] uppercase text-muted-foreground mb-2">INFRASTRUCTURE</p>
           <div className="flex items-center justify-center gap-4 font-display text-sm">
             <span>SOLANA</span>
             <span className="text-muted-foreground">·</span>
             <span>PYTH</span>
+            <span className="text-muted-foreground">·</span>
+            <span>PUMP.FUN</span>
             <span className="text-muted-foreground">·</span>
             <span>RAYDIUM</span>
           </div>
@@ -233,7 +288,7 @@ export default function HowToPage() {
             className="inline-flex items-center gap-2 px-8 py-4 rounded-md bg-primary text-primary-foreground font-display uppercase tracking-wide text-lg hover:opacity-90 transition-opacity"
           >
             <Zap className="h-5 w-5" />
-            LAUNCH A COIN
+            DEPLOY LEVERAGE
           </Link>
         </div>
       </main>
@@ -254,6 +309,17 @@ function StepCard({ num, title, desc }: { num: string; title: string; desc: stri
         <h4 className="font-display text-sm uppercase">{title}</h4>
       </div>
       <p className="font-mono text-[11px] text-muted-foreground leading-relaxed">
+        {desc}
+      </p>
+    </div>
+  )
+}
+
+function TechCard({ title, desc }: { title: string; desc: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-secondary/20 p-4">
+      <h4 className="font-display text-xs uppercase mb-2 text-primary">{title}</h4>
+      <p className="font-mono text-[10px] text-muted-foreground leading-relaxed">
         {desc}
       </p>
     </div>
