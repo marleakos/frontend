@@ -21,7 +21,6 @@ const bungee = Bungee({
 export const metadata: Metadata = {
   title: "leverage.fun — leveraged meme launchpad",
   description: "launch leveraged meme coins. 2x, 3x, 5x your favorite perps. fair launch on a bonding curve. you will get rekt.",
-  generator: "v0.app",
 }
 
 export default function RootLayout({
