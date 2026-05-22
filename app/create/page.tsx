@@ -179,21 +179,43 @@ export default function CreatePage() {
           
           console.log(`Buying ${tokenAmount.toString()} tokens with ${initialBuyAmount} SOL`)
           
-          instructions = await sdk.createAndBuyInstructions({
-            global,
-            mint: mint.publicKey,
-            name: name.trim(),
-            symbol: ticker.trim().toUpperCase(),
-            uri: uri,
-            creator: publicKey,
-            user: publicKey,
-            amount: tokenAmount,
-            solAmount: solAmountLamports,
-          })
+          // Try createV2AndBuyInstructions first (newer method)
+          try {
+            instructions = await sdk.createV2AndBuyInstructions({
+              global,
+              mint: mint.publicKey,
+              name: name.trim(),
+              symbol: ticker.trim().toUpperCase(),
+              uri: uri,
+              creator: publicKey,
+              user: publicKey,
+              amount: tokenAmount,
+              solAmount: solAmountLamports,
+              mayhemMode: false,
+            })
+            console.log("CreateV2 + Buy instructions created:", instructions.length)
+          } catch (v2Error: any) {
+            console.log("V2 method failed, trying deprecated method:", v2Error.message)
+            // Fallback to deprecated method
+            instructions = await sdk.createAndBuyInstructions({
+              global,
+              mint: mint.publicKey,
+              name: name.trim(),
+              symbol: ticker.trim().toUpperCase(),
+              uri: uri,
+              creator: publicKey,
+              user: publicKey,
+              amount: tokenAmount,
+              solAmount: solAmountLamports,
+            })
+            console.log("CreateAndBuy instructions created:", instructions.length)
+          }
           console.log("Create + Buy instructions created:", instructions.length)
-        } catch (e) {
+        } catch (e: any) {
           console.error("Could not create buy instructions:", e)
-          toast.error("Could not add initial buy, creating token only", { id: "deploy" })
+          console.error("Error message:", e.message)
+          console.error("Error stack:", e.stack)
+          toast.error(`Could not add initial buy: ${e.message || 'Unknown error'}`, { id: "deploy" })
           
           // Fallback to just create
           const createInstruction = await sdk.createInstruction({
