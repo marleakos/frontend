@@ -297,8 +297,8 @@ export default function CreatePage() {
                     JPG, PNG, GIF, WebP
                   </p>
                 </div>
-                <div className="space-y-3">
-                  <Field label="NAME">
+                <div className="space-y-4">
+                  <Field label="NAME" required>
                     <input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
@@ -306,9 +306,9 @@ export default function CreatePage() {
                       maxLength={32}
                       className="input"
                     />
-                    <p className="font-mono text-[9px] text-muted-foreground mt-1">{name.length}/32</p>
+                    <p className="font-mono text-[9px] text-muted-foreground mt-1 text-right">{name.length}/32</p>
                   </Field>
-                  <Field label="TICKER">
+                  <Field label="TICKER" required>
                     <input
                       value={ticker}
                       onChange={(e) => setTicker(e.target.value.toUpperCase().slice(0, 10))}
@@ -316,7 +316,7 @@ export default function CreatePage() {
                       maxLength={10}
                       className="input"
                     />
-                    <p className="font-mono text-[9px] text-muted-foreground mt-1">{ticker.length}/10</p>
+                    <p className="font-mono text-[9px] text-muted-foreground mt-1 text-right">{ticker.length}/10</p>
                   </Field>
                   <Field label="DESCRIPTION">
                     <textarea
@@ -531,21 +531,24 @@ export default function CreatePage() {
 
 function Section({ step, title, children }: { step: string; title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
-      <div className="flex items-center gap-3 mb-4">
-        <span className="font-mono text-xs text-primary">{step}.</span>
-        <h2 className="font-mono text-xs uppercase tracking-wider text-foreground">{title}</h2>
+    <div className="rounded-xl border-2 border-border bg-card p-6 shadow-sm">
+      <div className="flex items-center gap-3 mb-5 pb-3 border-b border-border">
+        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground font-mono text-[10px] font-bold">
+          {step}
+        </span>
+        <h2 className="font-display text-sm uppercase tracking-wider text-foreground">{title}</h2>
       </div>
       {children}
     </div>
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children, required }: { label: string; children: React.ReactNode; required?: boolean }) {
   return (
-    <div>
-      <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground block mb-1.5">
+    <div className="space-y-1.5">
+      <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground block">
         {label}
+        {required && <span className="text-primary ml-1">*</span>}
       </label>
       {children}
     </div>

@@ -158,6 +158,23 @@
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
 
+/* Form inputs - matching website style */
+.input {
+  @apply w-full px-4 py-3 rounded-lg bg-secondary border-2 border-border text-foreground font-mono text-sm;
+  @apply placeholder:text-muted-foreground;
+  @apply focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary;
+  @apply transition-colors duration-150;
+}
+
+.input:hover {
+  @apply border-muted-foreground/50;
+}
+
+/* Textarea variant */
+textarea.input {
+  @apply min-h-[100px] resize-none;
+}
+
 /* KOTH — flat caution-tape style banner, no AI glow */
 .koth-banner {
   background: #ffd400; /* flat yellow */
