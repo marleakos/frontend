@@ -137,11 +137,12 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
           progress,
           replies: 0,
           ageMinutes: Math.max(0, ageMinutes),
-          change24h: 0,
+          change24h: priceChange24h,
           liqDistance: 100,
           description: "",
           mint: new PublicKey(storedToken.mintAddress),
           graduated,
+          price: tokenPrice,
         })
 
         // Fee vault not applicable for pump.fun tokens
