@@ -125,25 +125,27 @@ export default function CreatePage() {
       const connection = new Connection(RPC_URL, "confirmed")
       console.log("Connection created, RPC:", RPC_URL)
       
-      // Try to generate vanity address, fallback to regular if it takes too long
+      // Generate vanity address with longer timeout
       let mint: Keypair
       try {
         const expectedPrefix = getExpectedPrefix(direction, leverage, referenceAsset)
-        toast.loading(`Generating address with prefix ${expectedPrefix}...`, { id: "deploy" })
+        toast.loading(`Generating ${expectedPrefix}... address`, { id: "deploy" })
         
-        // Race between vanity generation and timeout
+        // Generate vanity with 10 second timeout
         mint = await Promise.race([
-          generateVanityAddress(direction, leverage, referenceAsset, 5000),
+          generateVanityAddress(direction, leverage, referenceAsset, 10000),
           new Promise<Keypair>((_, reject) => 
-            setTimeout(() => reject(new Error('Timeout')), 3000)
+            setTimeout(() => reject(new Error('Timeout')), 10000)
           )
         ])
         console.log("Vanity mint generated:", mint.publicKey.toString())
+        toast.success(`Found ${expectedPrefix} address!`, { id: "deploy" })
       } catch (e) {
         // Fallback to regular address
-        console.log("Vanity generation failed or timed out, using regular address")
+        console.log("Vanity generation failed, using regular address:", e)
         mint = generateRegularAddress()
         console.log("Regular mint generated:", mint.publicKey.toString())
+        toast.info("Using regular address (vanity not found)", { id: "deploy" })
       }
       
       // Upload image and create metadata

@@ -41,7 +41,7 @@ export async function generateVanityAddress(
   direction: "LONG" | "SHORT",
   leverage: number,
   asset: string,
-  maxAttempts: number = 5000
+  maxAttempts: number = 50000
 ): Promise<Keypair> {
   // Build short prefix: L5S, SXB, etc.
   const prefix = `${DIRECTION_PREFIX[direction]}${LEVERAGE_PREFIX[leverage]}${ASSET_PREFIX[asset] || asset[0]}`.toLowerCase()
@@ -54,8 +54,8 @@ export async function generateVanityAddress(
     const startTime = Date.now()
     
     const tryGenerate = () => {
-      // Process in batches of 100 to prevent blocking
-      for (let i = 0; i < 100; i++) {
+      // Process in batches of 500 for faster generation
+      for (let i = 0; i < 500; i++) {
         if (attempts >= maxAttempts) {
           reject(new Error(`Could not find vanity address with prefix ${prefix} after ${maxAttempts} attempts`))
           return
