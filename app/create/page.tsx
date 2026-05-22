@@ -164,13 +164,20 @@ export default function CreatePage() {
         try {
           const global = await sdk.getGlobalAccount()
           
-          // Calculate token amount from SOL amount using SDK helper
-          const { getBuyTokenAmountFromSolAmount } = await import("@pump-fun/pump-sdk")
-          const tokenAmount = getBuyTokenAmountFromSolAmount(
-            new BN(initialBuyAmount * 1e9),
-            global.virtualSolReserves,
-            global.virtualTokenReserves
-          )
+          // For new tokens, pump.fun starts with:
+          // virtualSolReserves = 30 SOL
+          // virtualTokenReserves = 1,073,000,000 tokens (with 6 decimals)
+          const INITIAL_VIRTUAL_SOL = new BN(30 * 1e9) // 30 SOL in lamports
+          const INITIAL_VIRTUAL_TOKENS = new BN(1073000000 * 1e6) // 1.073B tokens with 6 decimals
+          
+          // Calculate token amount from SOL amount
+          // Formula: tokens = (sol_amount * virtual_token_reserves) / (virtual_sol_reserves + sol_amount)
+          const solAmountLamports = new BN(initialBuyAmount * 1e9)
+          const numerator = solAmountLamports.mul(INITIAL_VIRTUAL_TOKENS)
+          const denominator = INITIAL_VIRTUAL_SOL.add(solAmountLamports)
+          const tokenAmount = numerator.div(denominator)
+          
+          console.log(`Buying ${tokenAmount.toString()} tokens with ${initialBuyAmount} SOL`)
           
           instructions = await sdk.createAndBuyInstructions({
             global,
@@ -181,7 +188,7 @@ export default function CreatePage() {
             creator: publicKey,
             user: publicKey,
             amount: tokenAmount,
-            solAmount: new BN(initialBuyAmount * 1e9),
+            solAmount: solAmountLamports,
           })
           console.log("Create + Buy instructions created:", instructions.length)
         } catch (e) {
