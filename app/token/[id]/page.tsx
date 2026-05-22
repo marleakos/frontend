@@ -106,25 +106,23 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
           console.log('Could not fetch DexScreener data:', e)
         }
         
-        setTokenImage(dexImageUrl)
-        
         setPrice(tokenPrice)
         
-        // Try to fetch metadata from blockchain if not in our database
+        // Always try to fetch image from blockchain metadata
         let chainMetadata: any = null
-        if (!storedToken) {
-          try {
-            const { getTokenMetadata } = await import('@/lib/token-metadata')
-            chainMetadata = await getTokenMetadata(id)
-            console.log('Fetched from blockchain:', chainMetadata)
-          } catch (e) {
-            console.log('Could not fetch from blockchain:', e)
-          }
+        try {
+          const { getTokenMetadata } = await import('@/lib/token-metadata')
+          chainMetadata = await getTokenMetadata(id)
+          console.log('Fetched from blockchain:', chainMetadata)
+        } catch (e) {
+          console.log('Could not fetch from blockchain:', e)
         }
         
-        // Set token image from metadata
+        // Set token image from metadata (prefer blockchain over DexScreener)
         if (chainMetadata?.image) {
           setTokenImage(chainMetadata.image)
+        } else if (dexImageUrl) {
+          setTokenImage(dexImageUrl)
         }
         
         // Check if we have valid token data from anywhere
