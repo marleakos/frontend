@@ -46,6 +46,7 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
   const { id } = use(params)
   const router = useRouter()
   const [token, setToken] = useState<TokenData | null>(null)
+  const [tokenImage, setTokenImage] = useState<string | null>(null)
   const [feeVaultData, setFeeVaultData] = useState<{ totalCollected: number; creatorClaimed: number } | null>(null)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
@@ -80,30 +81,32 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
         // Find the token we're looking for
         let storedToken = allTokens.find((t: any) => t.mintAddress === id)
         
-        // Fetch market data from DexScreener
+        // Fetch market data and image from DexScreener
         let marketCap = 0
         let graduated = false
         let tokenPrice = 0
         let priceChange24h = 0
+        let dexImageUrl: string | null = null
         
         try {
-          const { getTokenMarketData } = await import('@/lib/pumpfun')
-          const marketData = await getTokenMarketData(id)
+          const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${id}`)
+          const dexData = await response.json()
           
-          if (marketData) {
-            tokenPrice = marketData.price
-            marketCap = marketData.marketCap
-            priceChange24h = marketData.priceChange24h
-            graduated = marketData.complete
-            setDataSource('DexScreener API')
+          if (dexData.pairs && dexData.pairs.length > 0) {
+            const pair = dexData.pairs[0]
+            tokenPrice = parseFloat(pair.priceUsd) || 0
+            marketCap = pair.marketCap || 0
+            priceChange24h = pair.priceChange?.h24 || 0
+            graduated = pair.marketCap > 69000
+            dexImageUrl = pair.baseToken?.icon || pair.info?.imageUrl || null
             
-            console.log('Token page - Market data:', { marketCap, tokenPrice, priceChange24h, graduated })
-          } else {
-            console.log('Token page - No market data found')
+            console.log('Token page - DexScreener data:', { marketCap, tokenPrice, image: dexImageUrl })
           }
         } catch (e) {
-          console.log('Could not fetch market data:', e)
+          console.log('Could not fetch DexScreener data:', e)
         }
+        
+        setTokenImage(dexImageUrl)
         
         setPrice(tokenPrice)
         
@@ -245,8 +248,19 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
             {/* Token header */}
             <div className="rounded-lg border border-border bg-card overflow-hidden">
               <div className="flex gap-3 p-3 md:p-4">
-                <div className="relative grid h-16 w-16 md:h-24 md:w-24 shrink-0 place-items-center rounded-md bg-secondary text-3xl md:text-5xl">
-                  {token.emoji}
+                <div className="relative grid h-16 w-16 md:h-24 md:w-24 shrink-0 place-items-center rounded-md bg-secondary overflow-hidden">
+                  {tokenImage ? (
+                    <img 
+                      src={tokenImage} 
+                      alt={token.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none'
+                      }}
+                    />
+                  ) : (
+                    <span className="text-3xl md:text-5xl">{token.emoji}</span>
+                  )}
                 </div>
 
                 <div className="flex-1 flex flex-col gap-1.5 md:gap-2 min-w-0">
