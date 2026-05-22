@@ -52,6 +52,7 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
   const [claimingFees, setClaimingFees] = useState(false)
 
   const [price, setPrice] = useState<number>(0)
+  const [dataSource, setDataSource] = useState<string>('')
 
   useEffect(() => {
     async function fetchToken() {
@@ -86,8 +87,11 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
             tokenPrice = bondingData.price
             marketCap = bondingData.marketCap
             graduated = bondingData.complete
+            setDataSource('pump.fun bonding curve')
             
             console.log('Token page - Bonding curve data:', { marketCap, tokenPrice, graduated })
+          } else {
+            console.log('Token page - No bonding curve data found')
           }
         } catch (e) {
           console.log('Could not fetch bonding curve data:', e)

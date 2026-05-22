@@ -23,10 +23,13 @@ export interface BondingCurveData {
 
 export async function getBondingCurveData(
   mintAddress: string,
-  rpcUrl: string = 'https://api.mainnet-beta.solana.com'
+  rpcUrl?: string
 ): Promise<BondingCurveData | null> {
   try {
-    const connection = new Connection(rpcUrl, 'confirmed')
+    // Use provided RPC, env variable, or fallback to public RPC
+    const finalRpcUrl = rpcUrl || process.env.NEXT_PUBLIC_RPC_URL || 'https://api.mainnet-beta.solana.com'
+    console.log('Using RPC:', finalRpcUrl)
+    const connection = new Connection(finalRpcUrl, 'confirmed')
     const mint = new PublicKey(mintAddress)
     
     // Derive bonding curve PDA
