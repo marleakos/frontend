@@ -53,7 +53,9 @@ function getEmoji(name: string, symbol: string): string {
   return "🪙"
 }
 
-// Fetch token data from DexScreener API (free, no key needed)
+// Fetch token data from pump.fun bonding curve (works for ALL tokens)
+import { getBondingCurveData } from '@/lib/pumpfun'
+// Fallback to DexScreener for price change data
 import { getTokenData } from '@/lib/dexscreener'
 
 async function fetchTokenMarketData(mintAddress: string): Promise<{ 
@@ -62,17 +64,31 @@ async function fetchTokenMarketData(mintAddress: string): Promise<{
   volume24h: number
   priceChange24h: number
 } | null> {
-  const data = await getTokenData(mintAddress)
+  // Try bonding curve first (works for new tokens)
+  const bondingData = await getBondingCurveData(mintAddress)
   
-  if (!data) {
+  if (!bondingData) {
     return null
   }
   
+  // Try DexScreener for volume and price change
+  let volume24h = 0
+  let priceChange24h = 0
+  try {
+    const dexData = await getTokenData(mintAddress)
+    if (dexData) {
+      volume24h = dexData.volume?.h24 || 0
+      priceChange24h = dexData.priceChange?.h24 || 0
+    }
+  } catch (e) {
+    console.log('Could not fetch DexScreener data for', mintAddress)
+  }
+  
   return {
-    marketCap: data.marketCap || 0,
-    price: parseFloat(data.priceUsd) || 0,
-    volume24h: data.volume?.h24 || 0,
-    priceChange24h: data.priceChange?.h24 || 0
+    marketCap: bondingData.marketCap || 0,
+    price: bondingData.price || 0,
+    volume24h,
+    priceChange24h
   }
 }
 

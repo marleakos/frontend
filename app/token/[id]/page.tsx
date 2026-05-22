@@ -72,25 +72,38 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
           storedToken = storedTokens.find((t: any) => t.mintAddress === id)
         }
         
-        // Fetch real data from DexScreener
+        // Fetch real data from pump.fun bonding curve (works for ALL tokens)
         let marketCap = 0
         let graduated = false
         let tokenPrice = 0
         let priceChange24h = 0
+        
         try {
-          const { getTokenData } = await import('@/lib/dexscreener')
-          const data = await getTokenData(id)
+          const { getBondingCurveData } = await import('@/lib/pumpfun')
+          const bondingData = await getBondingCurveData(id, process.env.NEXT_PUBLIC_RPC_URL)
           
-          if (data) {
-            tokenPrice = parseFloat(data.priceUsd) || 0
-            marketCap = data.marketCap || 0
-            priceChange24h = data.priceChange?.h24 || 0
-            graduated = marketCap >= 69000
+          if (bondingData) {
+            tokenPrice = bondingData.price
+            marketCap = bondingData.marketCap
+            graduated = bondingData.complete
             
-            console.log('Token page - DexScreener data:', { marketCap, tokenPrice, priceChange24h, graduated })
+            console.log('Token page - Bonding curve data:', { marketCap, tokenPrice, graduated })
           }
         } catch (e) {
-          console.log('Could not fetch DexScreener data:', e)
+          console.log('Could not fetch bonding curve data:', e)
+        }
+        
+        // Fallback to DexScreener for price change data
+        if (tokenPrice > 0) {
+          try {
+            const { getTokenData } = await import('@/lib/dexscreener')
+            const dexData = await getTokenData(id)
+            if (dexData) {
+              priceChange24h = dexData.priceChange?.h24 || 0
+            }
+          } catch (e) {
+            console.log('Could not fetch DexScreener data:', e)
+          }
         }
         
         setPrice(tokenPrice)
