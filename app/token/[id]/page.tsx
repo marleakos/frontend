@@ -107,22 +107,22 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
         
         setPrice(tokenPrice)
         
-        // Try to fetch from pump.fun API if not in our database
-        let pumpFunToken: any = null
+        // Try to fetch metadata from blockchain if not in our database
+        let chainMetadata: any = null
         if (!storedToken) {
           try {
-            const { getPumpFunToken } = await import('@/lib/pumpfun')
-            pumpFunToken = await getPumpFunToken(id)
-            console.log('Fetched from pump.fun:', pumpFunToken)
+            const { getTokenMetadata } = await import('@/lib/token-metadata')
+            chainMetadata = await getTokenMetadata(id)
+            console.log('Fetched from blockchain:', chainMetadata)
           } catch (e) {
-            console.log('Could not fetch from pump.fun API:', e)
+            console.log('Could not fetch from blockchain:', e)
           }
         }
         
         // Check if we have valid token data from anywhere
-        const hasValidPumpData = pumpFunToken && pumpFunToken.name && pumpFunToken.symbol
+        const hasValidMetadata = chainMetadata && chainMetadata.name && chainMetadata.symbol
         
-        if (!storedToken && !hasValidPumpData) {
+        if (!storedToken && !hasValidMetadata) {
           // Token not found anywhere - but we might have market data
           // Show the token with mint address as name
           setToken({
@@ -149,18 +149,16 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
           return
         }
         
-        // Use pump.fun data if available, otherwise use stored token
+        // Use chain metadata if available, otherwise use stored token
         const tokenData = storedToken || {
-          name: pumpFunToken.name,
-          symbol: pumpFunToken.symbol,
-          mintAddress: pumpFunToken.mint || id,
-          creator: pumpFunToken.creator || "",
+          name: chainMetadata?.name || `Token ${id.slice(0, 8)}...`,
+          symbol: chainMetadata?.symbol || "UNKNOWN",
+          mintAddress: id,
+          creator: chainMetadata?.creator || "",
           leverage: 2,
           direction: 'LONG',
           underlying: 'SOL',
-          createdAt: pumpFunToken.created_timestamp 
-            ? new Date(pumpFunToken.created_timestamp).toISOString()
-            : new Date().toISOString()
+          createdAt: new Date().toISOString()
         }
 
         const createdAt = new Date(tokenData.createdAt).getTime()
