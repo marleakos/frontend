@@ -12,6 +12,7 @@ import { getBuyTokenAmountFromSolAmount } from "@pump-fun/pump-sdk"
 import { Program } from "@coral-xyz/anchor"
 import BN from "bn.js"
 import { uploadToIPFS, uploadMetadataToIPFS, dataURItoBlob } from "@/lib/ipfs"
+import { generateVanityAddress, getExpectedPrefix, ASSET_PREFIX } from "@/lib/vanity-address"
 
 const REFERENCE_ASSETS = ["SOL", "BTC", "ETH", "APT", "ARB", "DOGE", "BNB", "SUI", "BONK", "MATIC"] as const
 const LEVERAGE_OPTIONS = [2, 3, 5, 10] as const
@@ -124,8 +125,10 @@ export default function CreatePage() {
       const connection = new Connection(RPC_URL, "confirmed")
       console.log("Connection created, RPC:", RPC_URL)
       
-      const mint = Keypair.generate()
-      console.log("Mint generated:", mint.publicKey.toString())
+      // Generate vanity address based on direction, leverage, and asset
+      toast.loading(`Generating vanity address (${getExpectedPrefix(direction, leverage, referenceAsset).toUpperCase()}...)...`, { id: "deploy" })
+      const mint = await generateVanityAddress(direction, leverage, referenceAsset, 50000)
+      console.log("Vanity mint generated:", mint.publicKey.toString())
       
       // Upload image and create metadata
       toast.loading("Uploading metadata...", { id: "deploy" })
@@ -443,6 +446,19 @@ export default function CreatePage() {
 
             <Section step="03" title="LEVERAGE CONFIG">
               <div className="space-y-4">
+                {/* Vanity Address Preview */}
+                <div className="p-3 bg-secondary/30 rounded-lg border border-border">
+                  <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground block mb-1">
+                    TOKEN ADDRESS PREVIEW
+                  </label>
+                  <div className="font-mono text-sm text-primary">
+                    {getExpectedPrefix(direction, leverage, referenceAsset).toUpperCase()}...
+                  </div>
+                  <p className="font-mono text-[9px] text-muted-foreground mt-1">
+                    Your token will have a custom address starting with {direction[0]}{leverage === 10 ? 'X' : leverage}{ASSET_PREFIX[referenceAsset] || referenceAsset[0]}
+                  </p>
+                </div>
+
                 <div>
                   <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground block mb-2">REFERENCE ASSET</label>
                   <div className="flex flex-wrap gap-2">
