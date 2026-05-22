@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useWallet } from "@solana/wallet-adapter-react"
 import { useWalletModal } from "@solana/wallet-adapter-react-ui"
 import { Menu, X, Wallet, Loader2, Search, User } from "lucide-react"
+import { getAllTokens } from "@/lib/supabase"
 
 const NAV = [
   { href: "/", label: "[board]" },
@@ -16,9 +17,30 @@ const NAV = [
 
 export function Header() {
   const pathname = usePathname()
+  const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [showResults, setShowResults] = useState(false)
   const { connected, publicKey, disconnect, connecting } = useWallet()
   const { setVisible } = useWalletModal()
+
+  useEffect(() => {
+    const searchTokens = async () => {
+      if (!searchQuery.trim()) {
+        setSearchResults([])
+        return
+      }
+      const tokens = await getAllTokens()
+      const filtered = tokens.filter((t: any) => 
+        t.symbol?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.mint_address?.toLowerCase().includes(searchQuery.toLowerCase())
+      ).slice(0, 5)
+      setSearchResults(filtered)
+    }
+    searchTokens()
+  }, [searchQuery])
 
   const handleConnect = () => {
     setVisible(true)
@@ -50,13 +72,31 @@ export function Header() {
 
         <div className="ml-auto flex items-center gap-3">
           {/* Search */}
-          <div className="hidden sm:flex items-center gap-2 bg-secondary rounded px-3 py-1.5 border border-border">
+          <div className="hidden sm:flex items-center gap-2 bg-secondary rounded px-3 py-1.5 border border-border relative">
             <Search className="h-3.5 w-3.5 text-muted-foreground" />
             <input 
               type="text" 
-              placeholder="search ticker / contract" 
+              placeholder="search ticker / contract"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setShowResults(true) }}
+              onBlur={() => setTimeout(() => setShowResults(false), 200)}
               className="bg-transparent text-xs font-mono outline-none w-40 text-foreground placeholder:text-muted-foreground"
             />
+            {showResults && searchResults.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded shadow-lg z-50">
+                {searchResults.map((t) => (
+                  <Link
+                    key={t.mint_address}
+                    href={`/token/${t.mint_address}`}
+                    onClick={() => { setShowResults(false); setSearchQuery('') }}
+                    className="block px-3 py-2 text-xs font-mono hover:bg-secondary border-b border-border last:border-0"
+                  >
+                    <span className="text-primary font-bold">${t.symbol}</span>
+                    <span className="text-muted-foreground ml-2">{t.name}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
           
           {connected ? (

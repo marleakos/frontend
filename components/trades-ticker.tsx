@@ -1,12 +1,55 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { getAllTokens } from "@/lib/supabase"
+
+interface Token {
+  mint_address: string
+  name: string
+  symbol: string
+  leverage: number
+  direction: string
+}
+
 export function TradesTicker() {
+  const [tokens, setTokens] = useState<Token[]>([])
+
+  useEffect(() => {
+    const fetchTokens = async () => {
+      const dbTokens = await getAllTokens()
+      setTokens(dbTokens.slice(0, 5))
+    }
+    fetchTokens()
+  }, [])
+
+  if (tokens.length === 0) {
+    return (
+      <div className="border-b border-border bg-[#1a1a1a]">
+        <div className="flex items-center justify-center gap-2 px-3 py-2 min-h-[44px]">
+          <span className="font-mono text-[10px] text-muted-foreground">
+            Launch your token to see activity
+          </span>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="border-b border-border bg-[#1a1a1a]">
-      <div className="flex items-center justify-center gap-2 px-3 py-2 min-h-[44px]">
-        <span className="font-mono text-[10px] text-muted-foreground">
-          Real-time trade feed coming soon
-        </span>
+    <div className="border-b border-border bg-[#1a1a1a] overflow-hidden">
+      <div className="flex items-center gap-2 px-3 py-2">
+        <span className="shrink-0 font-mono text-[10px] text-muted-foreground">Latest:</span>
+        <div className="flex gap-3 overflow-hidden">
+          {tokens.map((t) => (
+            <Link
+              key={t.mint_address}
+              href={`/token/${t.mint_address}`}
+              className="font-mono text-[10px] text-primary hover:underline whitespace-nowrap"
+            >
+              ${t.symbol} · {t.leverage}x {t.direction}
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   )

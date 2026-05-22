@@ -112,44 +112,68 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
         
         setPrice(tokenPrice)
         
+        // Try to fetch from pump.fun API if not in our database
+        let pumpFunToken: any = null
         if (!storedToken) {
-          // Token not found - show minimal info with pump.fun data
+          try {
+            const { getPumpFunToken } = await import('@/lib/pumpfun')
+            pumpFunToken = await getPumpFunToken(id)
+            console.log('Fetched from pump.fun:', pumpFunToken)
+          } catch (e) {
+            console.log('Could not fetch from pump.fun API:', e)
+          }
+        }
+        
+        if (!storedToken && !pumpFunToken) {
+          // Token not found anywhere
           setToken({
             id: id,
-            name: "Unknown Token",
+            name: "Token Not Found",
             ticker: "???",
             emoji: "🪙",
             creator: "",
             underlying: "SOL-PERP",
             leverage: 2,
             direction: "LONG",
-            marketCap,
-            progress: Math.min(100, Math.floor((marketCap / 69000) * 100)),
+            marketCap: 0,
+            progress: 0,
             replies: 0,
             ageMinutes: 0,
             change24h: 0,
             liqDistance: 100,
-            description: "Token data not available. This token may not have been created through this UI.",
+            description: "This token was not found on pump.fun or in our database.",
             mint: new PublicKey(id),
-            graduated,
+            graduated: false,
           })
           setLoading(false)
           return
         }
+        
+        // Use pump.fun data if available, otherwise use stored token
+        const tokenData = storedToken || {
+          name: pumpFunToken.name,
+          symbol: pumpFunToken.symbol,
+          mintAddress: pumpFunToken.mint,
+          creator: pumpFunToken.creator,
+          leverage: 2,
+          direction: 'LONG',
+          underlying: 'SOL',
+          createdAt: new Date(pumpFunToken.created_timestamp).toISOString()
+        }
 
-        const createdAt = new Date(storedToken.createdAt).getTime()
+        const createdAt = new Date(tokenData.createdAt).getTime()
         const ageMinutes = Math.floor((Date.now() - createdAt) / 60000)
         const progress = Math.min(100, Math.floor((marketCap / 69000) * 100))
 
         setToken({
-          id: storedToken.mintAddress,
-          name: storedToken.name,
-          ticker: storedToken.symbol,
-          emoji: getEmoji(storedToken.name, storedToken.symbol),
-          creator: storedToken.creator || "",
-          underlying: `${storedToken.underlying || 'SOL'}-PERP`,
-          leverage: storedToken.leverage as 2 | 3 | 5 | 10,
-          direction: storedToken.direction as "LONG" | "SHORT",
+          id: tokenData.mintAddress,
+          name: tokenData.name,
+          ticker: tokenData.symbol,
+          emoji: getEmoji(tokenData.name, tokenData.symbol),
+          creator: tokenData.creator || "",
+          underlying: `${tokenData.underlying || 'SOL'}-PERP`,
+          leverage: (tokenData.leverage || 2) as 2 | 3 | 5 | 10,
+          direction: (tokenData.direction || 'LONG') as "LONG" | "SHORT",
           marketCap,
           progress,
           replies: 0,
@@ -157,7 +181,7 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
           change24h: priceChange24h,
           liqDistance: 100,
           description: "",
-          mint: new PublicKey(storedToken.mintAddress),
+          mint: new PublicKey(tokenData.mintAddress),
           graduated,
           price: tokenPrice,
         })
