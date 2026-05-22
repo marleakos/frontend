@@ -12,7 +12,7 @@ import { getBuyTokenAmountFromSolAmount } from "@pump-fun/pump-sdk"
 import { Program } from "@coral-xyz/anchor"
 import BN from "bn.js"
 import { uploadToIPFS, uploadMetadataToIPFS, dataURItoBlob } from "@/lib/ipfs"
-import { generateVanityAddress, getExpectedPrefix, ASSET_PREFIX } from "@/lib/vanity-address"
+import { generateVanityAddress, getExpectedPattern } from "@/lib/vanity-address"
 
 const REFERENCE_ASSETS = ["SOL", "BTC", "ETH", "APT", "ARB", "DOGE", "BNB", "SUI", "BONK", "MATIC"] as const
 const LEVERAGE_OPTIONS = [2, 3, 5, 10] as const
@@ -126,8 +126,9 @@ export default function CreatePage() {
       console.log("Connection created, RPC:", RPC_URL)
       
       // Generate vanity address based on direction, leverage, and asset
-      toast.loading(`Generating vanity address (${getExpectedPrefix(direction, leverage, referenceAsset).toUpperCase()}...)...`, { id: "deploy" })
-      const mint = await generateVanityAddress(direction, leverage, referenceAsset, 50000)
+      const expectedPattern = getExpectedPattern(direction, leverage, referenceAsset)
+      toast.loading(`Generating vanity address (${expectedPattern})...`, { id: "deploy" })
+      const mint = await generateVanityAddress(direction, leverage, referenceAsset, 200000)
       console.log("Vanity mint generated:", mint.publicKey.toString())
       
       // Upload image and create metadata
@@ -452,10 +453,10 @@ export default function CreatePage() {
                     TOKEN ADDRESS PREVIEW
                   </label>
                   <div className="font-mono text-sm text-primary">
-                    {getExpectedPrefix(direction, leverage, referenceAsset).toUpperCase()}...
+                    {getExpectedPattern(direction, leverage, referenceAsset)}
                   </div>
                   <p className="font-mono text-[9px] text-muted-foreground mt-1">
-                    Your token will have a custom address starting with {direction[0]}{leverage === 10 ? 'X' : leverage}{ASSET_PREFIX[referenceAsset] || referenceAsset[0]}
+                    Your token will have a custom address like {direction === "LONG" ? "Long" : "Short"}x{leverage}...{referenceAsset}
                   </p>
                 </div>
 
