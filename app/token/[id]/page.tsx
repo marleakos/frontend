@@ -334,7 +334,7 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
               direction={token.direction}
             >
               <TokenChart tokenMint={token.id} ticker={token.ticker} underlying={token.underlying} price={token.price} />
-              {/* TokenStats and TradeHistory removed - using mock data */}
+              {/* Trade history available on pump.fun */}
               <div className="rounded-lg border border-border bg-card p-4 text-center">
                 <p className="font-mono text-xs text-muted-foreground">
                   Trade history and stats available on{" "}

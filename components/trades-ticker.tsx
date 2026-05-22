@@ -31,10 +31,16 @@ function getEmoji(name: string, symbol: string): string {
   return "🪙"
 }
 
+// Generate deterministic "random" numbers from a seed
+// This ensures the same "random" trades appear consistently
+function seededRandom(seed: number): number {
+  const x = Math.sin(seed) * 10000
+  return x - Math.floor(x)
+}
+
 export function TradesTicker() {
   const [feed, setFeed] = useState<LiveTrade[]>([])
   const [tokenMap, setTokenMap] = useState<Map<string, { name: string; symbol: string }>>(new Map())
-  const [showDemoLabel, setShowDemoLabel] = useState(true)
 
   // Fetch token info from our API
   const fetchTokenInfo = useCallback(async () => {
@@ -68,28 +74,32 @@ export function TradesTicker() {
     }
   }, [])
 
-  // Generate synthetic trades for demo
-  const generateSyntheticTrades = useCallback(() => {
+  // Generate demo trades - clearly labeled as such
+  const generateDemoTrades = useCallback(() => {
     const tokens = Array.from(tokenMap.entries())
     if (tokens.length === 0) return
 
     const newTrades: LiveTrade[] = []
     const now = Date.now()
+    
+    // Use deterministic "random" based on time seed
+    const seed = Math.floor(now / 10000)
 
-    // Generate 1-3 random trades
-    const numTrades = Math.floor(Math.random() * 3) + 1
+    // Generate 1-3 demo trades
+    const numTrades = Math.floor(seededRandom(seed) * 3) + 1
     
     for (let i = 0; i < numTrades; i++) {
-      const [mint, info] = tokens[Math.floor(Math.random() * tokens.length)]
-      const isBuy = Math.random() > 0.4 // 60% buy, 40% sell
-      const amount = Math.random() * 2 + 0.1 // 0.1 - 2.1 SOL
+      const tokenIndex = Math.floor(seededRandom(seed + i) * tokens.length)
+      const [mint, info] = tokens[tokenIndex]
+      const isBuy = seededRandom(seed + i + 100) > 0.4
+      const amount = seededRandom(seed + i + 200) * 2 + 0.1
       
       newTrades.push({
-        id: `${now}-${i}`,
+        id: `demo-${now}-${i}`,
         ticker: info.symbol,
         side: isBuy ? "BUY" : "SELL",
-        amount: parseFloat(amount.toFixed(2)),
-        user: Math.random().toString(36).substring(2, 6).toUpperCase(),
+        amount: Math.round(amount * 100) / 100,
+        user: `USER${Math.floor(seededRandom(seed + i + 300) * 1000)}`,
         tokenMint: mint,
         timestamp: now - i * 1000,
       })
@@ -97,7 +107,6 @@ export function TradesTicker() {
 
     setFeed(prev => {
       const combined = [...newTrades, ...prev]
-      // Remove duplicates by id
       const unique = combined.filter((trade, index, self) => 
         index === self.findIndex(t => t.id === trade.id)
       )
@@ -110,35 +119,34 @@ export function TradesTicker() {
     fetchTokenInfo()
   }, [fetchTokenInfo])
 
-  // Polling for trades
+  // Polling for demo trades
   useEffect(() => {
     if (tokenMap.size === 0) return
     
-    // Generate initial trades
-    generateSyntheticTrades()
+    generateDemoTrades()
     
     const interval = setInterval(() => {
-      generateSyntheticTrades()
+      generateDemoTrades()
     }, POLL_INTERVAL)
 
     return () => clearInterval(interval)
-  }, [tokenMap, generateSyntheticTrades])
+  }, [tokenMap, generateDemoTrades])
 
   // Refresh token map periodically
   useEffect(() => {
-    const interval = setInterval(fetchTokenInfo, 30000) // Every 30 seconds
+    const interval = setInterval(fetchTokenInfo, 30000)
     return () => clearInterval(interval)
   }, [fetchTokenInfo])
 
   return (
     <div className="relative border-b border-border bg-[#1a1a1a] overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-2 min-h-[44px]">
-        <span className="shrink-0 inline-flex items-center gap-1.5 rounded bg-[#39ff14]/20 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-[#39ff14]">
+        <span className="shrink-0 inline-flex items-center gap-1.5 rounded bg-yellow-500/20 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-yellow-500">
           <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#39ff14] opacity-75" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#39ff14]" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-yellow-500 opacity-75" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-yellow-500" />
           </span>
-          DEMO TRADES
+          DEMO ACTIVITY
         </span>
 
         <div className="flex-1 overflow-hidden">
@@ -146,7 +154,7 @@ export function TradesTicker() {
             <motion.div layout className="flex items-center gap-2">
               {feed.length === 0 ? (
                 <span className="font-mono text-[10px] text-muted-foreground">
-                  Waiting for trades...
+                  Waiting for tokens...
                 </span>
               ) : (
                 feed.map((t, i) => (
@@ -162,7 +170,6 @@ export function TradesTicker() {
           </AnimatePresence>
         </div>
 
-        {/* fade-out edge */}
         <div className="pointer-events-none absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-background to-transparent" />
       </div>
     </div>
@@ -212,7 +219,6 @@ function TradePill({
         <span className="relative font-bold text-foreground">${t.ticker}</span>
         <span className="relative tabular-nums text-foreground">{t.amount.toFixed(2)}</span>
         <span className="relative text-muted-foreground">SOL</span>
-        <span className="relative text-muted-foreground">by {t.user}</span>
       </Link>
     </motion.div>
   )
