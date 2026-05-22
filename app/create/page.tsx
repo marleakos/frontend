@@ -172,7 +172,7 @@ export default function CreatePage() {
             global.virtualTokenReserves
           )
           
-          instructions = await sdk.createV2AndBuyInstructions({
+          instructions = await sdk.createAndBuyInstructions({
             global,
             mint: mint.publicKey,
             name: name.trim(),
