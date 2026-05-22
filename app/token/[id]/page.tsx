@@ -122,6 +122,11 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
           }
         }
         
+        // Set token image from metadata
+        if (chainMetadata?.image) {
+          setTokenImage(chainMetadata.image)
+        }
+        
         // Check if we have valid token data from anywhere
         const hasValidMetadata = chainMetadata && chainMetadata.name && chainMetadata.symbol
         

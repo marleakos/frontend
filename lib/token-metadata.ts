@@ -1,7 +1,8 @@
-// Fetch token metadata from multiple sources
+// Fetch token metadata from Solana blockchain (Metaplex)
 import { Connection, PublicKey } from '@solana/web3.js'
 
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://api.mainnet-beta.solana.com'
+const METAPLEX_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s')
 
 export interface TokenMetadata {
   name: string
@@ -11,59 +12,84 @@ export interface TokenMetadata {
   creator?: string
 }
 
-// Fetch metadata from Solana token account
+// Helper to decode UTF-8 string from buffer
+function decodeString(buffer: Buffer, offset: number): { value: string; newOffset: number } {
+  const length = buffer.readUInt32LE(offset)
+  const value = buffer.slice(offset + 4, offset + 4 + length).toString('utf8').replace(/\x00/g, '')
+  return { value, newOffset: offset + 4 + length }
+}
+
+// Fetch metadata from Metaplex on-chain
 export async function getTokenMetadata(mintAddress: string): Promise<TokenMetadata | null> {
   try {
     const connection = new Connection(RPC_URL, 'confirmed')
     const mint = new PublicKey(mintAddress)
     
-    // Get the largest token account to find the creator
-    const largestAccounts = await connection.getTokenLargestAccounts(mint)
-    const creator = largestAccounts.value[0]?.address.toString() || ""
+    // Derive metadata account address
+    const [metadataAccount] = PublicKey.findProgramAddressSync(
+      [Buffer.from('metadata'), METAPLEX_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+      METAPLEX_PROGRAM_ID
+    )
     
-    // Try to fetch metadata from Metaplex
-    try {
-      const metadataAccount = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from('metadata'),
-          new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s').toBuffer(),
-          mint.toBuffer()
-        ],
-        new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s')
-      )[0]
-      
-      const accountInfo = await connection.getAccountInfo(metadataAccount)
-      if (accountInfo) {
-        // Parse metadata (simplified - real parsing would need more work)
-        const data = accountInfo.data
-        // Skip discriminator and parse name/symbol
-        // This is a simplified version - Metaplex metadata parsing is complex
-        const nameLength = data.readUInt32LE(69)
-        const name = data.slice(73, 73 + nameLength).toString('utf8').replace(/\x00/g, '')
-        
-        const symbolStart = 73 + nameLength
-        const symbolLength = data.readUInt32LE(symbolStart)
-        const symbol = data.slice(symbolStart + 4, symbolStart + 4 + symbolLength).toString('utf8').replace(/\x00/g, '')
-        
-        return { name, symbol, creator }
-      }
-    } catch (e) {
-      console.log('Metaplex metadata not found')
+    const accountInfo = await connection.getAccountInfo(metadataAccount)
+    if (!accountInfo) {
+      console.log('No metadata account found for', mintAddress)
+      return null
     }
     
-    return null
+    const data = accountInfo.data
+    
+    // Parse Metaplex metadata v1
+    // Format: key (1) + update_authority (32) + mint (32) + name_len + name + symbol_len + symbol + uri_len + uri
+    let offset = 1 // Skip key
+    offset += 32 // Skip update_authority
+    offset += 32 // Skip mint
+    
+    // Parse name
+    const nameResult = decodeString(data, offset)
+    const name = nameResult.value
+    offset = nameResult.newOffset
+    
+    // Parse symbol
+    const symbolResult = decodeString(data, offset)
+    const symbol = symbolResult.value
+    offset = symbolResult.newOffset
+    
+    // Parse URI (this contains the metadata JSON with image URL)
+    const uriResult = decodeString(data, offset)
+    const uri = uriResult.value
+    
+    console.log('Metaplex metadata:', { name, symbol, uri })
+    
+    // Fetch the metadata JSON to get the image
+    let image: string | undefined = undefined
+    if (uri) {
+      try {
+        // Handle IPFS URIs
+        const metadataUrl = uri.replace('ipfs://', 'https://ipfs.io/ipfs/')
+        const response = await fetch(metadataUrl)
+        const metadata = await response.json()
+        image = metadata.image
+        
+        // Convert IPFS image URL to HTTP
+        if (image?.startsWith('ipfs://')) {
+          image = image.replace('ipfs://', 'https://ipfs.io/ipfs/')
+        }
+        
+        console.log('Token image:', image)
+      } catch (e) {
+        console.log('Could not fetch metadata JSON from', uri)
+      }
+    }
+    
+    return { name, symbol, image }
   } catch (e) {
     console.error('Error fetching token metadata:', e)
     return null
   }
 }
 
-// Try multiple sources to get token info
+// Get token info with metadata
 export async function getTokenInfo(mintAddress: string): Promise<TokenMetadata | null> {
-  // Try Solana metadata first
-  const solanaMetadata = await getTokenMetadata(mintAddress)
-  if (solanaMetadata) return solanaMetadata
-  
-  // If all fails, return null
-  return null
+  return getTokenMetadata(mintAddress)
 }

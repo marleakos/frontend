@@ -157,17 +157,19 @@ export function useTokens() {
         const volume24h = marketData?.volume24h || 0
         const priceChange24h = marketData?.priceChange24h || 0
         
-        // Fetch image from DexScreener
+        // Fetch metadata (including image) from blockchain
         let imageUrl: string | undefined = undefined
         try {
-          const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${token.mintAddress}`)
-          const dexData = await response.json()
-          if (dexData.pairs && dexData.pairs.length > 0) {
-            imageUrl = dexData.pairs[0].baseToken?.icon || dexData.pairs[0].info?.imageUrl || undefined
+          const { getTokenMetadata } = await import('@/lib/token-metadata')
+          const metadata = await getTokenMetadata(token.mintAddress)
+          if (metadata?.image) {
+            imageUrl = metadata.image
           }
         } catch (e) {
-          console.log('Could not fetch image for', token.mintAddress)
+          console.log('Could not fetch metadata for', token.mintAddress)
         }
+        
+
         
         // Calculate progress to graduation (69k)
         const progress = Math.min(100, Math.floor((marketCap / 69000) * 100))
