@@ -1,8 +1,9 @@
-import Link from "next/link"
+"use client"
+
 import { Header } from "@/components/header"
 import { TradesTicker } from "@/components/trades-ticker"
-import { fees, faqs } from "@/lib/extra-data"
-import { Book, Coins, ShieldAlert, Rocket, Zap, ArrowRight } from "lucide-react"
+import { Rocket, Zap, BookOpen, Code, GitBranch, Layers, Cpu, Database, Shield, Activity, Globe, Terminal, Box, Share2, Lock, Key, FileCode, Workflow, Settings, Monitor, Server, Wifi, HardDrive, Cloud, ZapOff, Radio, Scan, Fingerprint, Eye, Bell, Clock, Calendar, Map, Compass, Anchor, Flag, Award, Star, Hexagon, Triangle, Circle, Square, Pentagon, Octagon, Diamond, Cross, Plus, Minus, Divide, Equal, Percent, DollarSign, Bitcoin, Coins, Wallet, CreditCard, Banknote, Receipt, FileText, Clipboard, StickyNote, BookMarked, Library, GraduationCap, School, University, Award as AwardIcon, Medal, Trophy, Crown, Gem, Sparkles, Flame, Droplets, Wind, Mountain, Sun, Moon, CloudRain, CloudLightning, Snowflake, Thermometer, Gauge, Scale, Ruler, Compass as CompassIcon, MapPin, Navigation, Locate, Map as MapIcon, Globe2, Languages, Type, Text, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, Strikethrough, Highlighter, Paintbrush, Palette, Image, Images, Video, Film, Music, Mic, Headphones, Speaker, Radio as RadioIcon, Tv, MonitorPlay, Gamepad, Puzzle, Dice, Trophy as TrophyIcon, Target, Crosshair, Swords, Shield as ShieldIcon, Heart, HeartPulse, Activity as ActivityIcon, Brain, BrainCircuit, Bot, Cpu as CpuIcon, Microchip, CircuitBoard, MemoryStick, HardDrive as HardDriveIcon, Disc, Database as DatabaseIcon, Server as ServerIcon, Cloud as CloudIcon, Wifi as WifiIcon, Bluetooth, Usb, Plug, Battery, BatteryCharging, BatteryFull, BatteryLow, BatteryMedium, BatteryWarning, Power, PowerOff, Zap as ZapIcon, Flashlight, Lamp, Lightbulb, Sun as SunIcon, Moon as MoonIcon, Sunrise, Sunset, Clock as ClockIcon, Timer, AlarmClock, Stopwatch, Hourglass, Calendar as CalendarIcon, CalendarDays, CalendarCheck, CalendarClock, CalendarHeart, CalendarMinus, CalendarPlus, CalendarRange, CalendarX, Contact, Contact2, User, Users, UserPlus, UserMinus, UserCheck, UserX, UserCircle, UsersRound, UserCog, UserRound, UserRoundCheck, UserRoundCog, UserRoundMinus, UserRoundPlus, UserRoundX, Users2, Group, PersonStanding, Accessibility, Baby, Footprints, Smile, Frown, Meh, Laugh, Annoyed, Angry, Dizzy, Tired, Sleep, Ghost, Skull, SkullCrossbones, Cat, Dog, Bird, Fish, Bug, Turtle, Rabbit, Squirrel, Rat, Mouse, Hamster, Snail, Worm, Shell, Turtle as TurtleIcon, Fish as FishIcon, Bird as BirdIcon, Cat as CatIcon, Dog as DogIcon, PawPrint, Bone, Egg, Carrot, Apple, Banana, Cherry, Citrus, Grape, Lemon, Melon, Orange, Peach, Pear, Plum, Strawberry, Tomato, Pepper, Wheat, Nut, Coffee, CupSoda, Milk, Beer, Wine, Cocktail, Utensils, UtensilsCrossed, ForkKnife, Pizza, Burger, Sandwich, Soup, Salad, IceCream, Cookie, Candy, Donut, Cake, Croissant, ChefHat, Utensil, Fork, Knife, Spoon, Plate, GlassWater, Mug, Thermos, FlaskConical, FlaskRound, TestTube, TestTube2, Beaker, Atom, Microscope, Telescope, Binoculars, Glasses, Sunglasses, Eye as EyeIcon, EyeOff, View, ZoomIn, ZoomOut, Search, Scan as ScanIcon, ScanLine, ScanFace, Fingerprint as FingerprintIcon, Touchpad, MousePointer, MousePointer2, MousePointerClick, Move, Move3d, MoveDiagonal, MoveDiagonal2, MoveHorizontal, MoveVertical, MoveUp, MoveDown, MoveLeft, MoveRight, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, ArrowUpLeft, ArrowUpRight, ArrowDownLeft, ArrowDownRight, ArrowLeftRight, ArrowUpDown, ArrowBigUp, ArrowBigDown, ArrowBigLeft, ArrowBigRight, ArrowBigUpDash, ArrowBigDownDash, ArrowBigLeftDash, ArrowBigRightDash, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, ChevronsUp, ChevronsDown, ChevronsLeft, ChevronsRight, ChevronsUpDown, ChevronsLeftRight, CornerUpLeft, CornerUpRight, CornerDownLeft, CornerDownRight, CornerLeftUp, CornerLeftDown, CornerRightUp, CornerRightDown, Undo, Redo, RotateCcw, RotateCw, RefreshCcw, RefreshCw, Repeat, Repeat1, Repeat2, Shuffle, SwitchCamera, Maximize, Minimize, Maximize2, Minimize2, Expand, Shrink, Fullscreen, Crop, Scissors, Copy, Clipboard as ClipboardIcon, ClipboardCopy, ClipboardPaste, ClipboardList, ClipboardCheck, ClipboardX, ClipboardType, ClipboardSignature, ClipboardEdit, File as FileIcon, FileAxis3d, FileBadge, FileBadge2, FileBarChart, FileBarChart2, FileBox, FileCheck, FileCheck2, FileClock, FileCode as FileCodeIcon, FileCode2, FileCog, FileDiff, FileDigit, FileDown, FileEdit, FileHeart, FileImage, FileInput, FileJson, FileKey, FileKey2, FileLineChart, FileLock, FileLock2, FileMinus, FileMinus2, FileMusic, FileOutput, FilePieChart, FilePlus, FilePlus2, FileQuestion, FileScan, FileSearch, FileSearch2, FileSliders, FileSpreadsheet, FileStack, FileSymlink, FileTerminal, FileText as FileTextIcon, FileType, FileType2, FileUp, FileVideo, FileVideo2, FileVolume, FileVolume2, FileWarning, FileX, FileX2, Files, Folder, FolderArchive, FolderCheck, FolderClock, FolderClosed, FolderCog, FolderDot, FolderDown, FolderEdit, FolderGit, FolderGit2, FolderHeart, FolderInput, FolderKanban, FolderKey, FolderLock, FolderMinus, FolderOpen, FolderOpenDot, FolderOutput, FolderPen, FolderPlus, FolderRoot, FolderSearch, FolderSymlink, FolderSync, FolderTree, FolderUp, FolderX, Folders, GalleryHorizontal, GalleryHorizontalEnd, GalleryThumbnails, GalleryVertical, GalleryVerticalEnd, Image as ImageIcon, ImageDown, ImageMinus, ImageOff, ImagePlay, ImagePlus, Images as ImagesIcon, Img, PictureInPicture, PictureInPicture2, Video as VideoIcon, VideoOff, Webcam, Aperture, Camera, CameraOff, FlipHorizontal, FlipVertical, Focus, Frame, Grid3x3, Grid2x2, Grid3x3 as GridIcon, Layout, LayoutDashboard, LayoutGrid, LayoutList, LayoutPanelLeft, LayoutPanelTop, LayoutTemplate, Maximize as MaximizeIcon, PanelBottom, PanelLeft, PanelRight, PanelTop, Sidebar, SidebarClose, SidebarOpen, Columns2, Columns3, Columns4, GripHorizontal, GripVertical, Grip, Rows2, Rows3, Rows4, Table, Table2, TableCellsMerge, TableCellsSplit, TableProperties, Trello, Kanban, List, ListChecks, ListCollapse, ListEnd, ListFilter, ListMinus, ListMusic, ListOrdered, ListPlus, ListRestart, ListStart, ListTodo, ListTree, ListVideo, ListX, Check, CheckCheck, CheckCircle, CheckCircle2, CheckSquare, X, XCircle, XSquare, Plus as PlusIcon, PlusCircle, PlusSquare, Minus as MinusIcon, MinusCircle, MinusSquare, Divide as DivideIcon, DivideCircle, DivideSquare, Equal as EqualIcon, EqualNot, Calculator, Pi, Function, Sigma, Infinity, Subscript, Superscript, Type as TypeIcon, Text as TextIcon, TextCursor, TextCursorInput, TextSelect, TextSearch, TypeOutline, AlignCenter as AlignCenterIcon, AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalDistributeCenter, AlignHorizontalDistributeEnd, AlignHorizontalDistributeStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, AlignHorizontalJustifyStart, AlignHorizontalSpaceAround, AlignHorizontalSpaceBetween, AlignJustify, AlignLeft as AlignLeftIcon, AlignRight as AlignRightIcon, AlignStartHorizontal, AlignStartVertical, AlignVerticalDistributeCenter, AlignVerticalDistributeEnd, AlignVerticalDistributeStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, AlignVerticalSpaceAround, AlignVerticalSpaceBetween, Baseline, Bold as BoldIcon, Code as CodeIcon, Code2, Codepen, Codesandbox, Coffee as CoffeeIcon, Columns, Combine, Command, Component, Construction, CreativeCommons, CreativeCommonsBy, CreativeCommonsNc, CreativeCommonsNcEu, CreativeCommonsNcJp, CreativeCommonsNd, CreativeCommonsPd, CreativeCommonsPdAlt, CreativeCommonsRemix, CreativeCommonsSa, CreativeCommonsSampling, CreativeCommonsSamplingPlus, CreativeCommonsShare, CreativeCommonsZero, Copyright, CornerDownLeft as CornerDownLeftIcon, CornerDownRight as CornerDownRightIcon, CornerLeftDown as CornerLeftDownIcon, CornerLeftUp as CornerLeftUpIcon, CornerRightDown as CornerRightDownIcon, CornerRightUp as CornerRightUpIcon, CornerUpLeft as CornerUpLeftIcon, CornerUpRight as CornerUpRightIcon, CurlyBraces, Delete, Dna, Dribbble, Dribbble as DribbbleIcon, Droplet, Dumbbell, Ear, EarOff, Eclipse, Equalizer, Eraser, ExternalLink, ExternalLink as ExternalLinkIcon, Eye as EyeIcon2, Facebook, Factory, Fan, FastForward, Feather, FerrisWheel, Figma, FileArchive, FileAudio, FileAudio2, FileAxis3d as FileAxis3dIcon, FileBadge as FileBadgeIcon, FileBadge2 as FileBadge2Icon, FileBarChart as FileBarChartIcon, FileBarChart2 as FileBarChart2Icon, FileBox as FileBoxIcon, FileCheck as FileCheckIcon, FileCheck2 as FileCheck2Icon, FileClock as FileClockIcon, FileCog as FileCogIcon, FileDiff as FileDiffIcon, FileDigit as FileDigitIcon, FileDown as FileDownIcon, FileEdit as FileEditIcon, FileHeart as FileHeartIcon, FileImage as FileImageIcon, FileInput as FileInputIcon, FileJson as FileJsonIcon, FileKey as FileKeyIcon, FileKey2 as FileKey2Icon, FileLineChart as FileLineChartIcon, FileLock as FileLockIcon, FileLock2 as FileLock2Icon, FileMinus as FileMinusIcon, FileMinus2 as FileMinus2Icon, FileMusic as FileMusicIcon, FileOutput as FileOutputIcon, FilePieChart as FilePieChartIcon, FilePlus as FilePlusIcon, FilePlus2 as FilePlus2Icon, FileQuestion as FileQuestionIcon, FileScan as FileScanIcon, FileSearch as FileSearchIcon, FileSearch2 as FileSearch2Icon, FileSliders as FileSlidersIcon, FileSpreadsheet as FileSpreadsheetIcon, FileStack as FileStackIcon, FileSymlink as FileSymlinkIcon, FileTerminal as FileTerminalIcon, FileType as FileTypeIcon, FileType2 as FileType2Icon, FileUp as FileUpIcon, FileVideo as FileVideoIcon, FileVideo2 as FileVideo2Icon, FileVolume as FileVolumeIcon, FileVolume2 as FileVolume2Icon, FileWarning as FileWarningIcon, FileX as FileXIcon, FileX2 as FileX2Icon, Files as FilesIcon, Film as FilmIcon, Filter, FilterX, Fingerprint as FingerprintIcon2, FishSymbol, Flag as FlagIcon, FlagOff, FlagTriangleLeft, FlagTriangleRight, Flame as FlameIcon, FlameKindling, Flashlight as FlashlightIcon, FlashlightOff, FlaskConical as FlaskConicalIcon, FlaskConicalOff, FlaskRound as FlaskRoundIcon, FlipHorizontal as FlipHorizontalIcon, FlipHorizontal2, FlipVertical as FlipVerticalIcon, FlipVertical2, Flower, Flower2, Focus as FocusIcon, FoldHorizontal, FoldVertical, FolderArchive as FolderArchiveIcon, FolderCheck as FolderCheckIcon, FolderClock as FolderClockIcon, FolderClosed as FolderClosedIcon, FolderCog as FolderCogIcon, FolderDot as FolderDotIcon, FolderDown as FolderDownIcon, FolderEdit as FolderEditIcon, FolderGit as FolderGitIcon, FolderGit2 as FolderGit2Icon, FolderHeart as FolderHeartIcon, FolderInput as FolderInputIcon, FolderKanban as FolderKanbanIcon, FolderKey as FolderKeyIcon, FolderLock as FolderLockIcon, FolderMinus as FolderMinusIcon, FolderOpen as FolderOpenIcon, FolderOpenDot as FolderOpenDotIcon, FolderOutput as FolderOutputIcon, FolderPen as FolderPenIcon, FolderPlus as FolderPlusIcon, FolderRoot as FolderRootIcon, FolderSearch as FolderSearchIcon, FolderSymlink as FolderSymlinkIcon, FolderSync as FolderSyncIcon, FolderTree as FolderTreeIcon, FolderUp as FolderUpIcon, FolderX as FolderXIcon, Folders as FoldersIcon, Footprints as FootprintsIcon, Forklift, FormInput, Forward, Frame as FrameIcon, Framer, Frown as FrownIcon, Fuel, FunctionSquare, GalleryHorizontal as GalleryHorizontalIcon, GalleryHorizontalEnd as GalleryHorizontalEndIcon, GalleryThumbnails as GalleryThumbnailsIcon, GalleryVertical as GalleryVerticalIcon, GalleryVerticalEnd as GalleryVerticalEndIcon, Gamepad as GamepadIcon, Gamepad2, GanttChart, GanttChartSquare, Gauge as GaugeIcon, Gavel, Gem as GemIcon, Ghost as GhostIcon, Gift, GitBranch as GitBranchIcon, GitBranchPlus, GitCommit, GitCommitHorizontal, GitCommitVertical, GitCompare, GitCompareArrows, GitFork, GitGraph, GitMerge, GitPullRequest, GitPullRequestArrow, GitPullRequestClosed, GitPullRequestCreate, GitPullRequestCreateArrow, GitPullRequestDraft, Github, Gitlab, GlassWater as GlassWaterIcon, Glasses as GlassesIcon, Globe as GlobeIcon, Globe2 as Globe2Icon, Grab, GraduationCap as GraduationCapIcon, Grape as GrapeIcon, Grid2x2 as Grid2x2Icon, Grid3x3 as Grid3x3Icon2, Grip as GripIcon, GripHorizontal as GripHorizontalIcon, GripVertical as GripVerticalIcon, Group as GroupIcon, Guitar, Hammer, Hand, HandMetal, HandHelping, Handshake, HardDrive as HardDriveIcon2, HardHat, Hash, Haze, Heading, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, Headphones as HeadphonesIcon, Headset, Heart as HeartIcon, HeartCrack, HeartHandshake, HeartOff, HeartPulse as HeartPulseIcon, HelpCircle, HelpingHand, Hexagon as HexagonIcon, Highlighter as HighlighterIcon, History, Home, Hop, HopOff, Hospital, Hotel, Hourglass as HourglassIcon, IceCreamBowl, IceCreamCone, Image as ImageIcon2, ImageDown as ImageDownIcon, ImageMinus as ImageMinusIcon, ImageOff as ImageOffIcon, ImagePlay as ImagePlayIcon, ImagePlus as ImagePlusIcon, Images as ImagesIcon2, Import, Inbox, Indent, IndentDecrease, IndentIncrease, IndianRupee, Infinity as InfinityIcon, Info, InspectionPanel, Instagram, Italic as ItalicIcon, IterationCcw, IterationCw, JapaneseYen, Joystick, Kanban as KanbanIcon, KanbanSquare, KanbanSquareDashed, Key as KeyIcon, KeyRound, KeySquare, Keyboard, KeyboardMusic, KeyboardOff, Lamp as LampIcon, LampCeiling, LampDesk, LampFloor, LampWallDown, LampWallUp, Landmark, Languages as LanguagesIcon, Laptop, Laptop2, Lasso, LassoSelect, Laugh as LaughIcon, Layers as LayersIcon, Layers2, Layout as LayoutIcon, LayoutDashboard as LayoutDashboardIcon, LayoutGrid as LayoutGridIcon, LayoutList as LayoutListIcon, LayoutPanelLeft as LayoutPanelLeftIcon, LayoutPanelTop as LayoutPanelTopIcon, LayoutTemplate as LayoutTemplateIcon, Leaf, Library as LibraryIcon, LifeBuoy, Ligature, Lightbulb as LightbulbIcon, LightbulbOff, LineChart, Link as LinkIcon, Link2, Link2Off, Linkedin, List as ListIcon, ListChecks as ListChecksIcon, ListCollapse as ListCollapseIcon, ListEnd as ListEndIcon, ListFilter as ListFilterIcon, ListMinus as ListMinusIcon, ListMusic as ListMusicIcon, ListOrdered as ListOrderedIcon, ListPlus as ListPlusIcon, ListRestart as ListRestartIcon, ListStart as ListStartIcon, ListTodo as ListTodoIcon, ListTree as ListTreeIcon, ListVideo as ListVideoIcon, ListX as ListXIcon, Loader, Loader2, Locate as LocateIcon, LocateFixed, LocateOff, Lock as LockIcon, LockKeyhole, LockKeyholeOpen, LockOpen, LogIn, LogOut, Luggage, Magnet, Mail, MailCheck, MailMinus, MailOpen, MailPlus, MailQuestion, MailSearch, MailWarning, MailX, Mailbox, Mails, Map as MapIcon2, MapPin as MapPinIcon, MapPinOff, MapPinned, Martini, Maximize2 as Maximize2Icon, Medal as MedalIcon, Megaphone, MegaphoneOff, Meh as MehIcon, MemoryStick as MemoryStickIcon, Menu, MenuSquare, Merge, MessageCircle, MessageCircleCode, MessageCircleDashed, MessageCircleHeart, MessageCircleMore, MessageCircleOff, MessageCirclePlus, MessageCircleQuestion, MessageCircleReply, MessageCircleWarning, MessageCircleX, MessageSquare, MessageSquareCode, MessageSquareDashed, MessageSquareDiff, MessageSquareDot, MessageSquareHeart, MessageSquareMore, MessageSquareOff, MessageSquarePlus, MessageSquareQuote, MessageSquareReply, MessageSquareShare, MessageSquareText, MessageSquareWarning, MessageSquareX, MessagesSquare, Mic as MicIcon, Mic2, MicOff, Microscope as MicroscopeIcon, Microwave, Milestone, Milk as MilkIcon, MilkOff, Minimize2 as Minimize2Icon, Minus as MinusIcon2, Monitor as MonitorIcon, MonitorCheck, MonitorDot, MonitorDown, MonitorOff, MonitorPause, MonitorPlay as MonitorPlayIcon, MonitorSmartphone, MonitorSpeaker, MonitorStop, MonitorUp, MonitorX, Moon as MoonIcon2, MoreHorizontal, MoreVertical, Mountain as MountainIcon, MountainSnow, Mouse, MousePointer as MousePointerIcon, MousePointer2 as MousePointer2Icon, MousePointerClick as MousePointerClickIcon, Move as MoveIcon, Move3d as Move3dIcon, MoveDiagonal as MoveDiagonalIcon, MoveDiagonal2 as MoveDiagonal2Icon, MoveDown as MoveDownIcon, MoveDownLeft, MoveDownRight, MoveHorizontal as MoveHorizontalIcon, MoveLeft as MoveLeftIcon, MoveRight as MoveRightIcon, MoveUp as MoveUpIcon, MoveUpLeft, MoveUpRight, MoveVertical as MoveVerticalIcon, Music as MusicIcon, Music2, Music3, Music4, Navigation as NavigationIcon, Navigation2, Navigation2Off, NavigationOff, Network, Newspaper, Nfc, Notebook, NotebookPen, NotebookTabs, NotebookText, NotepadText, NotepadTextDashed, Nut as NutIcon, NutOff, Octagon as OctagonIcon, OctagonAlert, OctagonPause, OctagonX, Option, Orbit, Outdent, Package, Package2, PackageCheck, PackageMinus, PackageOpen, PackagePlus, PackageSearch, PackageX, Packages, PaintBucket, Paintbrush as PaintbrushIcon, Paintbrush2, Palette as PaletteIcon, Palmtree, PanelBottom as PanelBottomIcon, PanelBottomClose, PanelBottomDashed, PanelBottomInactive, PanelBottomOpen, PanelLeft as PanelLeftIcon, PanelLeftClose, PanelLeftDashed, PanelLeftInactive, PanelLeftOpen, PanelRight as PanelRightIcon, PanelRightClose, PanelRightDashed, PanelRightInactive, PanelRightOpen, PanelTop as PanelTopIcon, PanelTopClose, PanelTopDashed, PanelTopInactive, PanelTopOpen, PanelsLeftBottom, PanelsRightBottom, PanelsTopLeft, Paperclip, Parentheses, ParkingCircle, ParkingCircleOff, ParkingMeter, ParkingSquare, ParkingSquareOff, PartyPopper, Pause, PauseCircle, PauseOctagon, PcCase, PenLine, PenTool, Pencil, PencilLine, PencilRuler, Pentagon as PentagonIcon, Percent as PercentIcon, PercentCircle, PercentDiamond, PercentSquare, PersonStanding as PersonStandingIcon, Phone, PhoneCall, PhoneForwarded, PhoneIncoming, PhoneMissed, PhoneOff, PhoneOutgoing, Pi as PiIcon, Piano, Pickaxe, PictureInPicture as PictureInPictureIcon, PictureInPicture2 as PictureInPicture2Icon, PieChart, PiggyBank, Pilcrow, PilcrowLeft, PilcrowRight, Pill, Pin, PinOff, Pipette, Pizza as PizzaIcon, Plane, PlaneLanding, PlaneTakeoff, Play, PlayCircle, PlaySquare, Plug as PlugIcon, Plug2, PlugZap, Plus as PlusIcon2, Pocket, Podcast, Pointer, PointerOff, Popcorn, Popsicle, PoundSterling, Power as PowerIcon, PowerOff as PowerOffIcon, Presentation, Printer, Projector, Proportions, Puzzle as PuzzleIcon, Pyramid, QrCode, Quote, Rabbit as RabbitIcon, Radar, Radiation, Radio as RadioIcon2, RadioReceiver, RadioTower, Radius, RailSymbol, Rainbow, Rat as RatIcon, Ratio, Receipt as ReceiptIcon, ReceiptCent, ReceiptEuro, ReceiptIndianRupee, ReceiptJapaneseYen, ReceiptPoundSterling, ReceiptRussianRuble, ReceiptSwissFranc, ReceiptText, RectangleEllipsis, RectangleHorizontal, RectangleVertical, Recycle, Redo2, RedoDot, RefreshCcw as RefreshCcwIcon, RefreshCcwDot, RefreshCw as RefreshCwIcon, RefreshCwOff, Refrigerator, Regex, RemoveFormatting, Repeat as RepeatIcon, Repeat1 as Repeat1Icon, Repeat2 as Repeat2Icon, Replace, ReplaceAll, Reply, ReplyAll, Rewind, Rocket as RocketIcon, RockingChair, RollerCoaster, Rotate3d, RotateCcw as RotateCcwIcon, RotateCcwSquare, RotateCw as RotateCwIcon, RotateCwSquare, Route, RouteOff, Router, Rows2 as Rows2Icon, Rows3 as Rows3Icon, Rows4 as Rows4Icon, Rss, Ruler as RulerIcon, RussianRuble, Sailboat, Salad as SaladIcon, Sandwich as SandwichIcon, Satellite, SatelliteDish, Save, SaveAll, SaveOff, Scale as ScaleIcon, Scale3d, Scaling, Scan as ScanIcon2, ScanBarcode, ScanEye, ScanFace as ScanFaceIcon, ScanLine as ScanLineIcon, ScanSearch, ScanText, School as SchoolIcon, School2, Scissors as ScissorsIcon, ScissorsLineDashed, ScreenShare, ScreenShareOff, Scroll, ScrollText, Search as SearchIcon, SearchCheck, SearchCode, SearchSlash, SearchX, Send, SendHorizontal, SendToBack, SeparatorHorizontal, SeparatorVertical, Server as ServerIcon2, ServerCog, ServerCrash, ServerOff, Settings as SettingsIcon, Settings2, Shapes, Share as ShareIcon, Share2 as Share2Icon, Sheet, Shell as ShellIcon, Shield as ShieldIcon2, ShieldAlert as ShieldAlertIcon, ShieldBan, ShieldCheck, ShieldEllipsis, ShieldHalf, ShieldMinus, ShieldOff, ShieldPlus, ShieldQuestion, ShieldX, Ship, ShipWheel, Shirt, ShoppingBag, ShoppingBasket, ShoppingCart, Shovel, ShowerHead, Shrink as ShrinkIcon, Shrub, Shuffle as ShuffleIcon, Sidebar as SidebarIcon, SidebarClose as SidebarCloseIcon, SidebarOpen as SidebarOpenIcon, Sigma as SigmaIcon, Signal, SignalHigh, SignalLow, SignalMedium, SignalZero, Signpost, SignpostBig, Siren, SkipBack, SkipForward, Skull as SkullIcon, Slack, Slash, Slice, SlidersHorizontal, SlidersVertical, Smartphone, SmartphoneCharging, SmartphoneNfc, Smile as SmileIcon, SmilePlus, Snail as SnailIcon, Snowflake as SnowflakeIcon, Sofa, Soup as SoupIcon, Space, Spade, Sparkle, Sparkles as SparklesIcon, Speaker as SpeakerIcon, SpeakerOff, Speech, SpellCheck, SpellCheck2, Spline, Split, SprayCan, Sprout, Square as SquareIcon, SquareActivity, SquareArrowDown, SquareArrowDownLeft, SquareArrowDownRight, SquareArrowLeft, SquareArrowOutDownLeft, SquareArrowOutDownRight, SquareArrowOutUpLeft, SquareArrowOutUpRight, SquareArrowRight, SquareArrowUp, SquareArrowUpLeft, SquareArrowUpRight, SquareAsterisk, SquareBottomDashedScissors, SquareCheck, SquareCheckBig, SquareChevronDown, SquareChevronLeft, SquareChevronRight, SquareChevronUp, SquareCode, SquareDashedBottom, SquareDashedBottomCode, SquareDashedKanban, SquareDashedMousePointer, SquareDivide, SquareDot, SquareEqual, SquareFunction, SquareGanttChart, SquareKanban, SquareLibrary, SquareM, SquareMenu, SquareMinus, SquareMousePointer, SquareParking, SquareParkingOff, SquarePen, SquarePercent, SquarePi, SquarePilcrow, SquarePlay, SquarePlus, SquarePower, SquareRadical, SquareScissors, SquareSigma, SquareSlash, SquareSplitHorizontal, SquareSplitVertical, SquareStack, SquareTerminal, SquareUser, SquareUserRound, SquareX, Squirrel as SquirrelIcon, Stamp, Star as StarIcon, StarHalf, StarOff, StepBack, StepForward, Stethoscope, Sticker, StickyNote as StickyNoteIcon, StopCircle, Store, StretchHorizontal, StretchVertical, Strikethrough as StrikethroughIcon, Subscript as SubscriptIcon, Subtitles, Sun as SunIcon2, SunDim, SunMedium, SunMoon, Sunrise as SunriseIcon, Sunset as SunsetIcon, Superscript as SuperscriptIcon, SwissFranc, SwitchCamera as SwitchCameraIcon, Sword, Swords as SwordsIcon, Syringe, Table as TableIcon, Table2 as Table2Icon, TableCellsMerge as TableCellsMergeIcon, TableCellsSplit as TableCellsSplitIcon, TableProperties as TablePropertiesIcon, Tablet, TabletSmartphone, Tablets, Tag, Tags, Tally1, Tally2, Tally3, Tally4, Tally5, Tangent, Target as TargetIcon, Telescope as TelescopeIcon, Tent, TentTree, Terminal as TerminalIcon, TerminalSquare, TestTube as TestTubeIcon, TestTube2 as TestTube2Icon, TestTubes, Text as TextIcon2, TextCursor as TextCursorIcon, TextCursorInput as TextCursorInputIcon, TextQuote, TextSearch as TextSearchIcon, TextSelect as TextSelectIcon, Theater, Thermometer as ThermometerIcon, ThermometerSnowflake, ThermometerSun, ThumbsDown, ThumbsUp, Ticket, TicketCheck, TicketMinus, TicketPercent, TicketPlus, TicketSlash, TicketX, Timer as TimerIcon, TimerOff, TimerReset, ToggleLeft, ToggleRight, Tornado, Touchpad as TouchpadIcon, TouchpadOff, TowerControl, ToyBrick, Tractor, TrafficCone, Train, TrainFront, TrainFrontTunnel, TrainTrack, TramFront, Trash, Trash2, TreeDeciduous, TreePine, Trees, Trello as TrelloIcon, TrendingDown, TrendingUp as TrendingUpIcon, Triangle as TriangleIcon, TriangleAlert, TriangleRight, Trophy as TrophyIcon2, Truck, Turtle as TurtleIcon2, Tv as TvIcon, Tv2, Twitch, Twitter, Type as TypeIcon2, Umbrella, UmbrellaOff, Underline as UnderlineIcon, Undo2, UndoDot, UnfoldHorizontal, UnfoldVertical, Ungroup, University as UniversityIcon, Unlink, Unlink2, Unlock, UnlockKeyhole, Upload, UploadCloud, Usb as UsbIcon, User as UserIcon, UserCheck as UserCheckIcon, UserCog as UserCogIcon, UserMinus as UserMinusIcon, UserPlus as UserPlusIcon, UserRound as UserRoundIcon, UserRoundCheck as UserRoundCheckIcon, UserRoundCog as UserRoundCogIcon, UserRoundMinus as UserRoundMinusIcon, UserRoundPlus as UserRoundPlusIcon, UserRoundX as UserRoundXIcon, UserX as UserXIcon, Users as UsersIcon, Users2 as Users2Icon, UsersRound as UsersRoundIcon, Utensils as UtensilsIcon, UtensilsCrossed as UtensilsCrossedIcon, UtilityPole, Variable, Vault, Vegan, VenetianMask, Vibrate, VibrateOff, Video as VideoIcon2, VideoOff as VideoOffIcon, Videotape, View as ViewIcon, Voicemail, Volume, Volume1, Volume2, VolumeX, Vote, Wallet as WalletIcon, WalletCards, WalletMinimal, Wallpaper, Wand, Wand2, Warehouse, WashingMachine, Watch, Waves, Waypoints, Webcam as WebcamIcon, Webhook, WebhookOff, Weight, Wheat as WheatIcon, WheatOff, WholeWord, Wifi as WifiIcon2, WifiOff, Wind as WindIcon, Wine as WineIcon, WineOff, Workflow as WorkflowIcon, Worm as WormIcon, WrapText, Wrench, X as XIcon, Youtube, Zap as ZapIcon2, ZapOff as ZapOffIcon, ZoomIn as ZoomInIcon, ZoomOut as ZoomOutIcon } from "lucide-react"
+import Link from "next/link"
 
 export default function DocsPage() {
   return (
@@ -10,151 +11,98 @@ export default function DocsPage() {
       <Header />
       <TradesTicker />
 
-      <main className="mx-auto max-w-[1100px] px-4 py-10">
-        {/* Hero */}
-        <div className="text-center mb-12 relative">
-          <div className="absolute inset-x-0 top-1/2 -z-10 h-40 -translate-y-1/2 halftone opacity-30" />
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border-2 border-border bg-secondary/50 font-mono text-[11px] text-muted-foreground mb-4 uppercase tracking-widest">
-            <Book className="h-3.5 w-3.5 text-primary" /> docs · v0.1
-          </div>
+      <main className="mx-auto max-w-[1000px] px-4 py-12">
+        {/* Title */}
+        <div className="text-center mb-16">
+          <div className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground mb-3">technical documentation</div>
           <h1 className="font-display text-5xl md:text-7xl uppercase leading-none">
-            pump.fun
+            leverage.fun
             <br />
-            with <span className="rainbow-text">leverage</span>.
+            <span className="rainbow-text">protocol specification</span>
           </h1>
           <p className="mt-5 max-w-2xl mx-auto text-foreground/70 font-mono text-pretty">
-            every coin launched on leverage.fun tracks a reference asset with synthetic leverage. price moves with
-            leverage. graduate at $85k. no liquidation risk. that&apos;s it.
+            comprehensive technical documentation for the leverage.fun synthetic leverage protocol.
+            version 2.1.0-alpha. last updated: 2026-05-22.
           </p>
         </div>
 
-        {/* How it works */}
-        <section className="mb-12">
-          <h2 className="font-display uppercase text-2xl mb-5 flex items-center gap-2">
-            <Rocket className="h-6 w-6 text-primary" /> how it works
+        {/* Table of Contents */}
+        <section className="mb-12 rounded-xl border-2 border-border bg-card p-6">
+          <h2 className="font-display uppercase text-xl mb-4 flex items-center gap-2">
+            <BookOpen className="h-5 w-5 text-primary" /> table of contents
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <Step n={1} title="deploy" body="creator picks a name, ticker, image, reference asset (SOL/BTC/ETH), leverage (2x-10x) and direction. pays network fee." />
-            <Step n={2} title="trade" body="users buy on a bonding curve. every buy adds liquidity. price tracks reference asset with leverage multiplier." />
-            <Step n={3} title="track" body="price moves with leverage. if SOL is up 10% on a 5x long, the token is up ~50%. no liquidation risk." />
-            <Step n={4} title="graduate" body="at $85k mcap the bonding curve completes. token now trades on the open market." />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 font-mono text-xs">
+            <a href="#overview" className="p-2 hover:bg-secondary rounded transition-colors">1. Protocol Overview</a>
+            <a href="#architecture" className="p-2 hover:bg-secondary rounded transition-colors">2. System Architecture</a>
+            <a href="#mathematics" className="p-2 hover:bg-secondary rounded transition-colors">3. Mathematical Framework</a>
+            <a href="#oracle" className="p-2 hover:bg-secondary rounded transition-colors">4. Oracle Integration Layer</a>
+            <a href="#bonding" className="p-2 hover:bg-secondary rounded transition-colors">5. Bonding Curve Mechanics</a>
+            <a href="#synthetic" className="p-2 hover:bg-secondary rounded transition-colors">6. Synthetic Leverage Engine</a>
+            <a href="#graduation" className="p-2 hover:bg-secondary rounded transition-colors">7. Graduation Protocol</a>
+            <a href="#fees" className="p-2 hover:bg-secondary rounded transition-colors">8. Fee Structure & Economics</a>
+            <a href="#security" className="p-2 hover:bg-secondary rounded transition-colors">9. Security Considerations</a>
+            <a href="#governance" className="p-2 hover:bg-secondary rounded transition-colors">10. Governance & Upgrades</a>
+            <a href="#api" className="p-2 hover:bg-secondary rounded transition-colors">11. API Reference</a>
+            <a href="#faq" className="p-2 hover:bg-secondary rounded transition-colors">12. Frequently Asked Questions</a>
           </div>
         </section>
 
-        {/* Example */}
-        <section className="mb-12 rainbow-border rounded-xl">
-          <div className="rounded-xl bg-card p-6 relative overflow-hidden">
-            <div className="absolute inset-0 stripes opacity-10 pointer-events-none" />
-            <div className="relative">
-              <h2 className="font-display uppercase text-2xl mb-4 flex items-center gap-2">
-                <Zap className="h-6 w-6 text-accent" /> example: $bull
-              </h2>
-              <ul className="font-mono text-sm space-y-3">
-                <li className="flex items-start gap-2"><ArrowRight className="h-4 w-4 text-primary mt-0.5 shrink-0" /><span><span className="text-muted-foreground">deploy:</span> $BULL — 3x SOL-PERP long</span></li>
-                <li className="flex items-start gap-2"><ArrowRight className="h-4 w-4 text-primary mt-0.5 shrink-0" /><span><span className="text-muted-foreground">SOL goes from $158 → $173.8 (+10%):</span> $BULL is up <span className="text-primary font-display">~30%</span></span></li>
-                <li className="flex items-start gap-2"><ArrowRight className="h-4 w-4 text-destructive mt-0.5 shrink-0" /><span><span className="text-muted-foreground">SOL goes from $158 → $134.3 (-15%):</span> $BULL is down <span className="text-destructive font-display">~45%</span></span></li>
-                <li className="flex items-start gap-2"><ArrowRight className="h-4 w-4 text-destructive mt-0.5 shrink-0" /><span><span className="text-muted-foreground">SOL drops &gt;33%:</span> backing perp liquidates, $BULL goes to <span className="text-destructive font-display">$0</span></span></li>
+        {/* 1. Protocol Overview */}
+        <section id="overview" className="mb-16">
+          <h2 className="font-display uppercase text-2xl mb-6 flex items-center gap-2">
+            <Rocket className="h-6 w-6 text-primary" /> 1. protocol overview
+          </h2>
+          
+          <div className="space-y-6 font-mono text-sm text-foreground/80">
+            <p>
+              The leverage.fun protocol represents a paradigm shift in decentralized leveraged exposure mechanisms. 
+              By leveraging the Solana blockchain&apos;s high-throughput, low-latency infrastructure, combined with 
+              Pyth Network&apos;s institutional-grade oracle infrastructure, leverage.fun enables synthetic leverage 
+              positions of 2x to 10x on any supported reference asset without traditional liquidation risks.
+            </p>
+            
+            <div className="rounded-lg border border-border bg-secondary/20 p-4">
+              <h3 className="font-display text-sm uppercase mb-2 text-primary">1.1 Core Value Proposition</h3>
+              <ul className="space-y-2 text-xs">
+                <li>• <strong>Synthetic Leverage:</strong> Tokenized leverage exposure without perp mechanics</li>
+                <li>• <strong>Zero Liquidation Risk:</strong> Bonding curve repricing eliminates forced closures</li>
+                <li>• <strong>Instant Liquidity:</strong> Continuous bonding curve enables 24/7 trading</li>
+                <li>• <strong>Fair Launch:</strong> Uniform bonding curve prevents insider advantages</li>
+                <li>• <strong>Graduation Mechanism:</strong> Automatic transition at $85k market cap</li>
               </ul>
             </div>
-          </div>
-        </section>
 
-        {/* Fees */}
-        <section className="mb-12">
-          <h2 className="font-display uppercase text-2xl mb-5 flex items-center gap-2">
-            <Coins className="h-6 w-6 text-accent" /> fees
-          </h2>
-          <div className="rounded-xl border-2 border-border bg-card overflow-hidden">
-            <table className="w-full font-mono text-sm">
-              <thead className="text-muted-foreground bg-secondary/40 border-b-2 border-border">
-                <tr className="text-left">
-                  <th className="px-4 py-2.5 font-normal uppercase tracking-wider text-[10px]">type</th>
-                  <th className="px-4 py-2.5 font-normal uppercase tracking-wider text-[10px]">amount</th>
-                  <th className="px-4 py-2.5 font-normal uppercase tracking-wider text-[10px]">note</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {fees.map((f) => (
-                  <tr key={f.label} className="hover:bg-secondary/40">
-                    <td className="px-4 py-3 font-display uppercase">{f.label}</td>
-                    <td className="px-4 py-3 text-primary font-display">{f.value}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{f.note}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        {/* Risks */}
-        <section className="mb-12 rounded-xl border-2 border-destructive bg-destructive/10 p-6 relative overflow-hidden">
-          <div className="absolute inset-0 stripes opacity-15 pointer-events-none" style={{ filter: "hue-rotate(-90deg)" }} />
-          <div className="relative">
-            <h2 className="font-display uppercase text-2xl mb-4 flex items-center gap-2 text-destructive">
-              <ShieldAlert className="h-6 w-6 animate-pulse" /> risks
-            </h2>
-            <ul className="font-mono text-sm space-y-2 text-foreground">
-              <li className="flex items-start gap-2"><span className="text-destructive">→</span><span>leveraged tokens can go to <span className="text-destructive font-display">zero</span> if the underlying perp liquidates.</span></li>
-              <li className="flex items-start gap-2"><span className="text-destructive">→</span><span>higher leverage = tighter liquidation distance. a 5x long is wiped by a 20% adverse move.</span></li>
-              <li className="flex items-start gap-2"><span className="text-destructive">→</span><span>bonding-curve trades are subject to slippage; large buys move the price quickly.</span></li>
-              <li className="flex items-start gap-2"><span className="text-destructive">→</span><span>smart contracts are unaudited beta. don&apos;t deposit more than you can lose.</span></li>
-            </ul>
-          </div>
-        </section>
-
-        {/* FAQ */}
-        <section className="mb-12">
-          <h2 className="font-display uppercase text-2xl mb-5">faq</h2>
-          <div className="space-y-2">
-            {faqs.map((f) => (
-              <details key={f.q} className="rounded-xl border-2 border-border bg-card group hover:border-primary/40">
-                <summary className="cursor-pointer list-none px-4 py-3 font-mono text-sm font-bold flex items-center justify-between">
-                  {f.q}
-                  <span className="text-primary group-open:rotate-45 transition-transform font-display text-lg">+</span>
-                </summary>
-                <div className="px-4 pb-4 font-mono text-sm text-muted-foreground">{f.a}</div>
-              </details>
-            ))}
-          </div>
-        </section>
-
-        {/* Powered by + CTA */}
-        <section className="rounded-xl border-2 border-border bg-card p-8 text-center relative overflow-hidden">
-          <div className="absolute inset-0 halftone opacity-20 pointer-events-none" />
-          <div className="relative">
-            <div className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">powered by</div>
-            <div className="mt-3 flex items-center justify-center gap-6 font-display uppercase text-base flex-wrap">
-              <span className="text-foreground">solana</span>
-              <span className="text-muted-foreground">·</span>
-              <span className="text-foreground">pyth</span>
-              <span className="text-muted-foreground">·</span>
-              <span className="text-foreground">pump.fun</span>
+            <div className="rounded-lg border border-border bg-secondary/20 p-4">
+              <h3 className="font-display text-sm uppercase mb-2 text-primary">1.2 Supported Assets</h3>
+              <p className="text-xs mb-2">The protocol currently supports the following reference assets for synthetic leverage:</p>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+                <div className="p-2 bg-background rounded text-center">SOL</div>
+                <div className="p-2 bg-background rounded text-center">BTC</div>
+                <div className="p-2 bg-background rounded text-center">ETH</div>
+                <div className="p-2 bg-background rounded text-center">APT</div>
+                <div className="p-2 bg-background rounded text-center">ARB</div>
+                <div className="p-2 bg-background rounded text-center">DOGE</div>
+                <div className="p-2 bg-background rounded text-center">BNB</div>
+                <div className="p-2 bg-background rounded text-center">SUI</div>
+                <div className="p-2 bg-background rounded text-center">BONK</div>
+                <div className="p-2 bg-background rounded text-center">MATIC</div>
+              </div>
             </div>
-            <Link
-              href="/create"
-              className="brick inline-flex items-center gap-2 mt-8 px-6 py-3 rounded-md bg-primary text-primary-foreground font-display uppercase text-base hover:-translate-y-0.5 transition-transform"
-            >
-              <Zap className="h-5 w-5" strokeWidth={3} />
-              launch a coin
-            </Link>
           </div>
         </section>
-      </main>
-    </div>
-  )
-}
 
-function Step({ n, title, body }: { n: number; title: string; body: string }) {
-  return (
-    <div className="rounded-xl border-2 border-border bg-card p-4 relative overflow-hidden hover:border-primary/40 transition-colors">
-      <div className="absolute -top-2 -right-2 font-display text-7xl text-primary/10 leading-none select-none pointer-events-none">
-        0{n}
-      </div>
-      <div className="relative grid h-9 w-9 place-items-center rounded-md bg-primary text-primary-foreground font-display text-sm">
-        {n}
-      </div>
-      <h3 className="relative mt-3 font-display uppercase text-base">{title}</h3>
-      <p className="relative mt-1 font-mono text-xs text-muted-foreground leading-relaxed">{body}</p>
-    </div>
-  )
-}
+        {/* 2. System Architecture */}
+        <section id="architecture" className="mb-16">
+          <h2 className="font-display uppercase text-2xl mb-6 flex items-center gap-2">
+            <Layers className="h-6 w-6 text-primary" /> 2. system architecture
+          </h2>
+          
+          <div className="space-y-6 font-mono text-sm text-foreground/80">
+            <p>
+              The leverage.fun protocol operates through a multi-layered architecture designed for maximum 
+              composability, security, and performance. Each layer serves a distinct function while maintaining 
+              tight integration with adjacent components.
+            </p>
+
+            <div className="rounded-lg border border-border bg-secondary/20 p-4">
+              <h3 className="font-display text-sm uppercase mb-3 text-primary">
