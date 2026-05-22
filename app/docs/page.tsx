@@ -23,8 +23,8 @@ export default function DocsPage() {
             with <span className="rainbow-text">leverage</span>.
           </h1>
           <p className="mt-5 max-w-2xl mx-auto text-foreground/70 font-mono text-pretty">
-            every coin launched on leverage.fun is backed by a perp position on drift. price = underlying ×
-            leverage. graduate at $69k to raydium. liquidate and the coin goes to zero. that&apos;s it.
+            every coin launched on leverage.fun tracks a reference asset with synthetic leverage. price moves with
+            leverage. graduate at $85k. no liquidation risk. that&apos;s it.
           </p>
         </div>
 
@@ -34,10 +34,10 @@ export default function DocsPage() {
             <Rocket className="h-6 w-6 text-primary" /> how it works
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <Step n={1} title="deploy" body="creator picks a name, ticker, image, underlying perp (SOL/BTC/ETH), leverage (2/3/5x) and direction. pays 0.1 SOL." />
-            <Step n={2} title="trade" body="users buy on a bonding curve. every buy adds liquidity and opens more of the backing perp on drift." />
-            <Step n={3} title="track" body="price = underlying × leverage. if SOL is up 10% on a 5x long, the token is up ~50%." />
-            <Step n={4} title="graduate" body="at $69k mcap the LP migrates to raydium. perp closes. token now trades like any other SPL." />
+            <Step n={1} title="deploy" body="creator picks a name, ticker, image, reference asset (SOL/BTC/ETH), leverage (2x-10x) and direction. pays network fee." />
+            <Step n={2} title="trade" body="users buy on a bonding curve. every buy adds liquidity. price tracks reference asset with leverage multiplier." />
+            <Step n={3} title="track" body="price moves with leverage. if SOL is up 10% on a 5x long, the token is up ~50%. no liquidation risk." />
+            <Step n={4} title="graduate" body="at $85k mcap the bonding curve completes. token now trades on the open market." />
           </div>
         </section>
 
@@ -126,11 +126,9 @@ export default function DocsPage() {
             <div className="mt-3 flex items-center justify-center gap-6 font-display uppercase text-base flex-wrap">
               <span className="text-foreground">solana</span>
               <span className="text-muted-foreground">·</span>
-              <span className="text-foreground">drift</span>
-              <span className="text-muted-foreground">·</span>
               <span className="text-foreground">pyth</span>
               <span className="text-muted-foreground">·</span>
-              <span className="text-foreground">raydium</span>
+              <span className="text-foreground">pump.fun</span>
             </div>
             <Link
               href="/create"

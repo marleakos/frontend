@@ -329,7 +329,7 @@ export default function CreatePage() {
             LAUNCH A <span className="rainbow-text">LEVERAGED</span> COIN
           </h1>
           <p className="mt-3 text-sm text-muted-foreground font-mono max-w-xl mx-auto">
-            deploy a meme token with leveraged price action. graduates to raydium at 69 sol.
+            deploy a meme token with leveraged price action. graduates at 85 sol.
           </p>
         </div>
 

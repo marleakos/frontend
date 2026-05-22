@@ -97,7 +97,7 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
             tokenPrice = parseFloat(pair.priceUsd) || 0
             marketCap = pair.marketCap || 0
             priceChange24h = pair.priceChange?.h24 || 0
-            graduated = pair.marketCap > 69000
+            graduated = pair.marketCap > 85000
             dexImageUrl = pair.baseToken?.icon || pair.info?.imageUrl || null
             
             console.log('Token page - DexScreener data:', { marketCap, tokenPrice, image: dexImageUrl })
@@ -141,7 +141,7 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
             leverage: 2,
             direction: "LONG",
             marketCap,
-            progress: Math.min(100, Math.floor((marketCap / 69000) * 100)),
+            progress: Math.min(100, Math.floor((marketCap / 85000) * 100)),
             replies: 0,
             ageMinutes: 0,
             change24h: priceChange24h,
@@ -169,7 +169,7 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
 
         const createdAt = new Date(tokenData.createdAt).getTime()
         const ageMinutes = Math.floor((Date.now() - createdAt) / 60000)
-        const progress = Math.min(100, Math.floor((marketCap / 69000) * 100))
+        const progress = Math.min(100, Math.floor((marketCap / 85000) * 100))
 
         setToken({
           id: tokenData.mintAddress,
@@ -230,7 +230,7 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
 
   const positive = (token.change24h || 0) >= 0
   const danger = token.liqDistance < 15
-  const GRAD = 69000
+  const GRAD = 85000
   const progress = Math.min(100, (token.marketCap / GRAD) * 100)
 
   return (
@@ -334,7 +334,7 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
                 <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-wider mb-1.5">
                   <span className="text-muted-foreground">graduation</span>
                   <span className="text-primary font-bold">
-                    {(progress || 0).toFixed(0)}% · ${formatK(token.marketCap || 0)} / $69k
+                    {(progress || 0).toFixed(0)}% · ${formatK(token.marketCap || 0)} / $85k
                   </span>
                 </div>
                 <div className="relative h-1.5 w-full rounded-full bg-secondary overflow-hidden">

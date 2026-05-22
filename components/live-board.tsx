@@ -290,7 +290,7 @@ function LiveCard({ token }: { token: TokenData }) {
 }
 
 function KOTH({ token }: { token: TokenData }) {
-  const GRAD = 69000
+  const GRAD = 85000
   const progress = Math.min(100, (token.marketCap / GRAD) * 100)
 
   return (
@@ -373,7 +373,7 @@ function KOTH({ token }: { token: TokenData }) {
                   />
                 </div>
                 <div className="mt-1 flex items-center justify-between font-mono text-[9px] md:text-[10px] text-muted-foreground">
-                  <span>{formatK(token.marketCap)} / 69k</span>
+                  <span>{formatK(token.marketCap)} / 85k</span>
                   <span>{progress >= 100 ? "ready to graduate" : "until graduation"}</span>
                 </div>
               </div>

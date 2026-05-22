@@ -25,7 +25,7 @@ const FAQS = [
   },
   {
     q: "what happens at graduation?",
-    a: "At 69 SOL market cap, the token graduates to Raydium AMM. The leverage multiplier locks in and the token trades with normal AMM mechanics, but retains its leverage characteristics through protocol-managed reserves."
+    a: "At 85 SOL market cap, the token graduates. The bonding curve completes and the token trades on the open market."
   }
 ]
 
@@ -101,7 +101,7 @@ export default function HowToPage() {
             <StepCard 
               num="4" 
               title="GRADUATE" 
-              desc="at 69 SOL market cap, the token graduates to raydium. the leverage engine continues to manage the synthetic price through protocol reserves."
+              desc="at 85 SOL market cap, the token graduates. the bonding curve completes and the token trades on the open market."
             />
           </div>
         </div>
@@ -157,28 +157,18 @@ export default function HowToPage() {
               <tbody className="font-mono text-xs">
                 <tr className="border-b border-border">
                   <td className="px-4 py-3 font-bold">DEPLOYMENT</td>
-                  <td className="px-4 py-3 text-primary font-bold">0.15 SOL</td>
-                  <td className="px-4 py-3 text-muted-foreground">smart contract deployment + leverage encoding</td>
+                  <td className="px-4 py-3 text-primary font-bold">~0.02 SOL</td>
+                  <td className="px-4 py-3 text-muted-foreground">network fee for token creation</td>
                 </tr>
                 <tr className="border-b border-border">
-                  <td className="px-4 py-3 font-bold">LEVERAGE FEE</td>
-                  <td className="px-4 py-3 text-primary font-bold">0.5% - 1.0%</td>
-                  <td className="px-4 py-3 text-muted-foreground">tiered by leverage: 2x=0.5%, 10x=1.0%</td>
-                </tr>
-                <tr className="border-b border-border">
-                  <td className="px-4 py-3 font-bold">ORACLE FEE</td>
-                  <td className="px-4 py-3 text-primary font-bold">0.1%</td>
-                  <td className="px-4 py-3 text-muted-foreground">pyth network data streaming costs</td>
-                </tr>
-                <tr className="border-b border-border">
-                  <td className="px-4 py-3 font-bold">GRADUATION</td>
-                  <td className="px-4 py-3 text-primary font-bold">1% LP</td>
-                  <td className="px-4 py-3 text-muted-foreground">protocol reserves for continued leverage management</td>
+                  <td className="px-4 py-3 font-bold">TRADING FEE</td>
+                  <td className="px-4 py-3 text-primary font-bold">1%</td>
+                  <td className="px-4 py-3 text-muted-foreground">standard bonding curve fee on all trades</td>
                 </tr>
                 <tr>
                   <td className="px-4 py-3 font-bold">CREATOR REWARDS</td>
-                  <td className="px-4 py-3 text-primary font-bold">50% OF FEES</td>
-                  <td className="px-4 py-3 text-muted-foreground">ongoing revenue for token creators</td>
+                  <td className="px-4 py-3 text-primary font-bold">100%</td>
+                  <td className="px-4 py-3 text-muted-foreground">all fees go to token creator</td>
                 </tr>
               </tbody>
             </table>
@@ -276,8 +266,6 @@ export default function HowToPage() {
             <span>PYTH</span>
             <span className="text-muted-foreground">·</span>
             <span>PUMP.FUN</span>
-            <span className="text-muted-foreground">·</span>
-            <span>RAYDIUM</span>
           </div>
         </div>
 

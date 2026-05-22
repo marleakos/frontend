@@ -21,7 +21,7 @@ export function HeroBanner() {
             meme coin in <span className="text-accent">30 seconds</span>.
           </h1>
           <p className="font-mono text-sm text-foreground/70 max-w-xl mb-4 text-pretty">
-            pick a perp · pick your leverage · pick long or short. fair launch on a bonding curve, graduates to raydium at $69k. you will get rekt or you will get rich.
+            pick an asset · pick your leverage · pick long or short. fair launch on a bonding curve, graduates at $85k. you will get rekt or you will get rich.
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <Link
