@@ -162,7 +162,7 @@ export default function CreatePage() {
         toast.loading(`Creating token with ${initialBuyAmount} SOL buy...`, { id: "deploy" })
         
         try {
-          const global = await sdk.getGlobalAccount()
+          const global = await sdk.fetchGlobal()
           
           // For new tokens, pump.fun starts with:
           // virtualSolReserves = 30 SOL
