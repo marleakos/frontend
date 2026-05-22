@@ -101,7 +101,10 @@ export async function getBondingCurveData(
       price,
       marketCap,
       complete,
-      progress
+      progress,
+      raw_market_cap: token.market_cap,
+      virtual_sol: virtualSolReserves,
+      virtual_token: virtualTokenReserves
     })
     
     return {
