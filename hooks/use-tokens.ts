@@ -57,7 +57,7 @@ const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 async function fetchTokenMarketDataBatch(mintAddresses: string[]): Promise<Map<string, any>> {
   const results = new Map<string, any>()
   const uncachedAddresses: string[] = []
-  
+
   // Check cache first
   const now = Date.now()
   for (const address of mintAddresses) {
@@ -68,65 +68,71 @@ async function fetchTokenMarketDataBatch(mintAddresses: string[]): Promise<Map<s
       uncachedAddresses.push(address)
     }
   }
-  
+
   if (uncachedAddresses.length === 0) {
     return results
   }
-  
+
   // Fetch uncached tokens in parallel batches
   const batchSize = 5
   for (let i = 0; i < uncachedAddresses.length; i += batchSize) {
     const batch = uncachedAddresses.slice(i, i + batchSize)
     const batchPromises = batch.map(async (address) => {
       try {
-        // Fetch market data and metadata in parallel
-        const [{ getTokenData }, { getTokenMetadata }] = await Promise.all([
+        // Fetch from multiple sources in parallel
+        const [{ getTokenData }, { getTokenMetadata }, { getPumpFunToken }] = await Promise.all([
           import('@/lib/dexscreener'),
-          import('@/lib/token-metadata')
+          import('@/lib/token-metadata'),
+          import('@/lib/pumpfun')
         ])
-        
-        const [dexData, metadata] = await Promise.all([
+
+        const [dexData, metadata, pumpData] = await Promise.all([
           getTokenData(address).catch(() => null),
-          getTokenMetadata(address).catch(() => null)
+          getTokenMetadata(address).catch(() => null),
+          getPumpFunToken(address).catch(() => null)
         ])
-        
-        if (dexData || metadata) {
-          const data = {
-            marketCap: dexData?.marketCap || 0,
-            price: dexData?.priceUsd || 0,
-            volume24h: dexData?.volume?.h24 || 0,
-            priceChange24h: dexData?.priceChange?.h24 || 0,
-            image: metadata?.image || dexData?.image
-          }
-          
-          // Cache the result
-          tokenCache.set(address, { data, timestamp: now })
-          return { address, data }
+
+        // Get SOL reserves from pump.fun data if available
+        const solReserves = pumpData?.market_cap_sol 
+          ? pumpData.market_cap_sol * 0.5 // Approximate SOL in curve
+          : 0
+
+        // Calculate progress based on SOL reserves or market cap
+        let progress = 0
+        let graduated = false
+        let marketCap = 0
+
+        if (pumpData) {
+          // Use pump.fun data for progress
+          marketCap = (pumpData.market_cap_sol || 0) * 150 // Approx USD
+          const solInCurve = pumpData.market_cap_sol || 0
+          progress = Math.min(100, Math.floor((solInCurve / 85) * 100))
+          graduated = pumpData.complete || solInCurve >= 85
+        } else if (dexData) {
+          // Graduated tokens on DexScreener
+          marketCap = dexData.marketCap || 0
+          progress = 100
+          graduated = true
         }
-        
-        // Fallback to bonding curve
-        const { getBondingCurveData } = await import('@/lib/pumpfun')
-        const bondingData = await getBondingCurveData(address)
-        
-        if (bondingData) {
-          const data = {
-            marketCap: bondingData.marketCap || 0,
-            price: bondingData.price || 0,
-            volume24h: 0,
-            priceChange24h: 0,
-            image: undefined
-          }
-          
-          tokenCache.set(address, { data, timestamp: now })
-          return { address, data }
+
+        const data = {
+          marketCap,
+          price: dexData?.priceUsd || pumpData?.price || 0,
+          volume24h: dexData?.volume?.h24 || 0,
+          priceChange24h: dexData?.priceChange?.h24 || 0,
+          image: metadata?.image || dexData?.image,
+          solReserves,
+          progress,
+          graduated
         }
-        
-        return { address, data: null }
+
+        tokenCache.set(address, { data, timestamp: now })
+        return { address, data }
       } catch (e) {
         return { address, data: null }
       }
     })
-    
+
     const batchResults = await Promise.all(batchPromises)
     batchResults.forEach(({ address, data }) => {
       if (data) {
@@ -134,7 +140,7 @@ async function fetchTokenMarketDataBatch(mintAddresses: string[]): Promise<Map<s
       }
     })
   }
-  
+
   return results
 }
 
@@ -206,19 +212,18 @@ export function useTokens() {
       const tokenData = allTokens.map((token: any) => {
         const createdAt = new Date(token.createdAt).getTime()
         const ageMinutes = Math.floor((Date.now() - createdAt) / 60000)
-        
+
         const marketData = marketDataMap.get(token.mintAddress)
         const marketCap = marketData?.marketCap || 0
         const price = marketData?.price || 0
         const priceChange24h = marketData?.priceChange24h || 0
         const imageUrl = marketData?.image
-        
-        // Calculate progress to 85 SOL graduation (approximate)
-        const solPrice = 150 // Approximate SOL price
-        const solInCurve = marketCap / solPrice
-        const progress = Math.min(100, Math.floor((solInCurve / 85) * 100))
-        const graduated = solInCurve >= 85
-        
+
+        // Use pre-calculated progress from bonding curve data
+        const progress = marketData?.progress || 0
+        const graduated = marketData?.graduated || false
+        const solReserves = marketData?.solReserves || 0
+
         return {
           id: token.mintAddress,
           name: token.name,
@@ -239,6 +244,7 @@ export function useTokens() {
           mint: new PublicKey(token.mintAddress),
           graduated,
           price,
+          solReserves, // Include for display
         }
       })
       
