@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { PublicKey } from "@solana/web3.js"
 import { getAllTokens } from "@/lib/supabase"
 
@@ -35,11 +35,6 @@ function formatUnderlying(underlying: any): "SOL-PERP" | "BTC-PERP" | "ETH-PERP"
   return "SOL-PERP"
 }
 
-// Map on-chain direction enum to display format
-function formatDirection(direction: any): "LONG" | "SHORT" {
-  return direction?.long !== undefined ? "LONG" : "SHORT"
-}
-
 // Get emoji based on symbol/name
 function getEmoji(name: string, symbol: string): string {
   const lower = (name + symbol).toLowerCase()
@@ -54,56 +49,102 @@ function getEmoji(name: string, symbol: string): string {
   return "🪙"
 }
 
-// Fetch token data from pump.fun bonding curve (works for ALL tokens)
-import { getBondingCurveData } from '@/lib/pumpfun'
-// Fallback to DexScreener for price change data
-import { getTokenData } from '@/lib/dexscreener'
+// Cache for token data (5 minute TTL)
+const tokenCache = new Map<string, { data: any; timestamp: number }>()
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
-async function fetchTokenMarketData(mintAddress: string): Promise<{ 
-  marketCap: number
-  price: number
-  volume24h: number
-  priceChange24h: number
-} | null> {
-  // Try bonding curve first (works for new tokens)
-  const bondingData = await getBondingCurveData(mintAddress)
+// Fetch all token data in parallel with caching
+async function fetchTokenMarketDataBatch(mintAddresses: string[]): Promise<Map<string, any>> {
+  const results = new Map<string, any>()
+  const uncachedAddresses: string[] = []
   
-  if (!bondingData) {
-    return null
-  }
-  
-  // Try DexScreener for volume and price change
-  let volume24h = 0
-  let priceChange24h = 0
-  try {
-    const dexData = await getTokenData(mintAddress)
-    if (dexData) {
-      volume24h = dexData.volume?.h24 || 0
-      priceChange24h = dexData.priceChange?.h24 || 0
+  // Check cache first
+  const now = Date.now()
+  for (const address of mintAddresses) {
+    const cached = tokenCache.get(address)
+    if (cached && (now - cached.timestamp) < CACHE_TTL) {
+      results.set(address, cached.data)
+    } else {
+      uncachedAddresses.push(address)
     }
-  } catch (e) {
-    console.log('Could not fetch DexScreener data for', mintAddress)
   }
   
-  return {
-    marketCap: bondingData.marketCap || 0,
-    price: bondingData.price || 0,
-    volume24h,
-    priceChange24h
+  if (uncachedAddresses.length === 0) {
+    return results
   }
+  
+  // Fetch uncached tokens in parallel batches
+  const batchSize = 5
+  for (let i = 0; i < uncachedAddresses.length; i += batchSize) {
+    const batch = uncachedAddresses.slice(i, i + batchSize)
+    const batchPromises = batch.map(async (address) => {
+      try {
+        // Use DexScreener as primary source (faster)
+        const { getTokenData } = await import('@/lib/dexscreener')
+        const dexData = await getTokenData(address)
+        
+        if (dexData) {
+          const data = {
+            marketCap: dexData.marketCap || 0,
+            price: dexData.priceUsd || 0,
+            volume24h: dexData.volume?.h24 || 0,
+            priceChange24h: dexData.priceChange?.h24 || 0,
+            image: dexData.image
+          }
+          
+          // Cache the result
+          tokenCache.set(address, { data, timestamp: now })
+          return { address, data }
+        }
+        
+        // Fallback to bonding curve
+        const { getBondingCurveData } = await import('@/lib/pumpfun')
+        const bondingData = await getBondingCurveData(address)
+        
+        if (bondingData) {
+          const data = {
+            marketCap: bondingData.marketCap || 0,
+            price: bondingData.price || 0,
+            volume24h: 0,
+            priceChange24h: 0,
+            image: undefined
+          }
+          
+          tokenCache.set(address, { data, timestamp: now })
+          return { address, data }
+        }
+        
+        return { address, data: null }
+      } catch (e) {
+        return { address, data: null }
+      }
+    })
+    
+    const batchResults = await Promise.all(batchPromises)
+    batchResults.forEach(({ address, data }) => {
+      if (data) {
+        results.set(address, data)
+      }
+    })
+  }
+  
+  return results
 }
 
 export function useTokens() {
   const [tokens, setTokens] = useState<TokenData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const isMounted = useRef(true)
 
   const fetchTokens = useCallback(async () => {
+    if (!isMounted.current) return
+    
     try {
       setLoading(true)
       setError(null)
 
-      // Fetch tokens from Supabase first
+      // Fetch tokens from Supabase
       let apiTokens: any[] = []
       try {
         console.log('Fetching tokens from Supabase...')
@@ -121,7 +162,6 @@ export function useTokens() {
         }))
       } catch (e) {
         console.log('Could not fetch from Supabase, trying API:', e)
-        // Fallback to API
         try {
           const response = await fetch('/api/tokens')
           const data = await response.json()
@@ -131,11 +171,11 @@ export function useTokens() {
         }
       }
       
-      // Also get localStorage tokens (for immediate display of user's own tokens)
+      // Get localStorage tokens
       const storedTokensRaw = localStorage.getItem('leverageTokens')
       const storedTokens = JSON.parse(storedTokensRaw || '[]')
       
-      // Merge both lists (avoid duplicates)
+      // Merge lists (avoid duplicates)
       const allTokens = [...apiTokens]
       storedTokens.forEach((token: any) => {
         if (!allTokens.find((t: any) => t.mintAddress === token.mintAddress)) {
@@ -143,39 +183,34 @@ export function useTokens() {
         }
       })
       
+      if (allTokens.length === 0) {
+        setTokens([])
+        setLoading(false)
+        return
+      }
+      
       console.log("Total tokens:", allTokens.length)
       
-      // Fetch pump.fun data for each token
-      const tokenDataPromises = allTokens.map(async (token: any) => {
+      // Fetch all market data in parallel batches
+      const mintAddresses = allTokens.map((t: any) => t.mintAddress)
+      const marketDataMap = await fetchTokenMarketDataBatch(mintAddresses)
+      
+      // Process all tokens with cached/fetched data
+      const tokenData = allTokens.map((token: any) => {
         const createdAt = new Date(token.createdAt).getTime()
         const ageMinutes = Math.floor((Date.now() - createdAt) / 60000)
         
-        // Fetch real data from DexScreener
-        const marketData = await fetchTokenMarketData(token.mintAddress)
+        const marketData = marketDataMap.get(token.mintAddress)
         const marketCap = marketData?.marketCap || 0
         const price = marketData?.price || 0
-        const volume24h = marketData?.volume24h || 0
         const priceChange24h = marketData?.priceChange24h || 0
+        const imageUrl = marketData?.image
         
-        // Fetch metadata (including image) from blockchain
-        let imageUrl: string | undefined = undefined
-        try {
-          const { getTokenMetadata } = await import('@/lib/token-metadata')
-          const metadata = await getTokenMetadata(token.mintAddress)
-          if (metadata?.image) {
-            imageUrl = metadata.image
-          }
-        } catch (e) {
-          console.log('Could not fetch metadata for', token.mintAddress)
-        }
-        
-
-        
-        // Calculate progress to graduation (69k)
-        const progress = Math.min(100, Math.floor((marketCap / 69000) * 100))
-        
-        // Graduated if market cap > 69k
-        const graduated = marketCap >= 69000
+        // Calculate progress to 85 SOL graduation (approximate)
+        const solPrice = 150 // Approximate SOL price
+        const solInCurve = marketCap / solPrice
+        const progress = Math.min(100, Math.floor((solInCurve / 85) * 100))
+        const graduated = solInCurve >= 85
         
         return {
           id: token.mintAddress,
@@ -185,8 +220,8 @@ export function useTokens() {
           image: imageUrl,
           creator: token.creator || "",
           underlying: `${token.underlying || 'SOL'}-PERP`,
-          leverage: token.leverage as 2 | 3 | 5 | 10,
-          direction: token.direction as "LONG" | "SHORT",
+          leverage: (token.leverage || 3) as 2 | 3 | 5 | 10,
+          direction: (token.direction || 'LONG') as "LONG" | "SHORT",
           marketCap,
           progress,
           replies: 0,
@@ -200,20 +235,28 @@ export function useTokens() {
         }
       })
       
-      const tokenData = await Promise.all(tokenDataPromises)
-
-      setTokens(tokenData)
+      if (isMounted.current) {
+        setTokens(tokenData)
+      }
     } catch (err: any) {
       console.error("Error fetching tokens:", err)
-      setError(err.message || "Failed to fetch tokens")
-      setTokens([])
+      if (isMounted.current) {
+        setError(err.message || "Failed to fetch tokens")
+      }
     } finally {
-      setLoading(false)
+      if (isMounted.current) {
+        setLoading(false)
+      }
     }
   }, [])
 
   useEffect(() => {
+    isMounted.current = true
     fetchTokens()
+    
+    return () => {
+      isMounted.current = false
+    }
   }, [fetchTokens])
 
   return {
