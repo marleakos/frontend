@@ -79,17 +79,24 @@ async function fetchTokenMarketDataBatch(mintAddresses: string[]): Promise<Map<s
     const batch = uncachedAddresses.slice(i, i + batchSize)
     const batchPromises = batch.map(async (address) => {
       try {
-        // Use DexScreener as primary source (faster)
-        const { getTokenData } = await import('@/lib/dexscreener')
-        const dexData = await getTokenData(address)
+        // Fetch market data and metadata in parallel
+        const [{ getTokenData }, { getTokenMetadata }] = await Promise.all([
+          import('@/lib/dexscreener'),
+          import('@/lib/token-metadata')
+        ])
         
-        if (dexData) {
+        const [dexData, metadata] = await Promise.all([
+          getTokenData(address).catch(() => null),
+          getTokenMetadata(address).catch(() => null)
+        ])
+        
+        if (dexData || metadata) {
           const data = {
-            marketCap: dexData.marketCap || 0,
-            price: dexData.priceUsd || 0,
-            volume24h: dexData.volume?.h24 || 0,
-            priceChange24h: dexData.priceChange?.h24 || 0,
-            image: dexData.image
+            marketCap: dexData?.marketCap || 0,
+            price: dexData?.priceUsd || 0,
+            volume24h: dexData?.volume?.h24 || 0,
+            priceChange24h: dexData?.priceChange?.h24 || 0,
+            image: metadata?.image || dexData?.image
           }
           
           // Cache the result
