@@ -92,22 +92,29 @@ async function fetchTokenMarketDataBatch(mintAddresses: string[]): Promise<Map<s
           getPumpFunToken(address).catch(() => null)
         ])
 
-        // Get SOL reserves from pump.fun data if available
-        const solReserves = pumpData?.market_cap_sol 
-          ? pumpData.market_cap_sol * 0.5 // Approximate SOL in curve
-          : 0
-
-        // Calculate progress based on SOL reserves or market cap
-        let progress = 0
-        let graduated = false
+        // Progress calculation:
+        // 0% = 30 virtual SOL (new token, no real SOL)
+        // 100% = 30 virtual + 85 real = 115 total SOL (graduation)
+        const VIRTUAL_SOL = 30
+        const REAL_SOL_TARGET = 85
+        const TOTAL_SOL_AT_GRAD = VIRTUAL_SOL + REAL_SOL_TARGET // 115
+        
+        // Get total SOL from pump.fun (includes virtual + real)
+        const totalSol = pumpData?.market_cap_sol || VIRTUAL_SOL
+        
+        // Real SOL = total - virtual (minimum 0)
+        const realSol = Math.max(0, totalSol - VIRTUAL_SOL)
+        
+        // Progress = (realSol / 85) * 100
+        // 0 real SOL = 0%
+        // 85 real SOL = 100%
+        let progress = Math.min(100, Math.floor((realSol / REAL_SOL_TARGET) * 100))
+        let graduated = pumpData?.complete || realSol >= REAL_SOL_TARGET
         let marketCap = 0
 
         if (pumpData) {
-          // Use pump.fun data for progress
-          marketCap = (pumpData.market_cap_sol || 0) * 150 // Approx USD
-          const solInCurve = pumpData.market_cap_sol || 0
-          progress = Math.min(100, Math.floor((solInCurve / 85) * 100))
-          graduated = pumpData.complete || solInCurve >= 85
+          // Market cap from pump.fun data
+          marketCap = (pumpData.market_cap_sol || VIRTUAL_SOL) * 150 // Approx USD
         } else if (dexData) {
           // Graduated tokens on DexScreener
           marketCap = dexData.marketCap || 0
