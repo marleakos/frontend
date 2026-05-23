@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { getAllTokens } from "@/lib/supabase"
 
 interface Token {
   mint_address: string
@@ -12,15 +11,43 @@ interface Token {
   direction: string
 }
 
+// Simple cache for ticker data
+let cachedTokens: Token[] | null = null
+let cacheTime = 0
+const CACHE_TTL = 30000 // 30 seconds
+
 export function TradesTicker() {
-  const [tokens, setTokens] = useState<Token[]>([])
+  const [tokens, setTokens] = useState<Token[]>(cachedTokens || [])
 
   useEffect(() => {
-    const fetchTokens = async () => {
-      const dbTokens = await getAllTokens()
-      setTokens(dbTokens.slice(0, 5))
+    // Use cache if fresh
+    if (cachedTokens && Date.now() - cacheTime < CACHE_TTL) {
+      return
     }
-    fetchTokens()
+    
+    const fetchTokens = async () => {
+      try {
+        // Use API instead of direct Supabase to share cache
+        const response = await fetch('/api/tokens', { 
+          cache: 'no-store',
+          headers: { 'Accept': 'application/json' }
+        })
+        if (response.ok) {
+          const data = await response.json()
+          const apiTokens = (data.tokens || []).slice(0, 5)
+          cachedTokens = apiTokens
+          cacheTime = Date.now()
+          setTokens(apiTokens)
+        }
+      } catch (e) {
+        console.log('TradesTicker: Could not fetch tokens')
+      }
+    }
+    
+    // Only fetch if no cache
+    if (!cachedTokens) {
+      fetchTokens()
+    }
   }, [])
 
   if (tokens.length === 0) {
