@@ -94,7 +94,7 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
           underlying: "SOL",
           creator: "platform",
           createdAt: "2026-05-24T19:56:00Z",
-          image: "https://i.imgur.com/a/PPUyvRn.png"
+          image: "https://i.imgur.com/GC2U90i.png"
         }
         if (!allTokens.find((t: any) => t.mintAddress === platformToken.mintAddress)) {
           allTokens.push(platformToken)
