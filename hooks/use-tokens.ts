@@ -108,21 +108,12 @@ async function fetchTokenMarketDataBatch(mintAddresses: string[]): Promise<Map<s
           complete: true
         } : null
         
-        // Get image from multiple sources
-        let imageUrl = null
-        if (metadata?.image) {
-          imageUrl = metadata.image
-        } else if (pumpData?.image_uri) {
-          imageUrl = pumpData.image_uri
-        } else if (pumpData?.image) {
-          imageUrl = pumpData.image
-        } else if (dexData?.image) {
-          imageUrl = dexData.image
-        }
+        // Get image from token metadata (Metaplex on-chain)
+        let imageUrl = metadata?.image || null
         
-        // Try to fetch from pump.fun CDN if still no image
-        if (!imageUrl && pumpData) {
-          imageUrl = `https://pump.mypinata.cloud/ipfs/${pumpData.image_uri?.replace('ipfs://', '') || ''}`
+        // DexScreener sometimes has image info
+        if (!imageUrl && dexData?.info?.imageUrl) {
+          imageUrl = dexData.info.imageUrl
         }
 
         // Progress calculation:
