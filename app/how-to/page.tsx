@@ -197,7 +197,7 @@ export default function HowToPage() {
             </div>
             <div className="flex items-start gap-2">
               <span className="text-pink-500">→</span>
-              <span>this is the leverage.fun innovation — pure synthetic leverage without liquidation mechanics.</span>
+              <span>this is the leveregepump.fun innovation — pure synthetic leverage without liquidation mechanics.</span>
             </div>
           </div>
         </div>
