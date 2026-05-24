@@ -94,7 +94,7 @@ export default function DocsPage() {
               <h3 className="font-display text-sm uppercase mb-3 text-primary">1.2 Supported Reference Assets</h3>
               <p className="mb-3">The protocol currently supports the following assets for synthetic leverage, with Pyth price feed integration:</p>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                {["SOL/USD", "BTC/USD", "ETH/USD", "APT/USD", "ARB/USD", "DOGE/USD", "BNB/USD", "SUI/USD", "BONK/USD", "MATIC/USD"].map((asset) => (
+                {["SOL/USD", "BTC/USD", "ETH/USD", "DOGE/USD", "SHIB/USD", "FLOKI/USD", "SPX/USD", "BONK/USD", "PEPE/USD", "WIF/USD"].map((asset) => (
                   <div key={asset} className="p-2 bg-background rounded text-center border border-border">
                     <div className="font-bold text-primary">{asset.split("/")[0]}</div>
                     <div className="text-[10px] text-muted-foreground">{asset}</div>

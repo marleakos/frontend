@@ -20,13 +20,13 @@ const ASSET_PREFIX: Record<string, string> = {
   SOL: "S",
   BTC: "B",
   ETH: "E",
-  APT: "A",
-  ARB: "R",
   DOGE: "D",
-  BNB: "N",
-  SUI: "U",
+  SHIB: "H",
+  FLOKI: "F",
+  SPX: "X",
   BONK: "K",
-  MATIC: "M",
+  PEPE: "P",
+  WIF: "W",
 }
 
 /**
