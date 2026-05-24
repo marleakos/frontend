@@ -102,10 +102,11 @@ async function fetchTokenMarketDataBatch(mintAddresses: string[]): Promise<Map<s
         }
         
         try {
+          console.log('About to fetch metadata for:', address)
           metadata = await getTokenMetadata(address)
-          console.log('Metadata for', address, ':', metadata)
+          console.log('Metadata result for', address, ':', JSON.stringify(metadata))
         } catch (e) {
-          console.log('Metadata fetch failed for', address, ':', e)
+          console.error('Metadata fetch failed for', address, ':', e)
         }
         
         try {
