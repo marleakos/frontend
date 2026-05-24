@@ -64,52 +64,61 @@ export async function getTokenMetadata(mintAddress: string): Promise<TokenMetada
     // Fetch the metadata JSON to get the image
     let image: string | undefined = undefined
     let description: string | undefined = undefined
+    
+    // ALWAYS try to construct image URL from URI first (faster, no fetch needed)
     if (uri) {
-      try {
-        // Handle IPFS URIs - try multiple gateways
-        let metadataUrl = uri
-        if (uri.startsWith('ipfs://')) {
-          metadataUrl = uri.replace('ipfs://', 'https://cloudflare-ipfs.com/ipfs/')
-        }
-        
-        console.log('Fetching metadata from:', metadataUrl)
-        
-        // Use no-cors mode to avoid CORS issues
-        const response = await fetch(metadataUrl, { 
-          method: 'GET',
-          headers: { 'Accept': 'application/json' },
-          // @ts-ignore
-          mode: 'cors'
-        })
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`)
-        }
-        
-        const metadata = await response.json()
-        console.log('Raw metadata JSON:', metadata)
-        
-        image = metadata.image
-        description = metadata.description
-        
-        console.log('Extracted image from metadata:', image)
-        
-        // Convert IPFS image URL to HTTP gateway
-        if (image?.startsWith('ipfs://')) {
-          image = image.replace('ipfs://', 'https://cloudflare-ipfs.com/ipfs/')
-          console.log('Converted IPFS image URL:', image)
-        }
-        
-        console.log('Final image URL:', image)
-      } catch (e) {
-        console.error('Could not fetch metadata JSON from', uri, ':', e)
-        // Fallback: construct image URL directly from URI
-        if (uri.includes('/ipfs/')) {
-          const ipfsHash = uri.split('/ipfs/')[1]?.split('/')[0]
-          if (ipfsHash) {
-            image = `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`
-            console.log('Using fallback image URL:', image)
+      console.log('Metadata URI:', uri)
+      
+      // Extract IPFS hash from URI
+      let ipfsHash: string | null = null
+      
+      if (uri.startsWith('ipfs://')) {
+        ipfsHash = uri.replace('ipfs://', '').split('/')[0]
+      } else if (uri.includes('/ipfs/')) {
+        ipfsHash = uri.split('/ipfs/')[1]?.split('/')[0]
+      }
+      
+      console.log('Extracted IPFS hash:', ipfsHash)
+      
+      // For pump.fun tokens, the image is usually at the same IPFS hash with /image or similar
+      // Try common patterns
+      if (ipfsHash) {
+        // Try to fetch metadata JSON first
+        try {
+          const metadataUrl = `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`
+          console.log('Fetching metadata JSON from:', metadataUrl)
+          
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => controller.abort(), 3000)
+          
+          const response = await fetch(metadataUrl, { 
+            signal: controller.signal,
+            headers: { 'Accept': 'application/json' }
+          })
+          
+          clearTimeout(timeoutId)
+          
+          if (response.ok) {
+            const metadata = await response.json()
+            console.log('Got metadata:', metadata)
+            
+            if (metadata.image) {
+              image = metadata.image
+              if (image.startsWith('ipfs://')) {
+                image = image.replace('ipfs://', 'https://cloudflare-ipfs.com/ipfs/')
+              }
+              console.log('Got image from metadata:', image)
+            }
           }
+        } catch (e) {
+          console.log('Metadata fetch failed, using fallback:', e)
+        }
+        
+        // If still no image, use fallback pattern
+        if (!image) {
+          // Common pattern: image is at the same hash or with /image path
+          image = `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`
+          console.log('Using fallback image URL:', image)
         }
       }
     }
