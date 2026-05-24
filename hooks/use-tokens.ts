@@ -275,6 +275,8 @@ export function useTokens() {
         const price = marketData?.price || 0
         const priceChange24h = marketData?.priceChange24h || 0
         const imageUrl = marketData?.image
+        
+        console.log(`Token ${token.symbol} image URL:`, imageUrl)
 
         // Use pre-calculated progress from bonding curve data
         const progress = marketData?.progress || 0
