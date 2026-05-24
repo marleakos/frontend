@@ -37,27 +37,37 @@ export function LiveBoard({ initial, koth }: { initial: TokenData[]; koth: Token
 
   // Fetch images for all tokens (same as token page)
   useEffect(() => {
+    console.log('LiveBoard: Starting image fetch for', initial.length, 'tokens')
+    
     async function fetchImages() {
       const allTokens = [...initial, koth]
+      console.log('LiveBoard: Fetching images for', allTokens.length, 'total tokens')
       const images = new Map<string, string>()
       
       for (const token of allTokens) {
+        console.log('LiveBoard: Processing token', token.id, 'existing image:', token.image)
+        
         if (token.image) {
           images.set(token.id, token.image)
+          console.log('LiveBoard: Using existing image for', token.id)
           continue
         }
         
         try {
+          console.log('LiveBoard: Fetching metadata for', token.id)
           const { getTokenMetadata } = await import('@/lib/token-metadata')
           const metadata = await getTokenMetadata(token.id)
+          console.log('LiveBoard: Got metadata for', token.id, ':', metadata)
           if (metadata?.image) {
             images.set(token.id, metadata.image)
+            console.log('LiveBoard: Set image for', token.id, ':', metadata.image)
           }
         } catch (e) {
-          console.log('Could not fetch image for', token.id)
+          console.error('LiveBoard: Could not fetch image for', token.id, e)
         }
       }
       
+      console.log('LiveBoard: Setting', images.size, 'images')
       setTokenImages(images)
     }
     
@@ -351,21 +361,25 @@ function KOTH({ token, tokenImages }: { token: TokenData; tokenImages: Map<strin
           <div className="grid grid-cols-[100px_1fr] gap-0 md:grid-cols-[140px_1fr]">
             {/* big lime emoji panel */}
             <div className="relative grid place-items-center bg-primary border-r-2 border-foreground overflow-hidden">
-              {(tokenImages.get(token.id) || token.image) ? (
-                <img 
-                  src={tokenImages.get(token.id) || token.image} 
-                  alt={token.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    console.error('KOTH Image failed to load:', tokenImages.get(token.id) || token.image)
-                    ;(e.target as HTMLImageElement).style.display = 'none'
-                  }}
-                />
-              ) : (
-                <div className="text-[56px] md:text-[78px] leading-none drop-shadow-[2px_2px_0_rgba(0,0,0,0.25)]">
-                  {token.emoji}
-                </div>
-              )}
+              {(() => {
+                const imgUrl = tokenImages.get(token.id) || token.image
+                console.log('KOTH render - token:', token.id, 'image URL:', imgUrl, 'from state:', tokenImages.has(token.id) ? 'tokenImages' : 'token.image')
+                return imgUrl ? (
+                  <img 
+                    src={imgUrl} 
+                    alt={token.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('KOTH Image failed to load:', imgUrl)
+                      ;(e.target as HTMLImageElement).style.display = 'none'
+                    }}
+                  />
+                ) : (
+                  <div className="text-[56px] md:text-[78px] leading-none drop-shadow-[2px_2px_0_rgba(0,0,0,0.25)]">
+                    {token.emoji}
+                  </div>
+                )
+              })()}
               <div className="absolute bottom-1 left-1 md:bottom-1.5 md:left-1.5 font-mono text-[7px] md:text-[9px] font-bold uppercase tracking-wider text-primary-foreground/80">
                 {token.underlying}
               </div>
