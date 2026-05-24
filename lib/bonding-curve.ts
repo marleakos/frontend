@@ -45,24 +45,27 @@ export async function getBondingCurveData(mintAddress: string): Promise<BondingC
     }
     
     // Parse bonding curve data
-    // Account layout: discriminator (8) + virtualSolReserves (8) + virtualTokenReserves (8) + 
-    //                 realSolReserves (8) + realTokenReserves (8) + tokenTotalSupply (8) + complete (1)
+    // Pump.fun bonding curve account layout (151 bytes):
+    // discriminator (8) + virtualTokenReserves (8) + virtualSolReserves (8) + 
+    // realTokenReserves (8) + realSolReserves (8) + tokenTotalSupply (8) + 
+    // complete (1) + ... (other fields)
     const data = accountInfo.data
     
     // Skip 8 byte discriminator
     let offset = 8
     
     // Read u64 values (8 bytes each, little-endian)
-    const virtualSolReserves = Number(data.readBigUInt64LE(offset)) / 1e9
-    offset += 8
-    
+    // Note: pump.fun uses 6 decimals for tokens, 9 for SOL
     const virtualTokenReserves = Number(data.readBigUInt64LE(offset)) / 1e6
     offset += 8
     
-    const realSolReserves = Number(data.readBigUInt64LE(offset)) / 1e9
+    const virtualSolReserves = Number(data.readBigUInt64LE(offset)) / 1e9
     offset += 8
     
     const realTokenReserves = Number(data.readBigUInt64LE(offset)) / 1e6
+    offset += 8
+    
+    const realSolReserves = Number(data.readBigUInt64LE(offset)) / 1e9
     offset += 8
     
     const tokenTotalSupply = Number(data.readBigUInt64LE(offset)) / 1e6
