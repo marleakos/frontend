@@ -128,7 +128,7 @@ async function fetchTokenMarketDataBatch(mintAddresses: string[]): Promise<Map<s
           volume24h: dexData?.volume?.h24 || 0,
           priceChange24h: dexData?.priceChange?.h24 || 0,
           image: metadata?.image || dexData?.image,
-          solReserves,
+          solReserves: realSol,
           progress,
           graduated
         }
