@@ -54,6 +54,9 @@ function getEmoji(name: string, symbol: string): string {
 const tokenCache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
+// TEMPORARY: Disable cache to fix image loading
+const DISABLE_CACHE = true
+
 // Fetch all token data in parallel with caching
 async function fetchTokenMarketDataBatch(mintAddresses: string[]): Promise<Map<string, any>> {
   const results = new Map<string, any>()
@@ -63,7 +66,7 @@ async function fetchTokenMarketDataBatch(mintAddresses: string[]): Promise<Map<s
   const now = Date.now()
   for (const address of mintAddresses) {
     const cached = tokenCache.get(address)
-    if (cached && (now - cached.timestamp) < CACHE_TTL) {
+    if (!DISABLE_CACHE && cached && (now - cached.timestamp) < CACHE_TTL) {
       results.set(address, cached.data)
     } else {
       uncachedAddresses.push(address)
