@@ -87,15 +87,20 @@ export async function getTokenMetadata(mintAddress: string): Promise<TokenMetada
         }
         
         const metadata = await response.json()
+        console.log('Raw metadata JSON:', metadata)
+        
         image = metadata.image
         description = metadata.description
+        
+        console.log('Extracted image from metadata:', image)
         
         // Convert IPFS image URL to HTTP gateway
         if (image?.startsWith('ipfs://')) {
           image = image.replace('ipfs://', 'https://cloudflare-ipfs.com/ipfs/')
+          console.log('Converted IPFS image URL:', image)
         }
         
-        console.log('Token metadata fetched:', { image, description })
+        console.log('Final image URL:', image)
       } catch (e) {
         console.error('Could not fetch metadata JSON from', uri, ':', e)
         // Fallback: construct image URL directly from URI
