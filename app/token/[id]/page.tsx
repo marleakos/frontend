@@ -94,12 +94,15 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
           const { getPumpFunToken } = await import('@/lib/pumpfun')
           pumpFunData = await getPumpFunToken(id)
           if (pumpFunData) {
+            // market_cap_sol is the total SOL in the curve (virtual + real)
+            const totalSol = pumpFunData.market_cap_sol || 30
+            const realSol = Math.max(0, totalSol - 30) // Subtract virtual SOL
             const solPrice = 150
-            marketCap = (pumpFunData.market_cap_sol || 0) * solPrice
+            marketCap = totalSol * solPrice // USD market cap
             tokenPrice = pumpFunData.price || 0
-            graduated = pumpFunData.complete || false
+            graduated = pumpFunData.complete || realSol >= 85
             dexImageUrl = pumpFunData.image_uri || null
-            console.log('Token page - Pump.fun data:', { marketCap, tokenPrice, image: dexImageUrl })
+            console.log('Token page - Pump.fun data:', { totalSol, realSol, marketCap, tokenPrice, image: dexImageUrl })
           }
         } catch (e) {
           console.log('Could not fetch pump.fun data:', e)
@@ -162,8 +165,9 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
             leverage: 2,
             direction: "LONG",
             marketCap,
-            // Approximate SOL equivalent for progress calculation
-            progress: Math.min(100, Math.floor(((marketCap / 1000) / 85) * 100)),
+            // Calculate progress from pump.fun data
+            solReserves: Math.max(0, (pumpFunData?.market_cap_sol || 30) - 30),
+            progress: Math.min(100, Math.floor((Math.max(0, (pumpFunData?.market_cap_sol || 30) - 30) / 85) * 100)),
             replies: 0,
             ageMinutes: 0,
             change24h: priceChange24h,
@@ -191,9 +195,10 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
 
         const createdAt = new Date(tokenData.createdAt).getTime()
         const ageMinutes = Math.floor((Date.now() - createdAt) / 60000)
-        // Convert marketCap to SOL equivalent (approximate for display)
-        const solEquivalent = marketCap / 1000 // Rough approximation
-        const progress = Math.min(100, Math.floor((solEquivalent / 85) * 100))
+        // Calculate SOL reserves and progress from pump.fun data
+        const totalSol = pumpFunData?.market_cap_sol || 30
+        const solReserves = Math.max(0, totalSol - 30)
+        const progress = Math.min(100, Math.floor((solReserves / 85) * 100))
 
         setToken({
           id: tokenData.mintAddress,
@@ -210,6 +215,7 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
           ageMinutes: Math.max(0, ageMinutes),
           change24h: priceChange24h,
           liqDistance: 100,
+          solReserves,
           description: "",
           mint: new PublicKey(tokenData.mintAddress),
           graduated,

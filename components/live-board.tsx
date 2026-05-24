@@ -291,9 +291,9 @@ function LiveCard({ token }: { token: TokenData }) {
 
 function KOTH({ token }: { token: TokenData }) {
   const GRAD = 85
-  // Approximate SOL equivalent for progress
-  const solEquivalent = (token.marketCap || 0) / 1000
-  const progress = Math.min(100, (solEquivalent / GRAD) * 100)
+  // Use actual SOL reserves from pump.fun data
+  const solReserves = token.solReserves || 0
+  const progress = Math.min(100, (solReserves / GRAD) * 100)
 
   return (
     <section className="my-10 grid place-items-center">
@@ -375,7 +375,7 @@ function KOTH({ token }: { token: TokenData }) {
                   />
                 </div>
                 <div className="mt-1 flex items-center justify-between font-mono text-[9px] md:text-[10px] text-muted-foreground">
-                  <span>{((token.marketCap || 0) / 1000).toFixed(1)}k / 85 SOL</span>
+                  <span>{solReserves.toFixed(1)} / 85 SOL</span>
                   <span>{progress >= 100 ? "ready to graduate" : "until graduation"}</span>
                 </div>
               </div>
