@@ -12,7 +12,7 @@ const SORTS: Sort[] = ["featured", "trending", "new", "gainers", "near liq"]
 const LEV_OPTIONS = ["All", "2x", "3x", "5x", "10x"] as const
 const DIR_OPTIONS = ["All", "Long", "Short"] as const
 const STATUS_OPTIONS = ["All", "Bonding", "Graduated"] as const
-const ASSET_OPTIONS = ["All", "SOL", "BTC", "ETH", "DOGE"] as const
+const ASSET_OPTIONS = ["All", "SOL", "BTC", "ETH", "DOGE", "SHIB", "FLOKI", "SPX", "BONK", "PEPE", "WIF"] as const
 
 function sortTokens(list: TokenData[], sort: Sort) {
   const arr = [...list]

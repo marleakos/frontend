@@ -29,11 +29,17 @@ function getEmoji(name: string, symbol: string): string {
 }
 
 // Map on-chain underlying enum to display format
-function formatUnderlying(underlying: any): "SOL-PERP" | "BTC-PERP" | "ETH-PERP" | "DOGE-PERP" {
+function formatUnderlying(underlying: any): "SOL-PERP" | "BTC-PERP" | "ETH-PERP" | "DOGE-PERP" | "SHIB-PERP" | "FLOKI-PERP" | "SPX-PERP" | "BONK-PERP" | "PEPE-PERP" | "WIF-PERP" {
   if (underlying?.solPerp !== undefined) return "SOL-PERP"
   if (underlying?.btcPerp !== undefined) return "BTC-PERP"
   if (underlying?.ethPerp !== undefined) return "ETH-PERP"
   if (underlying?.dogePerp !== undefined) return "DOGE-PERP"
+  if (underlying?.shibPerp !== undefined) return "SHIB-PERP"
+  if (underlying?.flokiPerp !== undefined) return "FLOKI-PERP"
+  if (underlying?.spxPerp !== undefined) return "SPX-PERP"
+  if (underlying?.bonkPerp !== undefined) return "BONK-PERP"
+  if (underlying?.pepePerp !== undefined) return "PEPE-PERP"
+  if (underlying?.wifPerp !== undefined) return "WIF-PERP"
   return "SOL-PERP"
 }
 

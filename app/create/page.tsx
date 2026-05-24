@@ -13,7 +13,7 @@ import { Program } from "@coral-xyz/anchor"
 import BN from "bn.js"
 import { uploadToIPFS, uploadMetadataToIPFS, dataURItoBlob } from "@/lib/ipfs"
 
-const REFERENCE_ASSETS = ["SOL", "BTC", "ETH", "APT", "ARB", "DOGE", "BNB", "SUI", "BONK", "MATIC"] as const
+const REFERENCE_ASSETS = ["SOL", "BTC", "ETH", "DOGE", "SHIB", "FLOKI", "SPX", "BONK", "PEPE", "WIF"] as const
 const LEVERAGE_OPTIONS = [2, 3, 5, 10] as const
 
 export default function CreatePage() {
