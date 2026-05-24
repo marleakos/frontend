@@ -26,7 +26,7 @@ export const fees: FeeRow[] = [
   { label: "Deploy token", value: "0.1 SOL", note: "one-time, paid by creator" },
   { label: "Trading fee", value: "0.5%", note: "every buy / sell on the bonding curve" },
   { label: "Leverage fee", value: "0.1% / day", note: "borrow cost for the perp position" },
-  { label: "Graduation fee", value: "1% of LP", note: "at $69k mcap, migrates to Raydium" },
+  { label: "Trading fee", value: "1%", note: "goes to token creator" },
   { label: "Creator royalty", value: "0.1%", note: "paid to deployer on every trade" },
 ]
 
@@ -37,7 +37,7 @@ export const faqs = [
   },
   {
     q: "how does graduation work?",
-    a: "tokens trade on a bonding curve until $69,000 market cap. at graduation the LP is migrated to raydium and the perp position is closed out into the pool.",
+    a: "tokens trade on a bonding curve until 85 SOL market cap. at graduation the bonding curve completes and the token trades on the open market.",
   },
   {
     q: "what is liquidation distance?",

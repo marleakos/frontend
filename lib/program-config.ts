@@ -15,7 +15,7 @@ export const FEE_CONFIG = {
   LEVERAGE_FEE_5X_BPS: 30,  // 0.3% additional
   LEVERAGE_FEE_10X_BPS: 50, // 0.5% additional
   REFERRAL_SHARE_BPS: 1000, // 10% of creator fees
-  GRADUATION_THRESHOLD: 69000, // $69k market cap
+  GRADUATION_THRESHOLD: 85, // 85 SOL (pump.fun standard)
 }
 
 // Get total fee for a given leverage tier

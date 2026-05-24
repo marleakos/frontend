@@ -387,7 +387,7 @@ export default function DocsPage() {
               <h3 className="font-display text-sm uppercase mb-3 text-primary">7.2 Post-Graduation Mechanics</h3>
               <ul className="space-y-2 text-[10px]">
                 <li>• Bonding curve completes and becomes read-only</li>
-                <li>• Token trades on external AMMs (Raydium, Orca, etc.)</li>
+                <li>• Token trades on the open market</li>
                 <li>• Leverage characteristics continue through market forces</li>
                 <li>• Price discovery shifts to orderbook/AMM mechanisms</li>
                 <li>• Creator continues receiving trading fees</li>
@@ -611,7 +611,7 @@ export default function DocsPage() {
               <h3 className="font-bold text-primary mb-2">Q: What happens at graduation?</h3>
               <p className="text-[10px] text-muted-foreground">
                 At 85 SOL in the bonding curve, the token graduates. The virtual curve completes and the token 
-                transitions to trading on external AMMs like Raydium. The leverage characteristics continue 
+                transitions to trading on the open market. The leverage characteristics continue 
                 through market forces and arbitrage.
               </p>
             </div>

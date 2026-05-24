@@ -38,7 +38,7 @@ export async function getDexScreenerData(mintAddress: string): Promise<TokenMark
       marketCap: pair.marketCap || 0,
       volume24h: pair.volume?.h24 || 0,
       priceChange24h: pair.priceChange?.h24 || 0,
-      complete: pair.marketCap > 69000 || false
+      complete: pair.marketCap > 85000 || false
     }
     
     console.log('DexScreener data:', marketData)
