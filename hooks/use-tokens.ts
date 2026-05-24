@@ -94,12 +94,18 @@ async function fetchTokenMarketDataBatch(mintAddresses: string[]): Promise<Map<s
           getBondingCurveData(address).catch(() => null)
         ])
         
-        // Use bonding curve data as primary source
+        // Use bonding curve data as primary source, fallback to DexScreener
         const pumpData = curveData ? {
           market_cap_sol: curveData.virtualSolReserves,
           real_sol_reserves: curveData.realSolReserves,
           price: curveData.virtualSolReserves / curveData.virtualTokenReserves,
           complete: curveData.complete
+        } : dexData ? {
+          // Use DexScreener data when bonding curve not available
+          market_cap_sol: (dexData.marketCap || 0) / 150, // Convert USD to SOL
+          real_sol_reserves: (dexData.marketCap || 0) / 150,
+          price: dexData.priceUsd || 0,
+          complete: true
         } : null
         
         // Get image from multiple sources
@@ -139,16 +145,16 @@ async function fetchTokenMarketDataBatch(mintAddresses: string[]): Promise<Map<s
         let graduated = pumpData?.complete || realSol >= REAL_SOL_TARGET
         let marketCap = 0
 
-        if (pumpData && pumpData.market_cap_sol) {
-          // Market cap from pump.fun data
-          marketCap = (pumpData.market_cap_sol || VIRTUAL_SOL) * 150 // Approx USD
-        } else if (dexData && dexData.marketCap > 0) {
-          // Graduated tokens on DexScreener
-          marketCap = dexData.marketCap || 0
+        if (dexData && dexData.marketCap > 0) {
+          // Use DexScreener data when available (most accurate for graduated tokens)
+          marketCap = dexData.marketCap
           progress = 100
           graduated = true
+        } else if (pumpData && pumpData.market_cap_sol) {
+          // Market cap from bonding curve data (for non-graduated tokens)
+          marketCap = (pumpData.market_cap_sol || VIRTUAL_SOL) * 150 // Approx USD
         } else {
-          // No data available - token might be too new or API failed
+          // No data available
           console.log('No market data available for:', address)
         }
 
