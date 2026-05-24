@@ -81,30 +81,50 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
         // Find the token we're looking for
         let storedToken = allTokens.find((t: any) => t.mintAddress === id)
         
-        // Fetch market data and image from DexScreener
+        // Fetch market data from multiple sources
         let marketCap = 0
         let graduated = false
         let tokenPrice = 0
         let priceChange24h = 0
         let dexImageUrl: string | null = null
+        let pumpFunData: any = null
         
+        // Try pump.fun first for bonding curve tokens
         try {
-          const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${id}`)
-          const dexData = await response.json()
-          
-          if (dexData.pairs && dexData.pairs.length > 0) {
-            const pair = dexData.pairs[0]
-            tokenPrice = parseFloat(pair.priceUsd) || 0
-            marketCap = pair.marketCap || 0
-            priceChange24h = pair.priceChange?.h24 || 0
-            // Approximate: graduated if marketCap > ~85 SOL equivalent
-            graduated = pair.marketCap > 85000
-            dexImageUrl = pair.baseToken?.icon || pair.info?.imageUrl || null
-            
-            console.log('Token page - DexScreener data:', { marketCap, tokenPrice, image: dexImageUrl })
+          const { getPumpFunToken } = await import('@/lib/pumpfun')
+          pumpFunData = await getPumpFunToken(id)
+          if (pumpFunData) {
+            const solPrice = 150
+            marketCap = (pumpFunData.market_cap_sol || 0) * solPrice
+            tokenPrice = pumpFunData.price || 0
+            graduated = pumpFunData.complete || false
+            dexImageUrl = pumpFunData.image_uri || null
+            console.log('Token page - Pump.fun data:', { marketCap, tokenPrice, image: dexImageUrl })
           }
         } catch (e) {
-          console.log('Could not fetch DexScreener data:', e)
+          console.log('Could not fetch pump.fun data:', e)
+        }
+        
+        // Fallback to DexScreener for graduated tokens
+        if (!pumpFunData || marketCap === 0) {
+          try {
+            const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${id}`)
+            const dexData = await response.json()
+            
+            if (dexData.pairs && dexData.pairs.length > 0) {
+              const pair = dexData.pairs[0]
+              tokenPrice = parseFloat(pair.priceUsd) || 0
+              marketCap = pair.marketCap || 0
+              priceChange24h = pair.priceChange?.h24 || 0
+              graduated = true // On DexScreener = graduated
+              if (!dexImageUrl) {
+                dexImageUrl = pair.baseToken?.icon || pair.info?.imageUrl || null
+              }
+              console.log('Token page - DexScreener data:', { marketCap, tokenPrice, image: dexImageUrl })
+            }
+          } catch (e) {
+            console.log('Could not fetch DexScreener data:', e)
+          }
         }
         
         setPrice(tokenPrice)

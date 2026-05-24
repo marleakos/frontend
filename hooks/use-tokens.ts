@@ -91,6 +91,23 @@ async function fetchTokenMarketDataBatch(mintAddresses: string[]): Promise<Map<s
           getTokenMetadata(address).catch(() => null),
           getPumpFunToken(address).catch(() => null)
         ])
+        
+        // Get image from multiple sources
+        let imageUrl = null
+        if (metadata?.image) {
+          imageUrl = metadata.image
+        } else if (pumpData?.image_uri) {
+          imageUrl = pumpData.image_uri
+        } else if (pumpData?.image) {
+          imageUrl = pumpData.image
+        } else if (dexData?.image) {
+          imageUrl = dexData.image
+        }
+        
+        // Try to fetch from pump.fun CDN if still no image
+        if (!imageUrl && pumpData) {
+          imageUrl = `https://pump.mypinata.cloud/ipfs/${pumpData.image_uri?.replace('ipfs://', '') || ''}`
+        }
 
         // Progress calculation:
         // 0% = 30 virtual SOL (new token, no real SOL)
@@ -127,7 +144,7 @@ async function fetchTokenMarketDataBatch(mintAddresses: string[]): Promise<Map<s
           price: dexData?.priceUsd || pumpData?.price || 0,
           volume24h: dexData?.volume?.h24 || 0,
           priceChange24h: dexData?.priceChange?.h24 || 0,
-          image: metadata?.image || dexData?.image,
+          image: imageUrl,
           solReserves: realSol,
           progress,
           graduated

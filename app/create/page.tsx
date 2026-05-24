@@ -35,11 +35,8 @@ export default function CreatePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const getFeePercentage = () => {
-    if (leverage === 2) return '0.6%'
-    if (leverage === 3) return '0.7%'
-    if (leverage === 5) return '0.8%'
-    if (leverage === 10) return '1.0%'
-    return '0.6%'
+    // Match pump.fun - flat 1% fee
+    return '1.0%'
   }
 
   const uploadImage = async (imageData: string): Promise<string> => {
