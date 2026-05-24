@@ -13,7 +13,8 @@ const memoryTokens: any[] = [
     underlying: "SOL",
     creator: "platform",
     createdAt: "2026-05-24T19:56:00Z",
-    isPlatformToken: true
+    isPlatformToken: true,
+    image: "https://i.imgur.com/a/PPUyvRn.png"
   }
 ]
 
