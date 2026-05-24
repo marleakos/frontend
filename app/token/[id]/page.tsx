@@ -84,6 +84,21 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
           }
         })
         
+        // Add platform token if not already present
+        const platformToken = {
+          mintAddress: "EjwEjwaBeYrQ3dC1Pd7577Sj3nBYPrhoQQVxRjn7pump",
+          name: "LEVERAGE PUMP",
+          symbol: "PUMPX5",
+          leverage: 5,
+          direction: "LONG",
+          underlying: "SOL",
+          creator: "platform",
+          createdAt: "2026-05-24T19:56:00Z"
+        }
+        if (!allTokens.find((t: any) => t.mintAddress === platformToken.mintAddress)) {
+          allTokens.push(platformToken)
+        }
+        
         // Find the token we're looking for
         let storedToken = allTokens.find((t: any) => t.mintAddress === id)
         
