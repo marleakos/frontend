@@ -262,8 +262,20 @@ export function useTokens() {
       const storedTokensRaw = localStorage.getItem('leverageTokens')
       const storedTokens = JSON.parse(storedTokensRaw || '[]')
       
+      // Add platform token
+      const platformToken = {
+        mintAddress: "EjwEjwaBeYrQ3dC1Pd7577Sj3nBYPrhoQQVxRjn7pump",
+        name: "LEVERAGE PUMP",
+        symbol: "PUMPX5",
+        leverage: 5,
+        direction: "LONG",
+        underlying: "SOL",
+        creator: "platform",
+        createdAt: "2026-05-24T19:56:00Z"
+      }
+      
       // Merge lists (avoid duplicates)
-      const allTokens = [...apiTokens]
+      const allTokens = [platformToken, ...apiTokens]
       storedTokens.forEach((token: any) => {
         if (!allTokens.find((t: any) => t.mintAddress === token.mintAddress)) {
           allTokens.push(token)

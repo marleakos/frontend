@@ -2,7 +2,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAllTokens, saveToken } from '@/lib/supabase'
 
 // Fallback in-memory storage (used when Supabase is not configured)
-const memoryTokens: any[] = []
+const memoryTokens: any[] = [
+  // Main platform token - LEVERAGE PUMP
+  {
+    mintAddress: "EjwEjwaBeYrQ3dC1Pd7577Sj3nBYPrhoQQVxRjn7pump",
+    name: "LEVERAGE PUMP",
+    symbol: "PUMPX5",
+    leverage: 5,
+    direction: "LONG",
+    underlying: "SOL",
+    creator: "platform",
+    createdAt: "2026-05-24T19:56:00Z",
+    isPlatformToken: true
+  }
+]
 
 export async function GET() {
   // Try Supabase first
