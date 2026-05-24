@@ -63,22 +63,37 @@ export async function getTokenMetadata(mintAddress: string): Promise<TokenMetada
     
     // Fetch the metadata JSON to get the image
     let image: string | undefined = undefined
+    let description: string | undefined = undefined
     if (uri) {
       try {
-        // Handle IPFS URIs
-        const metadataUrl = uri.replace('ipfs://', 'https://ipfs.io/ipfs/')
-        const response = await fetch(metadataUrl)
-        const metadata = await response.json()
-        image = metadata.image
-        
-        // Convert IPFS image URL to HTTP
-        if (image?.startsWith('ipfs://')) {
-          image = image.replace('ipfs://', 'https://ipfs.io/ipfs/')
+        // Handle IPFS URIs - try multiple gateways
+        let metadataUrl = uri
+        if (uri.startsWith('ipfs://')) {
+          metadataUrl = uri.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/')
         }
         
-        console.log('Token image:', image)
+        console.log('Fetching metadata from:', metadataUrl)
+        const response = await fetch(metadataUrl, { 
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        })
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`)
+        }
+        
+        const metadata = await response.json()
+        image = metadata.image
+        description = metadata.description
+        
+        // Convert IPFS image URL to HTTP gateway
+        if (image?.startsWith('ipfs://')) {
+          image = image.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/')
+        }
+        
+        console.log('Token metadata fetched:', { image, description })
       } catch (e) {
-        console.log('Could not fetch metadata JSON from', uri)
+        console.log('Could not fetch metadata JSON from', uri, ':', e)
       }
     }
     
