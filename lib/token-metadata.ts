@@ -83,50 +83,30 @@ export async function getTokenMetadata(mintAddress: string): Promise<TokenMetada
       // For pump.fun tokens, the image is usually at the same IPFS hash with /image or similar
       // Try common patterns
       if (ipfsHash) {
-        // Try to fetch metadata JSON first using multiple gateways
-        const gateways = [
-          `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
-          `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`,
-          `https://ipfs.io/ipfs/${ipfsHash}`
-        ]
-        
-        for (const metadataUrl of gateways) {
-          try {
-            console.log('Trying metadata gateway:', metadataUrl)
+        // Fetch metadata through our API route (bypasses CORS)
+        try {
+          const apiUrl = `/api/metadata?uri=${encodeURIComponent(uri)}`
+          console.log('Fetching metadata via API:', apiUrl)
+          
+          const response = await fetch(apiUrl)
+          
+          if (response.ok) {
+            const metadata = await response.json()
+            console.log('Got metadata from API:', metadata)
             
-            const controller = new AbortController()
-            const timeoutId = setTimeout(() => controller.abort(), 2000)
-            
-            const response = await fetch(metadataUrl, { 
-              signal: controller.signal,
-              headers: { 'Accept': 'application/json' }
-            })
-            
-            clearTimeout(timeoutId)
-            
-            if (response.ok) {
-              const metadata = await response.json()
-              console.log('Got metadata from', metadataUrl, ':', metadata)
-              
-              if (metadata.image) {
-                image = metadata.image
-                // Keep the image URL as-is if it's already a full URL
-                if (image.startsWith('ipfs://')) {
-                  image = image.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/')
-                }
-                console.log('Got image from metadata:', image)
-                break // Success! Stop trying other gateways
+            if (metadata.image) {
+              image = metadata.image
+              // Convert IPFS URLs to HTTP
+              if (image.startsWith('ipfs://')) {
+                image = image.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/')
               }
+              console.log('Got image from metadata:', image)
             }
-          } catch (e) {
-            console.log('Gateway failed:', metadataUrl, e)
-            continue // Try next gateway
+          } else {
+            console.log('API returned error:', response.status)
           }
-        }
-        
-        // If still no image, we can't guess it - metadata fetch failed
-        if (!image) {
-          console.log('All metadata gateways failed, cannot determine image URL')
+        } catch (e) {
+          console.log('Metadata API fetch failed:', e)
         }
       }
     }
