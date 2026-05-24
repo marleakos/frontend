@@ -88,8 +88,8 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
         const platformToken = {
           mintAddress: "EjwEjwaBeYrQ3dC1Pd7577Sj3nBYPrhoQQVxRjn7pump",
           name: "LEVERAGE PUMP",
-          symbol: "PUMPX5",
-          leverage: 5,
+          symbol: "PUMPX10",
+          leverage: 10,
           direction: "LONG",
           underlying: "SOL",
           creator: "platform",
