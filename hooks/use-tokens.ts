@@ -80,6 +80,8 @@ async function fetchTokenMarketDataBatch(mintAddresses: string[]): Promise<Map<s
     const batch = uncachedAddresses.slice(i, i + batchSize)
     const batchPromises = batch.map(async (address) => {
       try {
+        console.log('Fetching data for token:', address)
+        
         // Fetch from multiple sources in parallel
         const [{ getTokenData }, { getTokenMetadata }, { getBondingCurveData }] = await Promise.all([
           import('@/lib/dexscreener'),
@@ -87,12 +89,31 @@ async function fetchTokenMarketDataBatch(mintAddresses: string[]): Promise<Map<s
           import('@/lib/bonding-curve')
         ])
 
-        // Try on-chain bonding curve data first (most reliable)
-        const [dexData, metadata, curveData] = await Promise.all([
-          getTokenData(address).catch(() => null),
-          getTokenMetadata(address).catch(() => null),
-          getBondingCurveData(address).catch(() => null)
-        ])
+        // Try all data sources
+        let dexData = null
+        let metadata = null
+        let curveData = null
+        
+        try {
+          dexData = await getTokenData(address)
+          console.log('DexScreener data for', address, ':', dexData)
+        } catch (e) {
+          console.log('DexScreener failed for', address, ':', e)
+        }
+        
+        try {
+          metadata = await getTokenMetadata(address)
+          console.log('Metadata for', address, ':', metadata)
+        } catch (e) {
+          console.log('Metadata fetch failed for', address, ':', e)
+        }
+        
+        try {
+          curveData = await getBondingCurveData(address)
+          console.log('Bonding curve for', address, ':', curveData)
+        } catch (e) {
+          console.log('Bonding curve fetch failed for', address, ':', e)
+        }
         
         // Use bonding curve data as primary source, fallback to DexScreener
         const pumpData = curveData ? {
