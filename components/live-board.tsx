@@ -243,8 +243,10 @@ function LiveCard({ token }: { token: TokenData }) {
               alt={token.name}
               className="w-full h-full object-cover"
               onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none'
+                console.error('Image failed to load:', token.image, 'for token:', token.name)
+                ;(e.target as HTMLImageElement).style.display = 'none'
               }}
+              onLoad={() => console.log('Image loaded successfully:', token.image)}
             />
           ) : (
             <span>{token.emoji}</span>
@@ -326,7 +328,8 @@ function KOTH({ token }: { token: TokenData }) {
                   alt={token.name}
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none'
+                    console.error('KOTH Image failed to load:', token.image)
+                    ;(e.target as HTMLImageElement).style.display = 'none'
                   }}
                 />
               ) : (
