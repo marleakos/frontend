@@ -49,27 +49,38 @@ export async function getDexScreenerData(mintAddress: string): Promise<TokenMark
   }
 }
 
-// Fetch token metadata from pump.fun (may fail due to CORS)
+// Fetch token metadata from pump.fun (may fail due to CORS in browser)
+// Try multiple endpoints
 export async function getPumpFunToken(mintAddress: string): Promise<any | null> {
-  try {
-    const response = await fetch(`https://frontend-api.pump.fun/coins/${mintAddress}`, {
-      headers: { 'Accept': 'application/json' },
-      // Add cache control to prevent caching errors
-      cache: 'no-cache'
-    })
-    
-    if (!response.ok) {
-      console.log('Pump.fun API returned:', response.status)
-      return null
+  const endpoints = [
+    `https://frontend-api.pump.fun/coins/${mintAddress}`,
+    `https://api.pump.fun/coins/${mintAddress}`,
+  ]
+  
+  for (const endpoint of endpoints) {
+    try {
+      const response = await fetch(endpoint, {
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-cache',
+        // Short timeout to avoid hanging
+        signal: AbortSignal.timeout(5000)
+      })
+      
+      if (!response.ok) {
+        console.log(`Pump.fun API ${endpoint} returned:`, response.status)
+        continue
+      }
+      
+      const data = await response.json()
+      console.log('Pump.fun API data:', data)
+      return data
+    } catch (e) {
+      console.log(`Pump.fun API ${endpoint} failed:`, e)
+      continue
     }
-    
-    const data = await response.json()
-    console.log('Pump.fun API data:', data)
-    return data
-  } catch (e) {
-    console.log('Pump.fun API failed (CORS or network):', e)
-    return null
   }
+  
+  return null
 }
 
 // Get comprehensive token data

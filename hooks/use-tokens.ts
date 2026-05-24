@@ -24,6 +24,7 @@ export interface TokenData {
   mint: PublicKey
   graduated: boolean
   price: number
+  solReserves?: number
 }
 
 // Map on-chain underlying enum to display format
@@ -129,14 +130,17 @@ async function fetchTokenMarketDataBatch(mintAddresses: string[]): Promise<Map<s
         let graduated = pumpData?.complete || realSol >= REAL_SOL_TARGET
         let marketCap = 0
 
-        if (pumpData) {
+        if (pumpData && pumpData.market_cap_sol) {
           // Market cap from pump.fun data
           marketCap = (pumpData.market_cap_sol || VIRTUAL_SOL) * 150 // Approx USD
-        } else if (dexData) {
+        } else if (dexData && dexData.marketCap > 0) {
           // Graduated tokens on DexScreener
           marketCap = dexData.marketCap || 0
           progress = 100
           graduated = true
+        } else {
+          // No data available - token might be too new or API failed
+          console.log('No market data available for:', address)
         }
 
         const data = {
