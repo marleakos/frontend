@@ -51,7 +51,7 @@ export function Header() {
       <div className="mx-auto flex max-w-[1400px] items-center gap-4 px-4 py-3">
         {/* Logo */}
         <Link href="/" className="font-display text-xl leading-none shrink-0 text-primary" onClick={() => setMenuOpen(false)}>
-          LEVEREGEPUMP.FUN
+          LEVERAGEPUMP.FUN
         </Link>
 
         {/* Desktop nav */}
