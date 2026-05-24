@@ -155,81 +155,22 @@ export default function CreatePage() {
       let instructions: TransactionInstruction[] = []
       
       if (initialBuyAmount > 0) {
-        // Use createV2AndBuyInstructions to create token and buy in one transaction
+        // DEV BUY: Create token first, then buy in separate transaction
         console.log(`Creating token with initial buy of ${initialBuyAmount} SOL...`)
         toast.loading(`Creating token with ${initialBuyAmount} SOL buy...`, { id: "deploy" })
         
-        try {
-          const global = await sdk.fetchGlobal()
-          
-          // For new tokens, pump.fun starts with:
-          // virtualSolReserves = 30 SOL
-          // virtualTokenReserves = 1,073,000,000 tokens (with 6 decimals)
-          const INITIAL_VIRTUAL_SOL = new BN(30 * 1e9) // 30 SOL in lamports
-          const INITIAL_VIRTUAL_TOKENS = new BN(1073000000 * 1e6) // 1.073B tokens with 6 decimals
-          
-          // Calculate token amount from SOL amount
-          // Formula: tokens = (sol_amount * virtual_token_reserves) / (virtual_sol_reserves + sol_amount)
-          const solAmountLamports = new BN(initialBuyAmount * 1e9)
-          const numerator = solAmountLamports.mul(INITIAL_VIRTUAL_TOKENS)
-          const denominator = INITIAL_VIRTUAL_SOL.add(solAmountLamports)
-          const tokenAmount = numerator.div(denominator)
-          
-          console.log(`Buying ${tokenAmount.toString()} tokens with ${initialBuyAmount} SOL`)
-          
-          // Create token first
-          const createInstruction = await sdk.createInstruction({
-            mint: mint.publicKey,
-            name: name.trim(),
-            symbol: ticker.trim().toUpperCase(),
-            uri: uri,
-            creator: publicKey,
-            user: publicKey,
-          })
-          instructions.push(createInstruction)
-          
-          // Get bonding curve for buy instruction
-          const bondingCurve = await sdk.fetchBondingCurve(mint.publicKey)
-          const bondingCurveAccountInfo = await connection.getAccountInfo(
-            PublicKey.findProgramAddressSync(
-              [Buffer.from('bonding-curve'), mint.publicKey.toBuffer(), global.tokenProgram.toBuffer()],
-              sdk['pumpAmmProgram'].programId
-            )[0]
-          )
-          
-          // Add buy instruction
-          const buyIxs = await sdk.buyInstructions({
-            global,
-            bondingCurve,
-            bondingCurveAccountInfo: bondingCurveAccountInfo!,
-            associatedUserAccountInfo: null,
-            mint: mint.publicKey,
-            user: publicKey,
-            amount: tokenAmount,
-            solAmount: solAmountLamports,
-            slippage: 0.1, // 10% slippage
-            tokenProgram: global.tokenProgram,
-          })
-          instructions.push(...buyIxs)
-          
-          console.log("Create + Buy instructions created:", instructions.length)
-        } catch (e: any) {
-          console.error("Could not create buy instructions:", e)
-          console.error("Error message:", e.message)
-          console.error("Error stack:", e.stack)
-          toast.error(`Could not add initial buy: ${e.message || 'Unknown error'}. Creating token only.`, { id: "deploy" })
-          
-          // Fallback to just create
-          const createInstruction = await sdk.createInstruction({
-            mint: mint.publicKey,
-            name: name.trim(),
-            symbol: ticker.trim().toUpperCase(),
-            uri: uri,
-            creator: publicKey,
-            user: publicKey,
-          })
-          instructions = [createInstruction]
-        }
+        // Step 1: Create token only
+        const createInstruction = await sdk.createInstruction({
+          mint: mint.publicKey,
+          name: name.trim(),
+          symbol: ticker.trim().toUpperCase(),
+          uri: uri,
+          creator: publicKey,
+          user: publicKey,
+        })
+        instructions = [createInstruction]
+        
+        console.log("Create instruction created, will buy after confirmation")
       } else {
         // Just create token without buy
         const createInstruction = await sdk.createInstruction({
@@ -286,7 +227,65 @@ export default function CreatePage() {
       }
 
       setTxSignature(signature)
-      toast.success(`Token created on Pump.fun!`, { id: "deploy" })
+      
+      // Step 2: If dev buy requested, execute buy transaction
+      if (initialBuyAmount > 0) {
+        try {
+          toast.loading(`Executing ${initialBuyAmount} SOL dev buy...`, { id: "deploy" })
+          console.log("Executing dev buy...")
+          
+          const { PumpSdk } = await import("@pump-fun/pump-sdk")
+          const sdk = new PumpSdk(connection)
+          const global = await sdk.fetchGlobal()
+          
+          // Calculate token amount
+          const INITIAL_VIRTUAL_SOL = new BN(30 * 1e9)
+          const INITIAL_VIRTUAL_TOKENS = new BN(1073000000 * 1e6)
+          const solAmountLamports = new BN(initialBuyAmount * 1e9)
+          const numerator = solAmountLamports.mul(INITIAL_VIRTUAL_TOKENS)
+          const denominator = INITIAL_VIRTUAL_SOL.add(solAmountLamports)
+          const tokenAmount = numerator.div(denominator)
+          
+          // Get bonding curve (now it exists)
+          const bondingCurve = await sdk.fetchBondingCurve(mint.publicKey)
+          const bondingCurvePda = PublicKey.findProgramAddressSync(
+            [Buffer.from('bonding-curve'), mint.publicKey.toBuffer(), global.tokenProgram.toBuffer()],
+            sdk['pumpAmmProgram'].programId
+          )[0]
+          const bondingCurveAccountInfo = await connection.getAccountInfo(bondingCurvePda)
+          
+          // Create buy transaction
+          const buyIxs = await sdk.buyInstructions({
+            global,
+            bondingCurve,
+            bondingCurveAccountInfo: bondingCurveAccountInfo!,
+            associatedUserAccountInfo: null,
+            mint: mint.publicKey,
+            user: publicKey,
+            amount: tokenAmount,
+            solAmount: solAmountLamports,
+            slippage: 0.1,
+            tokenProgram: global.tokenProgram,
+          })
+          
+          const buyTx = new Transaction()
+          buyIxs.forEach(ix => buyTx.add(ix))
+          buyTx.feePayer = publicKey
+          buyTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash
+          
+          const signedBuyTx = await signTransaction(buyTx)
+          const buySignature = await connection.sendRawTransaction(signedBuyTx.serialize())
+          await connection.confirmTransaction(buySignature, "confirmed")
+          
+          console.log("Dev buy successful:", buySignature)
+          toast.success(`Token created + ${initialBuyAmount} SOL buy executed!`, { id: "deploy" })
+        } catch (e: any) {
+          console.error("Dev buy failed:", e)
+          toast.success(`Token created! (Dev buy failed: ${e.message})`, { id: "deploy" })
+        }
+      } else {
+        toast.success(`Token created on Pump.fun!`, { id: "deploy" })
+      }
       
       // Reset form
       setName("")
