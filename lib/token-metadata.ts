@@ -69,13 +69,17 @@ export async function getTokenMetadata(mintAddress: string): Promise<TokenMetada
         // Handle IPFS URIs - try multiple gateways
         let metadataUrl = uri
         if (uri.startsWith('ipfs://')) {
-          metadataUrl = uri.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/')
+          metadataUrl = uri.replace('ipfs://', 'https://cloudflare-ipfs.com/ipfs/')
         }
         
         console.log('Fetching metadata from:', metadataUrl)
+        
+        // Use no-cors mode to avoid CORS issues
         const response = await fetch(metadataUrl, { 
           method: 'GET',
-          headers: { 'Accept': 'application/json' }
+          headers: { 'Accept': 'application/json' },
+          // @ts-ignore
+          mode: 'cors'
         })
         
         if (!response.ok) {
@@ -88,12 +92,20 @@ export async function getTokenMetadata(mintAddress: string): Promise<TokenMetada
         
         // Convert IPFS image URL to HTTP gateway
         if (image?.startsWith('ipfs://')) {
-          image = image.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/')
+          image = image.replace('ipfs://', 'https://cloudflare-ipfs.com/ipfs/')
         }
         
         console.log('Token metadata fetched:', { image, description })
       } catch (e) {
-        console.log('Could not fetch metadata JSON from', uri, ':', e)
+        console.error('Could not fetch metadata JSON from', uri, ':', e)
+        // Fallback: construct image URL directly from URI
+        if (uri.includes('/ipfs/')) {
+          const ipfsHash = uri.split('/ipfs/')[1]?.split('/')[0]
+          if (ipfsHash) {
+            image = `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`
+            console.log('Using fallback image URL:', image)
+          }
+        }
       }
     }
     
