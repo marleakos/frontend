@@ -35,59 +35,45 @@ export function LiveBoard({ initial, koth }: { initial: TokenData[]; koth: Token
   const [showSortDropdown, setShowSortDropdown] = useState(false)
   const [tokenImages, setTokenImages] = useState<Map<string, string>>(new Map())
 
-  // Fetch images for all tokens (same as token page)
+  // Fetch images for all tokens in parallel
   useEffect(() => {
-    console.log('LiveBoard: Starting image fetch for', initial.length, 'tokens')
+    const allTokens = [...initial, koth]
     
-    async function fetchImages() {
-      const allTokens = [...initial, koth]
-      console.log('LiveBoard: Fetching images for', allTokens.length, 'total tokens')
-      
-      // Merge with existing images instead of replacing
-      setTokenImages(prevImages => {
-        const images = new Map(prevImages)
-        
-        for (const token of allTokens) {
-          // Skip if we already have this image
-          if (images.has(token.id)) {
-            console.log('LiveBoard: Already have image for', token.id)
-            continue
-          }
-          
-          console.log('LiveBoard: Processing token', token.id, 'existing image:', token.image)
-          
-          if (token.image) {
-            images.set(token.id, token.image)
-            console.log('LiveBoard: Using existing image for', token.id)
-            continue
-          }
-          
-          // Fetch metadata for this token
-          ;(async () => {
-            try {
-              console.log('LiveBoard: Fetching metadata for', token.id)
-              const { getTokenMetadata } = await import('@/lib/token-metadata')
-              const metadata = await getTokenMetadata(token.id)
-              console.log('LiveBoard: Got metadata for', token.id, ':', metadata)
-              if (metadata?.image) {
-                setTokenImages(prev => {
-                  const newImages = new Map(prev)
-                  newImages.set(token.id, metadata.image)
-                  return newImages
-                })
-                console.log('LiveBoard: Set image for', token.id, ':', metadata.image)
-              }
-            } catch (e) {
-              console.error('LiveBoard: Could not fetch image for', token.id, e)
-            }
-          })()
+    // Filter tokens that need image fetching
+    const tokensToFetch = allTokens.filter(token => 
+      !tokenImages.has(token.id) && !token.image
+    )
+    
+    if (tokensToFetch.length === 0) return
+    
+    console.log('LiveBoard: Fetching', tokensToFetch.length, 'images in parallel')
+    
+    // Fetch all images in parallel
+    const fetchPromises = tokensToFetch.map(async (token) => {
+      try {
+        const { getTokenMetadata } = await import('@/lib/token-metadata')
+        const metadata = await getTokenMetadata(token.id)
+        if (metadata?.image) {
+          return { id: token.id, image: metadata.image }
         }
-        
-        return images
-      })
-    }
+      } catch (e) {
+        console.log('Failed to fetch image for', token.id)
+      }
+      return null
+    })
     
-    fetchImages()
+    // Update images as they come in
+    Promise.all(fetchPromises).then(results => {
+      setTokenImages(prev => {
+        const newImages = new Map(prev)
+        results.forEach(result => {
+          if (result) {
+            newImages.set(result.id, result.image)
+          }
+        })
+        return newImages
+      })
+    })
   }, [initial, koth])
 
   const sorted = useMemo(() => {
