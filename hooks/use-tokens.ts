@@ -81,17 +81,26 @@ async function fetchTokenMarketDataBatch(mintAddresses: string[]): Promise<Map<s
     const batchPromises = batch.map(async (address) => {
       try {
         // Fetch from multiple sources in parallel
-        const [{ getTokenData }, { getTokenMetadata }, { getPumpFunToken }] = await Promise.all([
+        const [{ getTokenData }, { getTokenMetadata }, { getBondingCurveData }] = await Promise.all([
           import('@/lib/dexscreener'),
           import('@/lib/token-metadata'),
-          import('@/lib/pumpfun')
+          import('@/lib/bonding-curve')
         ])
 
-        const [dexData, metadata, pumpData] = await Promise.all([
+        // Try on-chain bonding curve data first (most reliable)
+        const [dexData, metadata, curveData] = await Promise.all([
           getTokenData(address).catch(() => null),
           getTokenMetadata(address).catch(() => null),
-          getPumpFunToken(address).catch(() => null)
+          getBondingCurveData(address).catch(() => null)
         ])
+        
+        // Use bonding curve data as primary source
+        const pumpData = curveData ? {
+          market_cap_sol: curveData.virtualSolReserves,
+          real_sol_reserves: curveData.realSolReserves,
+          price: curveData.virtualSolReserves / curveData.virtualTokenReserves,
+          complete: curveData.complete
+        } : null
         
         // Get image from multiple sources
         let imageUrl = null
