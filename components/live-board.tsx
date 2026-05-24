@@ -42,33 +42,49 @@ export function LiveBoard({ initial, koth }: { initial: TokenData[]; koth: Token
     async function fetchImages() {
       const allTokens = [...initial, koth]
       console.log('LiveBoard: Fetching images for', allTokens.length, 'total tokens')
-      const images = new Map<string, string>()
       
-      for (const token of allTokens) {
-        console.log('LiveBoard: Processing token', token.id, 'existing image:', token.image)
+      // Merge with existing images instead of replacing
+      setTokenImages(prevImages => {
+        const images = new Map(prevImages)
         
-        if (token.image) {
-          images.set(token.id, token.image)
-          console.log('LiveBoard: Using existing image for', token.id)
-          continue
-        }
-        
-        try {
-          console.log('LiveBoard: Fetching metadata for', token.id)
-          const { getTokenMetadata } = await import('@/lib/token-metadata')
-          const metadata = await getTokenMetadata(token.id)
-          console.log('LiveBoard: Got metadata for', token.id, ':', metadata)
-          if (metadata?.image) {
-            images.set(token.id, metadata.image)
-            console.log('LiveBoard: Set image for', token.id, ':', metadata.image)
+        for (const token of allTokens) {
+          // Skip if we already have this image
+          if (images.has(token.id)) {
+            console.log('LiveBoard: Already have image for', token.id)
+            continue
           }
-        } catch (e) {
-          console.error('LiveBoard: Could not fetch image for', token.id, e)
+          
+          console.log('LiveBoard: Processing token', token.id, 'existing image:', token.image)
+          
+          if (token.image) {
+            images.set(token.id, token.image)
+            console.log('LiveBoard: Using existing image for', token.id)
+            continue
+          }
+          
+          // Fetch metadata for this token
+          ;(async () => {
+            try {
+              console.log('LiveBoard: Fetching metadata for', token.id)
+              const { getTokenMetadata } = await import('@/lib/token-metadata')
+              const metadata = await getTokenMetadata(token.id)
+              console.log('LiveBoard: Got metadata for', token.id, ':', metadata)
+              if (metadata?.image) {
+                setTokenImages(prev => {
+                  const newImages = new Map(prev)
+                  newImages.set(token.id, metadata.image)
+                  return newImages
+                })
+                console.log('LiveBoard: Set image for', token.id, ':', metadata.image)
+              }
+            } catch (e) {
+              console.error('LiveBoard: Could not fetch image for', token.id, e)
+            }
+          })()
         }
-      }
-      
-      console.log('LiveBoard: Setting', images.size, 'images')
-      setTokenImages(images)
+        
+        return images
+      })
     }
     
     fetchImages()
