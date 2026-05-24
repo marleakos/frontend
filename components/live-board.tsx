@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import Link from "next/link"
 import type { TokenData } from "@/hooks/use-tokens"
@@ -33,6 +33,36 @@ export function LiveBoard({ initial, koth }: { initial: TokenData[]; koth: Token
   const [statusFilter, setStatusFilter] = useState<string>("All")
   const [assetFilter, setAssetFilter] = useState<string>("All")
   const [showSortDropdown, setShowSortDropdown] = useState(false)
+  const [tokenImages, setTokenImages] = useState<Map<string, string>>(new Map())
+
+  // Fetch images for all tokens (same as token page)
+  useEffect(() => {
+    async function fetchImages() {
+      const allTokens = [...initial, koth]
+      const images = new Map<string, string>()
+      
+      for (const token of allTokens) {
+        if (token.image) {
+          images.set(token.id, token.image)
+          continue
+        }
+        
+        try {
+          const { getTokenMetadata } = await import('@/lib/token-metadata')
+          const metadata = await getTokenMetadata(token.id)
+          if (metadata?.image) {
+            images.set(token.id, metadata.image)
+          }
+        } catch (e) {
+          console.log('Could not fetch image for', token.id)
+        }
+      }
+      
+      setTokenImages(images)
+    }
+    
+    fetchImages()
+  }, [initial, koth])
 
   const sorted = useMemo(() => {
     let filtered = [...initial]
@@ -78,7 +108,7 @@ export function LiveBoard({ initial, koth }: { initial: TokenData[]; koth: Token
 
   return (
     <>
-      <KOTH token={koth} />
+      <KOTH token={koth} tokenImages={tokenImages} />
 
       {/* START A NEW COIN Button */}
       <div className="my-6 flex justify-center">
@@ -214,7 +244,7 @@ export function LiveBoard({ initial, koth }: { initial: TokenData[]; koth: Token
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         <AnimatePresence initial={false}>
           {sorted.map((t) => (
-            <LiveCard key={t.id} token={t} />
+            <LiveCard key={t.id} token={t} tokenImages={tokenImages} />
           ))}
         </AnimatePresence>
       </div>
@@ -222,7 +252,7 @@ export function LiveBoard({ initial, koth }: { initial: TokenData[]; koth: Token
   )
 }
 
-function LiveCard({ token }: { token: TokenData }) {
+function LiveCard({ token, tokenImages }: { token: TokenData; tokenImages: Map<string, string> }) {
   const positive = token.change24h >= 0
   return (
     <motion.div
@@ -237,16 +267,15 @@ function LiveCard({ token }: { token: TokenData }) {
         className="group flex gap-3 rounded-lg border border-border bg-card p-3 hover:border-primary transition-colors"
       >
         <div className="grid h-20 w-20 shrink-0 place-items-center rounded-md bg-secondary text-4xl overflow-hidden">
-          {token.image ? (
+          {(tokenImages.get(token.id) || token.image) ? (
             <img 
-              src={token.image} 
+              src={tokenImages.get(token.id) || token.image} 
               alt={token.name}
               className="w-full h-full object-cover"
               onError={(e) => {
-                console.error('Image failed to load:', token.image, 'for token:', token.name)
+                console.error('Image failed to load:', tokenImages.get(token.id) || token.image, 'for token:', token.name)
                 ;(e.target as HTMLImageElement).style.display = 'none'
               }}
-              onLoad={() => console.log('Image loaded successfully:', token.image)}
             />
           ) : (
             <span>{token.emoji}</span>
@@ -291,7 +320,7 @@ function LiveCard({ token }: { token: TokenData }) {
   )
 }
 
-function KOTH({ token }: { token: TokenData }) {
+function KOTH({ token, tokenImages }: { token: TokenData; tokenImages: Map<string, string> }) {
   const GRAD = 85
   // Use actual SOL reserves from pump.fun data
   const solReserves = token.solReserves || 0
@@ -322,13 +351,13 @@ function KOTH({ token }: { token: TokenData }) {
           <div className="grid grid-cols-[100px_1fr] gap-0 md:grid-cols-[140px_1fr]">
             {/* big lime emoji panel */}
             <div className="relative grid place-items-center bg-primary border-r-2 border-foreground overflow-hidden">
-              {token.image ? (
+              {(tokenImages.get(token.id) || token.image) ? (
                 <img 
-                  src={token.image} 
+                  src={tokenImages.get(token.id) || token.image} 
                   alt={token.name}
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    console.error('KOTH Image failed to load:', token.image)
+                    console.error('KOTH Image failed to load:', tokenImages.get(token.id) || token.image)
                     ;(e.target as HTMLImageElement).style.display = 'none'
                   }}
                 />
