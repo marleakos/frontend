@@ -62,7 +62,7 @@ export default function Page() {
         </div>
         <footer className="border-t border-border mt-16 py-6">
           <div className="mx-auto max-w-[1400px] px-4 flex items-center justify-between font-mono text-[11px] text-muted-foreground">
-            <span>leveregepump.fun · not financial advice · you will get rekt</span>
+            <span>leveragepump.fun · not financial advice · you will get rekt</span>
             <span>built on solana · powered by pyth oracles</span>
           </div>
         </footer>
@@ -85,7 +85,7 @@ export default function Page() {
       </div>
       <footer className="border-t border-border mt-16 py-6">
         <div className="mx-auto max-w-[1400px] px-4 flex items-center justify-between font-mono text-[11px] text-muted-foreground">
-          <span>leveregepump.fun · not financial advice · you will get rekt</span>
+          <span>leveragepump.fun · not financial advice · you will get rekt</span>
           <span>built on solana · powered by pyth oracles</span>
         </div>
       </footer>

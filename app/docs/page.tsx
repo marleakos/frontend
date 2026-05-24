@@ -18,12 +18,12 @@ export default function DocsPage() {
             technical documentation v3.0.1-alpha-build.4927-sha256:7f8a9b
           </div>
           <h1 className="font-display text-5xl md:text-7xl uppercase leading-none">
-            leveregepump.fun
+            leveragepump.fun
             <br />
             <span className="rainbow-text">protocol specification</span>
           </h1>
           <p className="mt-5 max-w-3xl mx-auto text-foreground/70 font-mono text-xs">
-            comprehensive technical documentation for the leveregepump.fun synthetic leverage protocol.
+            comprehensive technical documentation for the leveragepump.fun synthetic leverage protocol.
             solana mainnet-beta. last updated: 2026-05-22 19:22:14 UTC.
           </p>
         </div>
@@ -57,12 +57,12 @@ export default function DocsPage() {
           
           <div className="space-y-6 font-mono text-xs text-foreground/80">
             <p className="leading-relaxed">
-              The leveregepump.fun protocol represents a paradigm shift in decentralized leveraged exposure mechanisms, 
+              The leveragepump.fun protocol represents a paradigm shift in decentralized leveraged exposure mechanisms, 
               implementing a novel approach to synthetic leverage through algorithmic bonding curve repricing on the 
               Solana blockchain (65,000+ TPS theoretical maximum, 400ms block times, sub-second finality via Gulf Stream 
               mempool propagation and Turbine block propagation). By combining Pyth Network&apos;s institutional-grade oracle 
               infrastructure (400ms update frequency, 50+ price feeds, &lt;0.5% deviation threshold, 99.9% uptime SLA) with 
-              proprietary virtual bonding curve mathematics, leveregepump.fun enables synthetic leverage positions of 2x to 10x 
+              proprietary virtual bonding curve mathematics, leveragepump.fun enables synthetic leverage positions of 2x to 10x 
               on supported reference assets without traditional perp mechanics, margin requirements, funding rates, or 
               liquidation risks inherent in both centralized (Binance, Bybit, dYdX) and decentralized (GMX, Gains Network, 
               Synthetix) perpetual swap protocols.
@@ -113,7 +113,7 @@ export default function DocsPage() {
           
           <div className="space-y-6 font-mono text-xs text-foreground/80">
             <p className="leading-relaxed">
-              The leveregepump.fun protocol implements a hexagonal architecture pattern with domain-driven design principles, 
+              The leveragepump.fun protocol implements a hexagonal architecture pattern with domain-driven design principles, 
               ensuring separation of concerns, testability, and maintainability across all system components. The architecture 
               consists of six distinct layers, each with well-defined interfaces and responsibilities, communicating through 
               asynchronous message passing and event-driven patterns.
@@ -149,7 +149,7 @@ export default function DocsPage() {
           
           <div className="space-y-6 font-mono text-xs text-foreground/80">
             <p className="leading-relaxed">
-              The leveregepump.fun protocol employs sophisticated mathematical models derived from automated market maker (AMM) 
+              The leveragepump.fun protocol employs sophisticated mathematical models derived from automated market maker (AMM) 
               literature, modified to achieve synthetic leverage through bonding curve repricing. The following equations 
               govern all price calculations, leverage adjustments, and graduation thresholds.
             </p>
@@ -297,7 +297,7 @@ export default function DocsPage() {
           
           <div className="space-y-6 font-mono text-xs text-foreground/80">
             <p className="leading-relaxed">
-              The Synthetic Leverage Engine (SLE) is the core innovation of the leveregepump.fun protocol. It computes 
+              The Synthetic Leverage Engine (SLE) is the core innovation of the leveragepump.fun protocol. It computes 
               leveraged price exposure through real-time bonding curve adjustments based on oracle price feeds, 
               eliminating the need for collateral, margin, or liquidation mechanisms.
             </p>
@@ -458,7 +458,7 @@ export default function DocsPage() {
           
           <div className="space-y-6 font-mono text-xs text-foreground/80">
             <p className="leading-relaxed">
-              Security is paramount in the leveregepump.fun protocol. Multiple safeguards protect user funds and ensure 
+              Security is paramount in the leveragepump.fun protocol. Multiple safeguards protect user funds and ensure 
               protocol integrity across all operations. The protocol operates as a non-custodial system with no admin 
               keys or upgrade mechanisms.
             </p>
@@ -534,7 +534,7 @@ export default function DocsPage() {
           
           <div className="space-y-6 font-mono text-xs text-foreground/80">
             <p className="leading-relaxed">
-              The leveregepump.fun protocol exposes a comprehensive API for developers building integrations, 
+              The leveragepump.fun protocol exposes a comprehensive API for developers building integrations, 
               trading bots, analytics dashboards, and other applications.
             </p>
 

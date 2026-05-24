@@ -19,7 +19,7 @@ const bungee = Bungee({
 })
 
 export const metadata: Metadata = {
-  title: "leveregepump.fun — leveraged meme launchpad",
+  title: "leveragepump.fun — leveraged meme launchpad",
   description: "launch leveraged meme coins with 2x-10x leverage. fair launch on a bonding curve. powered by pyth oracles.",
   icons: {
     icon: "https://i.imgur.com/voT7zkP.png",
