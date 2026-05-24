@@ -135,6 +135,8 @@ async function fetchTokenMarketDataBatch(mintAddresses: string[]): Promise<Map<s
         
         // Get image from token metadata (Metaplex on-chain)
         let imageUrl = metadata?.image || null
+        console.log('Metadata object:', metadata)
+        console.log('Metadata has image?', metadata?.image)
         console.log('Image URL from metadata:', imageUrl)
         
         // DexScreener sometimes has image info
