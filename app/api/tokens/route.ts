@@ -18,15 +18,15 @@ const memoryTokens: any[] = [
   },
   {
     mintAddress: "4Vfm7DyWCkQHvNfGJfueCiN9XmupKv5SpcD5MDrGpump",
-    name: "ALPHA DEGEN",
-    symbol: "ALPHAX5",
+    name: "Cat on Ketamine",
+    symbol: "Ket",
     leverage: 5,
     direction: "LONG",
     underlying: "SOL",
     creator: "community",
     createdAt: "2026-05-25T12:47:56Z",
     isPlatformToken: true,
-    image: "https://i.imgur.com/8rX7k2m.png"
+    image: "https://api.vortexdeployer.com/image/8facf84c-31ca-4481-820a-b59e1439e8c2.webp"
   }
 ]
 
