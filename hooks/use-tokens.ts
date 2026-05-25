@@ -297,6 +297,13 @@ export function useTokens() {
       
       // Process all tokens with cached/fetched data
       const tokenData = allTokens.map((token: any) => {
+        // Skip tokens with invalid mint addresses
+        try {
+          new PublicKey(token.mintAddress)
+        } catch (e) {
+          console.error('Invalid mint address:', token.mintAddress, 'for token:', token.symbol)
+          return null
+        }
         const createdAt = new Date(token.createdAt).getTime()
         const ageMinutes = Math.floor((Date.now() - createdAt) / 60000)
 
@@ -339,7 +346,7 @@ export function useTokens() {
       })
       
       if (isMounted.current) {
-        setTokens(tokenData)
+        setTokens(tokenData.filter(Boolean))
       }
     } catch (err: any) {
       console.error("Error fetching tokens:", err)
