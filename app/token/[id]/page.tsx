@@ -84,21 +84,36 @@ export default function TokenPage({ params }: { params: Promise<{ id: string }> 
           }
         })
         
-        // Add platform token if not already present
-        const platformToken = {
-          mintAddress: "EjwEjwaBeYrQ3dC1Pd7577Sj3nBYPrhoQQVxRjn7pump",
-          name: "LEVERAGE PUMP",
-          symbol: "PUMPX10",
-          leverage: 10,
-          direction: "LONG",
-          underlying: "SOL",
-          creator: "platform",
-          createdAt: "2026-05-24T21:07:22Z",
-          image: "https://i.imgur.com/GC2U90i.png"
-        }
-        if (!allTokens.find((t: any) => t.mintAddress === platformToken.mintAddress)) {
-          allTokens.push(platformToken)
-        }
+        // Add platform tokens if not already present
+        const platformTokens = [
+          {
+            mintAddress: "EjwEjwaBeYrQ3dC1Pd7577Sj3nBYPrhoQQVxRjn7pump",
+            name: "LEVERAGE PUMP",
+            symbol: "PUMPX10",
+            leverage: 10,
+            direction: "LONG",
+            underlying: "SOL",
+            creator: "platform",
+            createdAt: "2026-05-24T21:07:22Z",
+            image: "https://i.imgur.com/GC2U90i.png"
+          },
+          {
+            mintAddress: "4Vfm7DyWCkQHvNfGJfueCiN9XmupKv5SpcD5MDrGpump",
+            name: "ALPHA DEGEN",
+            symbol: "ALPHAX5",
+            leverage: 5,
+            direction: "LONG",
+            underlying: "SOL",
+            creator: "community",
+            createdAt: "2026-05-25T12:47:56Z",
+            image: "https://i.imgur.com/8rX7k2m.png"
+          }
+        ]
+        platformTokens.forEach(platformToken => {
+          if (!allTokens.find((t: any) => t.mintAddress === platformToken.mintAddress)) {
+            allTokens.push(platformToken)
+          }
+        })
         
         // Find the token we're looking for
         let storedToken = allTokens.find((t: any) => t.mintAddress === id)
